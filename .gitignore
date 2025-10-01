@@ -10,14 +10,18 @@ Makefile
 install_manifest.txt
 compile_commands.json
 
-# Binaries
-*.out
+# Binarios
 *.o
 *.a
 *.so
 *.exe
+*.out
 
-# OS/IDE
-.DS_Store
+# IDE / SO
 .vscode/
 .idea/
+.DS_Store
+
+# Vendor
+vendor/lib/*
+!vendor/lib/.keep
