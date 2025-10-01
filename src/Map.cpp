@@ -1,11 +1,10 @@
 #include "Map.hpp"
+#include <iostream>
 
 void Map::generate() {
-    // TODO: Generación procedural mínima
-    std::cout << "[Map generated]" << std::endl;
+    std::cout << "[Map generated]\n";
 }
 
 void Map::draw() const {
-    // Placeholder: en Hito 1 basta imprimir un texto
-    std::cout << "[Drawing map...]" << std::endl;
+    std::cout << "[Drawing map...]\n";
 }
