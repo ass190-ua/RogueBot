@@ -28,6 +28,8 @@ target_include_directories(roguebot PRIVATE
   ${CMAKE_SOURCE_DIR}/vendor/include
 )
 
-# (Opcional futuro) libs en vendor/lib
-# link_directories(${CMAKE_SOURCE_DIR}/vendor/lib)
-# target_link_libraries(roguebot <libname>)
+# Enlace con raylib (instalada vía apt)
+target_link_libraries(roguebot
+  raylib
+  m pthread dl rt X11  # necesarias en Linux
+)
