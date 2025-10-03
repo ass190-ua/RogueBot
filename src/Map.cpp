@@ -135,19 +135,28 @@ void Map::computeVisibility(int px, int py, int radius) {
 void Map::draw(int tileSize) const {
     for (int y = 0; y < m_h; ++y) {
         for (int x = 0; x < m_w; ++x) {
-            // color base por tipo de tile
-            Color c = DARKGRAY; // WALL
-            if (at(x,y) == FLOOR) c = (Color){35,35,35,255};
-            else if (at(x,y) == EXIT) c = (Color){0,120,80,255};
 
-            // niebla: si nunca se ha visto -> casi negro; si no visible ahora -> más oscuro
-            bool disc = m_discovered[y * m_w + x] != 0;
-            bool vis  = m_visible[y * m_w + x] != 0;
-            if (!disc) {
-                c = (Color){10,10,10,255};
-            } else if (!vis) {
-                c = (Color){20,20,20,255};
+            // --- Si la niebla está desactivada, ignoramos visible/discovered ---
+            if (!m_fogEnabled) {
+                Color c;
+                if (at(x,y) == WALL)      c = DARKGRAY;
+                else if (at(x,y) == EXIT) c = Color{0,120,80,255};
+                else                      c = Color{35,35,35,255}; // FLOOR
+                DrawRectangle(x * tileSize, y * tileSize, tileSize, tileSize, c);
+                continue;
             }
+
+            // --- Niebla activada: aplicar oscurecimiento según visible/discovered ---
+            Color c = DARKGRAY; // WALL
+            if (at(x,y) == FLOOR) c = Color{35,35,35,255};
+            else if (at(x,y) == EXIT) c = Color{0,120,80,255};
+
+            const bool disc = m_discovered[y * m_w + x] != 0;
+            const bool vis  = m_visible[y * m_w + x] != 0;
+
+            // nunca visto -> casi negro; visto pero no visible ahora -> oscuro
+            if (!disc)       c = Color{10,10,10,255};
+            else if (!vis)   c = Color{20,20,20,255};
 
             DrawRectangle(x * tileSize, y * tileSize, tileSize, tileSize, c);
         }

@@ -11,6 +11,8 @@ Game::Game(unsigned seed) : fixedSeed(seed) {
     // Configurar ventana en fullscreen
     SetConfigFlags(FLAG_FULLSCREEN_MODE);
     InitWindow(0, 0, "RogueBot Alpha"); // tamaño se ajusta por el flag
+
+    player.load("assets/sprites/player");
     
     screenW = GetScreenWidth();
     screenH = GetScreenHeight();
@@ -64,6 +66,8 @@ void Game::newLevel(int level) {
     } else {
         px = tilesX/2; py = tilesY/2;
     }
+
+    player.setGridPos(px, py);
 }
 
 void Game::tryMove(int dx, int dy) {
@@ -86,19 +90,20 @@ void Game::run() {
         update();
         render();
     }
+    player.unload();
+
     CloseWindow();
 }
 
 void Game::processInput() {
     // Reiniciar run completo
     if (IsKeyPressed(KEY_R)) {
-        // Si NO hay seed fija, al empezar un nuevo run elegimos una runSeed nueva
         if (fixedSeed == 0) runSeed = nextRunSeed();
         newRun();
         return;
     }
 
-    // Toggle modo movimiento
+    // Toggle modo de movimiento (step-by-step <-> cooldown)
     if (IsKeyPressed(KEY_T)) {
         moveMode = (moveMode == MovementMode::StepByStep)
                    ? MovementMode::RepeatCooldown
@@ -106,22 +111,51 @@ void Game::processInput() {
         moveCooldown = 0.0f;
     }
 
-    if (state != GameState::Playing) return;
+    // --- Toggle SECRETO de NIEBLA (no aparece en HUD) ---
+    if (IsKeyPressed(KEY_F2)) {
+        fogEnabled = !fogEnabled;
+        map.setFogEnabled(fogEnabled);
+        if (fogEnabled) {
+            map.computeVisibility(px, py, getFovRadius());
+        }
+    }
 
-    // Movimiento jugador
+    // Si no estamos jugando (p.ej., victoria), no mover ni animar
+    if (state != GameState::Playing) {
+        player.update(GetFrameTime(), /*isMoving=*/false);
+        return;
+    }
+
+    // === Movimiento del jugador + animación de sprites ===
+    int dx = 0, dy = 0;
+    bool moved = false;
+    const float dt = GetFrameTime();
+
     if (moveMode == MovementMode::StepByStep) {
-        int dx = 0, dy = 0;
+        // Un paso por pulsación
         if (IsKeyPressed(KEY_W)) dy = -1;
         if (IsKeyPressed(KEY_S)) dy = +1;
         if (IsKeyPressed(KEY_A)) dx = -1;
         if (IsKeyPressed(KEY_D)) dx = +1;
-        tryMove(dx, dy);
-        map.computeVisibility(px, py, getFovRadius());
-    } else {
-        moveCooldown -= GetFrameTime();
 
-        int dx = 0, dy = 0;
-        bool pressedNow =
+        int oldx = px, oldy = py;
+        tryMove(dx, dy);
+        moved = (px != oldx || py != oldy);
+
+        if (moved) {
+            player.setGridPos(px, py);
+            player.setDirectionFromDelta(dx, dy);
+            if (map.fogEnabled()) map.computeVisibility(px, py, getFovRadius());
+        }
+
+        // Actualiza animación (idle si no te moviste)
+        player.update(dt, moved);
+
+    } else {
+        // Repetición con cooldown mientras mantienes tecla
+        moveCooldown -= dt;
+
+        const bool pressedNow =
             IsKeyPressed(KEY_W) || IsKeyPressed(KEY_S) ||
             IsKeyPressed(KEY_A) || IsKeyPressed(KEY_D);
 
@@ -131,17 +165,36 @@ void Game::processInput() {
         if (IsKeyDown(KEY_D)) dx = +1;
 
         if (pressedNow) {
+            int oldx = px, oldy = py;
             tryMove(dx, dy);
-            map.computeVisibility(px, py, getFovRadius());
-            moveCooldown = MOVE_INTERVAL;
-        } else if ((dx != 0 || dy != 0) && moveCooldown <= 0.0f) {
-            tryMove(dx, dy);
-            map.computeVisibility(px, py, getFovRadius());
+            moved = (px != oldx || py != oldy);
+
+            if (moved) {
+                player.setGridPos(px, py);
+                player.setDirectionFromDelta(dx, dy);
+                if (map.fogEnabled()) map.computeVisibility(px, py, getFovRadius());
+            }
+
             moveCooldown = MOVE_INTERVAL;
         }
+        else if ((dx != 0 || dy != 0) && moveCooldown <= 0.0f) {
+            int oldx = px, oldy = py;
+            tryMove(dx, dy);
+            moved = (px != oldx || py != oldy);
+
+            if (moved) {
+                player.setGridPos(px, py);
+                player.setDirectionFromDelta(dx, dy);
+                if (map.fogEnabled()) map.computeVisibility(px, py, getFovRadius());
+            }
+
+            moveCooldown = MOVE_INTERVAL;
+        }
+
+        // Actualiza animación (idle si no hubo movimiento este frame)
+        player.update(dt, moved);
     }
 }
-
 
 void Game::update() {
     if (state != GameState::Playing) return;
@@ -171,7 +224,7 @@ void Game::render() {
     map.draw(tileSize);
 
     // Jugador
-    DrawCircle(px * tileSize + tileSize/2, py * tileSize + tileSize/2, tileSize * 0.35f, YELLOW);
+    player.draw(tileSize, px, py);
 
     // HUD según estado
     if (state == GameState::Playing) {
@@ -182,4 +235,3 @@ void Game::render() {
 
     EndDrawing();
 }
-

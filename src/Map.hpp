@@ -15,9 +15,11 @@ public:
     void generate(int width, int height, unsigned seed = 0);
     void draw(int tileSize) const;
     void computeVisibility(int px, int py, int radius);
+    void setFogEnabled(bool enabled) { m_fogEnabled = enabled; }
 
     bool isVisible(int x, int y) const { return m_visible[y * m_w + x] != 0; }
     bool isDiscovered(int x, int y) const { return m_discovered[y * m_w + x] != 0; }
+    bool fogEnabled() const { return m_fogEnabled; }
 
     int width()  const { return m_w; }
     int height() const { return m_h; }
@@ -40,6 +42,8 @@ private:
     void carveVTunnel(int y1, int y2, int x, int thickness = 1);
 
     static bool overlaps(const Room& a, const Room& b, int padding = 1);
+
+    bool m_fogEnabled = true;
 };
 
 #endif

@@ -3,6 +3,7 @@
 
 #include "Map.hpp"
 #include "HUD.hpp"
+#include "Player.hpp"
 
 enum class MovementMode {
     StepByStep,
@@ -35,6 +36,9 @@ public:
     int getFovRadius() const { return 8; }
 
 private:
+    // Jugador
+    Player player;
+    
     // Pantalla / tiles
     int screenW;
     int screenH;
@@ -75,6 +79,9 @@ private:
     // Utilidades
     void tryMove(int dx, int dy);
     void onExitReached();
+
+    // niebla activada o no
+    bool fogEnabled = true;
 };
 
 #endif
