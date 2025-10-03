@@ -9,7 +9,7 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-# Fuentes del Hito 1
+# Fuentes
 set(SOURCES
   src/main.cpp
   src/Game.cpp
@@ -22,12 +22,30 @@ set(SOURCES
 
 add_executable(roguebot ${SOURCES})
 
-# Donde están las cabeceras propias y (futuras) de vendor
+# Incluye cabeceras propias y vendor/include si lo usas
 target_include_directories(roguebot PRIVATE
   ${CMAKE_SOURCE_DIR}/src
   ${CMAKE_SOURCE_DIR}/vendor/include
 )
 
-# (Opcional futuro) libs en vendor/lib
-# link_directories(${CMAKE_SOURCE_DIR}/vendor/lib)
-# target_link_libraries(roguebot <libname>)
+# ---- Raylib: usar del sistema si existe, si no, FetchContent (descarga/compila) ----
+include(FetchContent)
+find_package(raylib QUIET)
+
+if(NOT raylib_FOUND)
+  message(STATUS "raylib no encontrado en el sistema → usando FetchContent (raylib 5.0)")
+  FetchContent_Declare(
+    raylib
+    GIT_REPOSITORY https://github.com/raysan5/raylib.git
+    GIT_TAG 5.0
+  )
+  FetchContent_MakeAvailable(raylib)
+endif()
+
+# Enlace con raylib
+target_link_libraries(roguebot PRIVATE raylib)
+
+# Extras de Linux (no afectan a Windows/macOS)
+if(UNIX AND NOT APPLE)
+  target_link_libraries(roguebot PRIVATE m pthread dl rt X11)
+endif()
