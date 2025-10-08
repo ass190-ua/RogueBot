@@ -56,6 +56,12 @@ void Game::newRun()
     moveCooldown = 0.0f;
     hp = 3;
 
+    hasKey = false;
+    hasShield = false;
+    hasBattery = false;
+    swordTier = 0;
+    plasmaTier = 0;
+
     newLevel(currentLevel);
 }
 
@@ -98,6 +104,39 @@ void Game::newLevel(int level)
     };
     camera.target = playerCenterPx;
     clampCameraToMap();
+
+    hasKey = false;   // hay una llave por nivel
+
+    // ==== Spawner de ítems ====
+    // RNG determinista por nivel
+    rng = std::mt19937(levelSeed);
+
+    // (de momento no tienes enemigos: lista vacía)
+    std::vector<IVec2> enemyTiles;
+
+    // Walkable: todo lo que no sea WALL, con bounds check
+    auto isWalkable = [&](int x,int y){
+        return map.isWalkable(x, y);
+    };
+
+    // Spawn = posición actual del jugador
+    IVec2 spawnTile{ px, py };
+
+    // Exit = pedimos al mapa su posición
+    auto [exitX, exitY] = map.findExitTile();
+    IVec2 exitTile{ exitX, exitY };
+
+    // Generar ítems de este nivel (solo colocación; sin lógica aún)
+    items = ItemSpawner::generate(
+        map.width(), map.height(),
+        isWalkable,
+        spawnTile,
+        exitTile,
+        enemyTiles,
+        level,      // 1..3
+        rng,
+        runCtx
+    );
 }
 
 void Game::tryMove(int dx, int dy)
@@ -336,10 +375,13 @@ void Game::update()
     if (state != GameState::Playing)
         return;
 
+    // recoger si estás encima de algo
+    tryPickupHere();
+
     // ¿Has llegado a la salida?
     if (map.at(px, py) == EXIT)
     {
-        onExitReached();
+        if (hasKey) onExitReached();
     }
 
     // helper local
@@ -387,7 +429,8 @@ void Game::render()
         // Jugador (en coordenadas del mundo)
         player.draw(tileSize, px, py);
 
-        // Si más adelante tienes objetos o enemigos, también irían aquí
+        // Ítems del nivel (placeholder en colores)
+        drawItems();
 
     EndMode2D();
     // --- Fin de cámara ---
@@ -403,4 +446,126 @@ void Game::render()
     }
 
     EndDrawing();
+}
+
+void Game::drawItems() const {
+    auto isVisible = [&](int x, int y) {
+        // si la niebla está activa, solo mostramos si el tile es visible
+        if (map.fogEnabled()) return map.isVisible(x, y);
+        return true; // sin niebla => siempre visibles
+    };
+
+    auto labelFor = [&](ItemType t) -> const char* {
+        switch (t) {
+            case ItemType::LlaveMaestra:        return "K";   // Key
+            case ItemType::BateriaVidaExtra:    return "B";   // Battery
+            case ItemType::Escudo:              return "S";   // Shield
+            case ItemType::Gafas3DBuenas:       return "3D+";  // 3D Glasses good
+            case ItemType::Gafas3DMalas:        return "3D-";  // 3D Glasses bad
+            case ItemType::PilaBuena:           return "P+";  // Pila buena
+            case ItemType::PilaMala:            return "P-";  // Pila mala
+            case ItemType::EspadaPickup:        return "E";   // Espada
+            case ItemType::PistolaPlasmaPickup: return "L";   // Laser/Plasma
+        }
+        return "?";
+    };
+
+    for (const auto& it : items) {
+        const int x = it.tile.x;
+        const int y = it.tile.y;
+        if (!isVisible(x, y)) continue; // ← oculta fuera del FOV
+
+        const int pxl = x * tileSize;
+        const int pyl = y * tileSize;
+
+        // color por tipo (igual que antes)
+        Color c = WHITE;
+        switch (it.type) {
+            case ItemType::LlaveMaestra:        c = GOLD;      break;
+            case ItemType::BateriaVidaExtra:    c = YELLOW;    break;
+            case ItemType::Escudo:              c = SKYBLUE;   break;
+            case ItemType::Gafas3DBuenas:       c = RAYWHITE;  break;
+            case ItemType::Gafas3DMalas:        c = DARKGRAY;  break;
+            case ItemType::PilaBuena:           c = LIME;      break;
+            case ItemType::PilaMala:            c = MAROON;    break;
+            case ItemType::EspadaPickup:        c = RED;       break;
+            case ItemType::PistolaPlasmaPickup: c = PURPLE;    break;
+        }
+
+        DrawRectangle(pxl, pyl, tileSize, tileSize, Fade(c, 0.85f));
+        DrawRectangleLines(pxl, pyl, tileSize, tileSize, BLACK);
+
+        // === Etiqueta centrada ===
+        const char* txt = labelFor(it.type);
+        const int fontSize = std::max(10, tileSize / 2);           // legible
+        const int textW = MeasureText(txt, fontSize);
+        const int textH = fontSize; // Raylib usa aprox. fontSize como alto
+
+        const int tx = pxl + (tileSize - textW) / 2;
+        const int ty = pyl + (tileSize - textH) / 2;
+
+        // sombra para contraste
+        DrawText(txt, tx+1, ty+1, fontSize, BLACK);
+        DrawText(txt, tx,   ty,   fontSize, WHITE);
+    }
+}
+
+void Game::tryPickupHere() {
+    // busca un item exactamente en (px,py)
+    for (size_t i = 0; i < items.size(); ++i) {
+        if (items[i].tile.x == px && items[i].tile.y == py) {
+            onPickup(items[i]);
+            // quita el item del mundo
+            items.erase(items.begin() + i);
+            break;
+        }
+    }
+}
+
+void Game::onPickup(const ItemSpawn& it) {
+    switch (it.type) {
+        case ItemType::LlaveMaestra:
+            hasKey = true;
+            std::cout << "[Pickup] Llave maestra obtenida.\n";
+            break;
+
+        case ItemType::Escudo:
+            hasShield = true;
+            std::cout << "[Pickup] Escudo preparado.\n";
+            break;
+
+        case ItemType::BateriaVidaExtra:
+            hasBattery = true;
+            std::cout << "[Pickup] Batería extra lista.\n";
+            break;
+
+        case ItemType::EspadaPickup: {
+            // regla: no saltar niveles si no recogiste anteriores
+            int real = std::min(it.tierSugerido, swordTier + 1);
+            if (real > swordTier) swordTier = real;
+            std::cout << "[Pickup] Espada nivel " << swordTier << ".\n";
+            break;
+        }
+
+        case ItemType::PistolaPlasmaPickup: {
+            int real = std::min(it.tierSugerido, plasmaTier + 1);
+            if (real > plasmaTier) plasmaTier = real;
+            std::cout << "[Pickup] Plasma nivel " << plasmaTier << ".\n";
+            break;
+        }
+
+        // De momento las pilas y gafas solo se recogen y desaparecen.
+        case ItemType::PilaBuena:
+            std::cout << "[Pickup] Pila buena (sin efecto por ahora).\n";
+            break;
+        case ItemType::PilaMala:
+            std::cout << "[Pickup] Pila mala (sin efecto por ahora).\n";
+            break;
+        case ItemType::Gafas3DBuenas:
+            std::cout << "[Pickup] Gafas 3D buenas (20s, sin aplicar aún).\n";
+            break;
+        case ItemType::Gafas3DMalas:
+            std::cout << "[Pickup] Gafas 3D malas (20s, sin aplicar aún).\n";
+            break;
+    }
 }

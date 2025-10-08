@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <cstdint>
+#include <utility>   // std::pair
 
 enum Tile : uint8_t { WALL = 0, FLOOR = 1, EXIT = 2 };
 
@@ -26,12 +27,27 @@ public:
 
     Tile at(int x, int y) const { return m_tiles[y * m_w + x]; }
 
+    bool isWalkable(int x, int y) const {
+        return (x >= 0 && y >= 0 && x < m_w && y < m_h) && (m_tiles[y * m_w + x] != WALL);
+    }
+
+    // Devuelve la posición de la salida como (x,y)
+    std::pair<int,int> findExitTile() const {
+        for (int y = 0; y < m_h; ++y) {
+            for (int x = 0; x < m_w; ++x) {
+                if (m_tiles[y * m_w + x] == EXIT) return {x, y};
+            }
+        }
+        // Fallback (no debería ocurrir si siempre generas EXIT)
+        return {m_w / 2, m_h / 2};
+    }
+
     Room firstRoom() const { return m_rooms.empty() ? Room{0,0,0,0} : m_rooms.front(); }
     Room lastRoom()  const { return m_rooms.empty() ? Room{0,0,0,0} : m_rooms.back(); }
 
 private:
     int m_w = 0, m_h = 0;
-    
+
     std::vector<Tile> m_tiles;
     std::vector<Room> m_rooms;
     std::vector<uint8_t> m_visible;    // 0/1 visible este frame
