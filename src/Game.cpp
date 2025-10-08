@@ -10,6 +10,51 @@ static inline unsigned now_seed()
     return static_cast<unsigned>(time(nullptr));
 }
 
+static Texture2D loadTex(const char* path) 
+{
+    Image img = LoadImage(path);
+    if (img.data == nullptr) {
+        // fallback: 1x1 blanco si falla
+        Image white = GenImageColor(1,1, WHITE);
+        Texture2D t = LoadTextureFromImage(white);
+        UnloadImage(white);
+        return t;
+    }
+    Texture2D t = LoadTextureFromImage(img);
+    UnloadImage(img);
+    return t;
+}
+
+void ItemSprites::load() {
+    if (loaded) return;
+    keycard   = loadTex("assets/sprites/items/item_keycard.png");
+    shield    = loadTex("assets/sprites/items/item_shield.png");
+    pila      = loadTex("assets/sprites/items/item_healthbattery.png");
+    glasses   = loadTex("assets/sprites/items/item_glasses.png");
+    swordBlue = loadTex("assets/sprites/items/item_sword_blue.png");
+    swordGreen= loadTex("assets/sprites/items/item_sword_green.png");
+    swordRed  = loadTex("assets/sprites/items/item_sword_red.png");
+    plasma1   = loadTex("assets/sprites/items/item_plasma1.png");
+    plasma2   = loadTex("assets/sprites/items/item_plasma2.png");
+    battery   = loadTex("assets/sprites/items/item_battery.png");
+    loaded = true;
+}
+
+void ItemSprites::unload() {
+    if (!loaded) return;
+    UnloadTexture(keycard);
+    UnloadTexture(shield);
+    UnloadTexture(pila);
+    UnloadTexture(glasses);
+    UnloadTexture(swordBlue);
+    UnloadTexture(swordGreen);
+    UnloadTexture(swordRed);
+    UnloadTexture(plasma1);
+    UnloadTexture(plasma2);
+    UnloadTexture(battery);
+    loaded = false;
+}
+
 Game::Game(unsigned seed) : fixedSeed(seed)
 {
     // Configurar ventana en fullscreen
@@ -17,6 +62,7 @@ Game::Game(unsigned seed) : fixedSeed(seed)
     InitWindow(0, 0, "RogueBot Alpha"); // tamaño se ajusta por el flag
 
     player.load("assets/sprites/player");
+    itemSprites.load();
 
     screenW = GetScreenWidth();
     screenH = GetScreenHeight();
@@ -61,6 +107,10 @@ void Game::newRun()
     hasBattery = false;
     swordTier = 0;
     plasmaTier = 0;
+
+    // reinicia progreso persistente del run
+    runCtx.espadaMejorasObtenidas = 0;
+    runCtx.plasmaMejorasObtenidas = 0;
 
     newLevel(currentLevel);
 }
@@ -166,7 +216,7 @@ void Game::run()
         render();
     }
     player.unload();
-
+    itemSprites.unload();
     CloseWindow();
 }
 
@@ -450,63 +500,13 @@ void Game::render()
 
 void Game::drawItems() const {
     auto isVisible = [&](int x, int y) {
-        // si la niebla está activa, solo mostramos si el tile es visible
         if (map.fogEnabled()) return map.isVisible(x, y);
-        return true; // sin niebla => siempre visibles
-    };
-
-    auto labelFor = [&](ItemType t) -> const char* {
-        switch (t) {
-            case ItemType::LlaveMaestra:        return "K";   // Key
-            case ItemType::BateriaVidaExtra:    return "B";   // Battery
-            case ItemType::Escudo:              return "S";   // Shield
-            case ItemType::Gafas3DBuenas:       return "3D+";  // 3D Glasses good
-            case ItemType::Gafas3DMalas:        return "3D-";  // 3D Glasses bad
-            case ItemType::PilaBuena:           return "P+";  // Pila buena
-            case ItemType::PilaMala:            return "P-";  // Pila mala
-            case ItemType::EspadaPickup:        return "E";   // Espada
-            case ItemType::PistolaPlasmaPickup: return "L";   // Laser/Plasma
-        }
-        return "?";
+        return true;
     };
 
     for (const auto& it : items) {
-        const int x = it.tile.x;
-        const int y = it.tile.y;
-        if (!isVisible(x, y)) continue; // ← oculta fuera del FOV
-
-        const int pxl = x * tileSize;
-        const int pyl = y * tileSize;
-
-        // color por tipo (igual que antes)
-        Color c = WHITE;
-        switch (it.type) {
-            case ItemType::LlaveMaestra:        c = GOLD;      break;
-            case ItemType::BateriaVidaExtra:    c = YELLOW;    break;
-            case ItemType::Escudo:              c = SKYBLUE;   break;
-            case ItemType::Gafas3DBuenas:       c = RAYWHITE;  break;
-            case ItemType::Gafas3DMalas:        c = DARKGRAY;  break;
-            case ItemType::PilaBuena:           c = LIME;      break;
-            case ItemType::PilaMala:            c = MAROON;    break;
-            case ItemType::EspadaPickup:        c = RED;       break;
-            case ItemType::PistolaPlasmaPickup: c = PURPLE;    break;
-        }
-
-        DrawRectangle(pxl, pyl, tileSize, tileSize, Fade(c, 0.85f));
-        DrawRectangleLines(pxl, pyl, tileSize, tileSize, BLACK);
-
-        // === Etiqueta centrada ===
-        const char* txt = labelFor(it.type);
-        const int fontSize = std::max(10, tileSize / 2);           // legible
-        const int textW = MeasureText(txt, fontSize);
-        const int textH = fontSize; // Raylib usa aprox. fontSize como alto
-
-        const int tx = pxl + (tileSize - textW) / 2;
-        const int ty = pyl + (tileSize - textH) / 2;
-
-        // sombra para contraste
-        DrawText(txt, tx+1, ty+1, fontSize, BLACK);
-        DrawText(txt, tx,   ty,   fontSize, WHITE);
+        if (!isVisible(it.tile.x, it.tile.y)) continue;
+        drawItemSprite(it);
     }
 }
 
@@ -519,6 +519,51 @@ void Game::tryPickupHere() {
             items.erase(items.begin() + i);
             break;
         }
+    }
+}
+
+void Game::drawItemSprite(const ItemSpawn& it) const {
+    // Selección de textura según tipo/tier sugerido
+    const Texture2D* tex = nullptr;
+
+    switch (it.type) {
+        case ItemType::LlaveMaestra:        tex = &itemSprites.keycard; break;
+        case ItemType::Escudo:              tex = &itemSprites.shield;  break;
+        case ItemType::PilaBuena:
+        case ItemType::PilaMala:            tex = &itemSprites.pila;    break;
+        case ItemType::Gafas3DBuenas:
+        case ItemType::Gafas3DMalas:        tex = &itemSprites.glasses; break;
+        case ItemType::BateriaVidaExtra:    tex = &itemSprites.battery; break;
+        case ItemType::EspadaPickup: {
+            // tier visual = min(tierSugerido, mejorasObtenidas + 1)
+            int displayTier = std::min(it.tierSugerido, runCtx.espadaMejorasObtenidas + 1);
+            displayTier = std::clamp(displayTier, 1, 3);
+            tex = (displayTier==1) ? &itemSprites.swordBlue
+                 : (displayTier==2) ? &itemSprites.swordGreen
+                                    : &itemSprites.swordRed;
+            break;
+        }
+        case ItemType::PistolaPlasmaPickup: {
+            int displayTier = std::min(it.tierSugerido, runCtx.plasmaMejorasObtenidas + 1);
+            displayTier = std::clamp(displayTier, 1, 2);
+            tex = (displayTier==1) ? &itemSprites.plasma1 : &itemSprites.plasma2;
+            break;
+        }
+    }
+
+    const int pxl = it.tile.x * tileSize;
+    const int pyl = it.tile.y * tileSize;
+
+    if (tex && tex->id != 0) {
+        // Escala al tileSize por si no es 32 exactamente
+        Rectangle src{0,0,(float)tex->width,(float)tex->height};
+        Rectangle dst{(float)pxl,(float)pyl,(float)tileSize,(float)tileSize};
+        Vector2   origin{0,0};
+        DrawTexturePro(*tex, src, dst, origin, 0.0f, WHITE);
+    } else {
+        // Fallback por si faltara algún PNG
+        DrawRectangle(pxl, pyl, tileSize, tileSize, WHITE);
+        DrawRectangleLines(pxl, pyl, tileSize, tileSize, BLACK);
     }
 }
 
@@ -543,6 +588,7 @@ void Game::onPickup(const ItemSpawn& it) {
             // regla: no saltar niveles si no recogiste anteriores
             int real = std::min(it.tierSugerido, swordTier + 1);
             if (real > swordTier) swordTier = real;
+            runCtx.espadaMejorasObtenidas = swordTier;
             std::cout << "[Pickup] Espada nivel " << swordTier << ".\n";
             break;
         }
@@ -550,6 +596,7 @@ void Game::onPickup(const ItemSpawn& it) {
         case ItemType::PistolaPlasmaPickup: {
             int real = std::min(it.tierSugerido, plasmaTier + 1);
             if (real > plasmaTier) plasmaTier = real;
+            runCtx.plasmaMejorasObtenidas = plasmaTier;
             std::cout << "[Pickup] Plasma nivel " << plasmaTier << ".\n";
             break;
         }

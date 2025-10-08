@@ -20,6 +20,22 @@ enum class GameState {
     Victory
 };
 
+struct ItemSprites {
+    Texture2D keycard{};
+    Texture2D shield{};
+    Texture2D pila{};         
+    Texture2D glasses{};
+    Texture2D swordBlue{};
+    Texture2D swordGreen{};
+    Texture2D swordRed{};
+    Texture2D plasma1{};
+    Texture2D plasma2{};
+    Texture2D battery{};      
+    bool loaded = false;
+    void load();
+    void unload();
+};
+
 class Game {
 public:
     explicit Game(unsigned seed = 0);
@@ -103,6 +119,7 @@ private:
 
     // Dibujo de ítems (placeholder de colores hasta tener sprites)
     void drawItems() const;  
+    void drawItemSprite(const ItemSpawn& it) const;
 
     // --- inventario mínimo ---
     bool hasKey = false;
@@ -114,6 +131,9 @@ private:
     // --- helpers de recogida ---
     void tryPickupHere();                // busca item en (px,py) y lo recoge
     void onPickup(const ItemSpawn& it);  // aplica lógica de inventario
+
+    // Sprites de ítems
+    ItemSprites itemSprites; 
 };
 
 #endif
