@@ -42,7 +42,7 @@ private:
     // Pantalla / tiles
     int screenW;
     int screenH;
-    int tileSize = 16;
+    int tileSize = 32;
 
     // Mundo y jugador
     Map map;
