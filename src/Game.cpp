@@ -111,18 +111,6 @@ void Game::run()
     CloseWindow();
 }
 
-// ======================
-// Sub-issue #4 – Movimiento del jugador
-// ======================
-//
-// Funcionalidad: El jugador se mueve por el grid usando WASD o flechas.
-//
-// - Modo StepByStep: mueve un tile por pulsación (IsKeyPressed).
-// - Modo RepeatCooldown: se mueve continuamente mientras mantienes la tecla.
-// - tryMove() evita salir del mapa o atravesar paredes (WALL).
-// - setDirectionFromDelta(dx, dy) cambia la dirección del sprite.
-// - player.update(dt, moved) actualiza animación (walk / idle).
-
 void Game::processInput()
 {
     // Reiniciar run completo
@@ -288,13 +276,6 @@ void Game::render()
 
     // Jugador (sprite normal)
     player.draw(tileSize, px, py);
-
-    // --- Punto indicador del jugador ---
-    // Siempre visible, útil para orientarse con niebla
-    Vector2 playerCenter = {
-        px * (float)tileSize + tileSize / 2.0f,
-        py * (float)tileSize + tileSize / 2.0f};
-    DrawCircleV(playerCenter, 2, WHITE);
 
     // HUD según estado
     if (state == GameState::Playing)
