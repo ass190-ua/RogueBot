@@ -4,6 +4,7 @@
 #include "Map.hpp"
 #include "HUD.hpp"
 #include "Player.hpp"
+#include "raylib.h"
 
 enum class MovementMode {
     StepByStep,
@@ -33,7 +34,7 @@ public:
     int getPlayerY() const { return py; }
 
     // radio FOV 
-    int getFovRadius() const { return 8; }
+    int getFovRadius() const { return fovTiles; }
 
 private:
     // Jugador
@@ -75,6 +76,7 @@ private:
     void processInput();
     void update();
     void render();
+    void clampCameraToMap();
 
     // Utilidades
     void tryMove(int dx, int dy);
@@ -82,6 +84,13 @@ private:
 
     // niebla activada o no
     bool fogEnabled = true;
+
+    int fovTiles = 8;                  
+    int defaultFovFromViewport() const;
+
+    // Cámara (útil si quieres zoom o scroll)
+    Camera2D camera{};
+    float cameraZoom = 1.0f;  // control de zoom
 };
 
 #endif
