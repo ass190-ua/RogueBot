@@ -2,6 +2,7 @@
 #include "raylib.h"
 #include <ctime>
 #include <iostream>
+#include <algorithm>
 
 static inline unsigned now_seed()
 {
@@ -236,6 +237,16 @@ void Game::processInput()
 
         // Actualiza animación (idle si no hubo movimiento este frame)
         player.update(dt, moved);
+    }
+
+    // H: perder vida
+    if (IsKeyPressed(KEY_H)) {
+        hp = std::max(0, hp - 1);
+    }
+
+    //J: Ganar vida
+    if (IsKeyPressed(KEY_J)) {
+        hp = std::min(hpMax, hp + 1);
     }
 }
 

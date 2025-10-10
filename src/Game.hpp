@@ -35,6 +35,10 @@ public:
     // radio FOV 
     int getFovRadius() const { return 8; }
 
+    // HUD: Getters de vida
+    int getHP() const { return hp; }
+    int getHPMax() const { return hpMax; }
+
 private:
     // Jugador
     Player player;
@@ -47,7 +51,8 @@ private:
     // Mundo y jugador
     Map map;
     int px = 0, py = 0;
-    int hp = 3;
+    int hp = 6;
+    int hpMax = 6;
 
     // Semillas
     unsigned fixedSeed = 0;
