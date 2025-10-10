@@ -430,6 +430,16 @@ void Game::processInput()
         // Actualiza animación (idle si no hubo movimiento este frame)
         player.update(dt, moved);
     }
+
+    // H: perder vida
+    if (IsKeyPressed(KEY_H)) {
+        hp = std::max(0, hp - 1);
+    }
+
+    //J: Ganar vida
+    if (IsKeyPressed(KEY_J)) {
+        hp = std::min(hpMax, hp + 1);
+    }
 }
 
 void Game::clampCameraToMap()
