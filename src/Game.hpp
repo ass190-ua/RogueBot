@@ -7,6 +7,7 @@
 #include "Map.hpp"
 #include "HUD.hpp"
 #include "Player.hpp"
+#include "Enemy.hpp"
 #include "raylib.h"
 #include "ItemSpawner.hpp"  
 
@@ -79,6 +80,19 @@ private:
     std::mt19937 rng;               
     RunContext runCtx;
     std::vector<ItemSpawn> items;
+    
+        // --- Enemigos ---
+    std::vector<Enemy> enemies;
+    int ENEMY_DETECT_RADIUS_PX = 32 * 6; // ~6 tiles si tileSize=32
+
+    // Cantidad por nivel (ajústalo si quieres)
+    int enemiesPerLevel(int lvl) const { return (lvl==1)?3 : (lvl==2)?4 : 5; }
+
+    // Helpers de enemigos
+    void spawnEnemiesForLevel();                     // crear enemigos al iniciar nivel
+    void updateEnemiesAfterPlayerMove(bool moved);   // IA y colisión básica (placeholder)
+    void drawEnemies() const;                        // dibujado
+
 
     // Movimiento
     MovementMode moveMode = MovementMode::StepByStep;
