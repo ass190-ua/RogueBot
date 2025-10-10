@@ -40,6 +40,13 @@ void ItemSprites::load()
     plasma1 = loadTex("assets/sprites/items/item_plasma1.png");
     plasma2 = loadTex("assets/sprites/items/item_plasma2.png");
     battery = loadTex("assets/sprites/items/item_battery.png");
+    enemy = loadTex("assets/sprites/enemies/enemy.png");
+    enemyUp = loadTex("assets/sprites/enemies/enemy_up.png");
+    enemyDown = loadTex("assets/sprites/enemies/enemy_down.png");
+    enemyLeft = loadTex("assets/sprites/enemies/enemy_left.png");
+    enemyRight = loadTex("assets/sprites/enemies/enemy_right.png");
+    // (si mantienes también enemy = ... , perfecto; nos sirve de fallback)
+
     loaded = true;
 }
 
@@ -57,6 +64,13 @@ void ItemSprites::unload()
     UnloadTexture(plasma1);
     UnloadTexture(plasma2);
     UnloadTexture(battery);
+    UnloadTexture(enemy);
+    UnloadTexture(enemyUp);
+    UnloadTexture(enemyDown);
+    UnloadTexture(enemyLeft);
+    UnloadTexture(enemyRight);
+    // si tienes enemy: UnloadTexture(enemy);
+
     loaded = false;
 }
 
@@ -406,9 +420,8 @@ void Game::processInput()
                 camera.target = {
                     px * (float)tileSize + tileSize / 2.0f,
                     py * (float)tileSize + tileSize / 2.0f};
-                clampCameraToMap(); 
+                clampCameraToMap();
                 updateEnemiesAfterPlayerMove(true);
-
             }
 
             moveCooldown = MOVE_INTERVAL;
@@ -738,44 +751,62 @@ void Game::spawnEnemiesForLevel()
             }
         }
     }
+    enemyFacing.assign(enemies.size(), EnemyFacing::Down);
 }
 
-void Game::updateEnemiesAfterPlayerMove(bool moved) {
-    if (!moved) return;
+void Game::updateEnemiesAfterPlayerMove(bool moved)
+{
+    if (!moved)
+        return;
 
-    struct Intent {
-        int fromx, fromy;   // origen
-        int tox, toy;       // destino propuesto
-        bool wants;         // quiere moverse
-        int  score;         // menor = mejor (distancia al jugador tras moverse)
-        size_t idx;         // índice del enemigo (para desempates estables)
+    struct Intent
+    {
+        int fromx, fromy; // origen
+        int tox, toy;     // destino propuesto
+        bool wants;       // quiere moverse
+        int score;        // menor = mejor (distancia al jugador tras moverse)
+        size_t idx;       // índice del enemigo (para desempates estables)
     };
 
-    auto inRangePx = [&](int ex, int ey)->bool {
+    auto inRangePx = [&](int ex, int ey) -> bool
+    {
         int dx = px - ex, dy = py - ey;
-        float distPx = std::sqrt(float(dx*dx + dy*dy)) * float(tileSize);
+        float distPx = std::sqrt(float(dx * dx + dy * dy)) * float(tileSize);
         return distPx <= float(ENEMY_DETECT_RADIUS_PX);
     };
 
-    auto can = [&](int nx, int ny)->bool {
-        return nx>=0 && ny>=0 && nx<map.width() && ny<map.height() && map.isWalkable(nx,ny);
+    auto can = [&](int nx, int ny) -> bool
+    {
+        return nx >= 0 && ny >= 0 && nx < map.width() && ny < map.height() && map.isWalkable(nx, ny);
     };
 
-    auto sgn = [](int v){ return (v>0) - (v<0); };
+    auto sgn = [](int v)
+    { return (v > 0) - (v < 0); };
 
-    auto greedyNext = [&](int ex, int ey)->std::pair<int,int>{
+    auto greedyNext = [&](int ex, int ey) -> std::pair<int, int>
+    {
         int dx = px - ex, dy = py - ey;
-        if (dx == 0 && dy == 0) return {ex, ey};
-        if (std::abs(dx) >= std::abs(dy)) {
+        if (dx == 0 && dy == 0)
+            return {ex, ey};
+        if (std::abs(dx) >= std::abs(dy))
+        {
             int nx = ex + sgn(dx), ny = ey;
-            if (can(nx,ny)) return {nx,ny};
-            nx = ex; ny = ey + sgn(dy);
-            if (can(nx,ny)) return {nx,ny};
-        } else {
+            if (can(nx, ny))
+                return {nx, ny};
+            nx = ex;
+            ny = ey + sgn(dy);
+            if (can(nx, ny))
+                return {nx, ny};
+        }
+        else
+        {
             int nx = ex, ny = ey + sgn(dy);
-            if (can(nx,ny)) return {nx,ny};
-            nx = ex + sgn(dx); ny = ey;
-            if (can(nx,ny)) return {nx,ny};
+            if (can(nx, ny))
+                return {nx, ny};
+            nx = ex + sgn(dx);
+            ny = ey;
+            if (can(nx, ny))
+                return {nx, ny};
         }
         return {ex, ey}; // bloqueado
     };
@@ -783,16 +814,21 @@ void Game::updateEnemiesAfterPlayerMove(bool moved) {
     // 1) Construir intenciones
     std::vector<Intent> intents;
     intents.reserve(enemies.size());
-    for (size_t i = 0; i < enemies.size(); ++i) {
-        const auto& e = enemies[i];
-        Intent it{ e.getX(), e.getY(), e.getX(), e.getY(), false, 1'000'000, i };
+    for (size_t i = 0; i < enemies.size(); ++i)
+    {
+        const auto &e = enemies[i];
+        Intent it{e.getX(), e.getY(), e.getX(), e.getY(), false, 1'000'000, i};
 
-        if (inRangePx(e.getX(), e.getY())) {
+        if (inRangePx(e.getX(), e.getY()))
+        {
             auto [nx, ny] = greedyNext(e.getX(), e.getY());
-            it.tox = nx; it.toy = ny;
+            it.tox = nx;
+            it.toy = ny;
             it.wants = (nx != e.getX() || ny != e.getY());
             it.score = std::abs(px - nx) + std::abs(py - ny);
-        } else {
+        }
+        else
+        {
             // fuera de rango: no se mueve
             it.score = std::abs(px - e.getX()) + std::abs(py - e.getY());
         }
@@ -800,76 +836,172 @@ void Game::updateEnemiesAfterPlayerMove(bool moved) {
     }
 
     // 2) Resolver conflictos de MISMO destino: gana menor score; si empatan, menor idx
-    for (size_t i = 0; i < intents.size(); ++i) {
-        if (!intents[i].wants) continue;
-        for (size_t j = i + 1; j < intents.size(); ++j) {
-            if (!intents[j].wants) continue;
-            if (intents[i].tox == intents[j].tox && intents[i].toy == intents[j].toy) {
+    for (size_t i = 0; i < intents.size(); ++i)
+    {
+        if (!intents[i].wants)
+            continue;
+        for (size_t j = i + 1; j < intents.size(); ++j)
+        {
+            if (!intents[j].wants)
+                continue;
+            if (intents[i].tox == intents[j].tox && intents[i].toy == intents[j].toy)
+            {
                 bool jWins = (intents[j].score < intents[i].score) ||
                              (intents[j].score == intents[i].score && intents[j].idx < intents[i].idx);
-                if (jWins) {
-                    intents[i].tox = intents[i].fromx; intents[i].toy = intents[i].fromy; intents[i].wants = false;
-                } else {
-                    intents[j].tox = intents[j].fromx; intents[j].toy = intents[j].fromy; intents[j].wants = false;
+                if (jWins)
+                {
+                    intents[i].tox = intents[i].fromx;
+                    intents[i].toy = intents[i].fromy;
+                    intents[i].wants = false;
+                }
+                else
+                {
+                    intents[j].tox = intents[j].fromx;
+                    intents[j].toy = intents[j].fromy;
+                    intents[j].wants = false;
                 }
             }
         }
     }
 
     // 3) No invadir la casilla de un enemigo que se queda quieto
-    for (size_t i = 0; i < intents.size(); ++i) {
-        if (!intents[i].wants) continue;
-        for (size_t j = 0; j < intents.size(); ++j) {
-            if (i == j) continue;
+    for (size_t i = 0; i < intents.size(); ++i)
+    {
+        if (!intents[i].wants)
+            continue;
+        for (size_t j = 0; j < intents.size(); ++j)
+        {
+            if (i == j)
+                continue;
             bool otherStays = !intents[j].wants || (intents[j].tox == intents[j].fromx && intents[j].toy == intents[j].fromy);
-            if (otherStays && intents[i].tox == intents[j].fromx && intents[i].toy == intents[j].fromy) {
-                intents[i].tox = intents[i].fromx; intents[i].toy = intents[i].fromy; intents[i].wants = false;
+            if (otherStays && intents[i].tox == intents[j].fromx && intents[i].toy == intents[j].fromy)
+            {
+                intents[i].tox = intents[i].fromx;
+                intents[i].toy = intents[i].fromy;
+                intents[i].wants = false;
                 break;
             }
         }
     }
 
     // 4) Evitar "swap" cabeza-con-cabeza (A<->B). Gana mejor score; si empatan, menor idx
-    for (size_t i = 0; i < intents.size(); ++i) {
-        if (!intents[i].wants) continue;
-        for (size_t j = i + 1; j < intents.size(); ++j) {
-            if (!intents[j].wants) continue;
+    for (size_t i = 0; i < intents.size(); ++i)
+    {
+        if (!intents[i].wants)
+            continue;
+        for (size_t j = i + 1; j < intents.size(); ++j)
+        {
+            if (!intents[j].wants)
+                continue;
             bool headOnSwap =
                 intents[i].tox == intents[j].fromx && intents[i].toy == intents[j].fromy &&
                 intents[j].tox == intents[i].fromx && intents[j].toy == intents[i].fromy;
-            if (headOnSwap) {
+            if (headOnSwap)
+            {
                 bool jWins = (intents[j].score < intents[i].score) ||
                              (intents[j].score == intents[i].score && intents[j].idx < intents[i].idx);
-                if (jWins) {
-                    intents[i].tox = intents[i].fromx; intents[i].toy = intents[i].fromy; intents[i].wants = false;
-                } else {
-                    intents[j].tox = intents[j].fromx; intents[j].toy = intents[j].fromy; intents[j].wants = false;
+                if (jWins)
+                {
+                    intents[i].tox = intents[i].fromx;
+                    intents[i].toy = intents[i].fromy;
+                    intents[i].wants = false;
+                }
+                else
+                {
+                    intents[j].tox = intents[j].fromx;
+                    intents[j].toy = intents[j].fromy;
+                    intents[j].wants = false;
                 }
             }
         }
     }
 
     // 5) Aplicar
-    for (size_t i = 0; i < enemies.size(); ++i) {
-        enemies[i].setPos(intents[i].tox, intents[i].toy);
+    // 4) calcular facing por delta y aplicar movimientos
+    for (size_t i = 0; i < enemies.size(); ++i)
+    {
+        int ox = intents[i].fromx, oy = intents[i].fromy;
+        int nx = intents[i].tox, ny = intents[i].toy;
+
+        if (nx != ox || ny != oy)
+        {
+            int dx = nx - ox;
+            int dy = ny - oy;
+            if (std::abs(dx) >= std::abs(dy))
+            {
+                enemyFacing[i] = (dx > 0) ? EnemyFacing::Right : EnemyFacing::Left;
+            }
+            else
+            {
+                enemyFacing[i] = (dy > 0) ? EnemyFacing::Down : EnemyFacing::Up;
+            }
+        }
+        enemies[i].setPos(nx, ny);
     }
 
     // 6) Colisión con el jugador (placeholder)
-    for (auto& e : enemies) {
-        if (e.collidesWith(px, py)) {
+    for (auto &e : enemies)
+    {
+        if (e.collidesWith(px, py))
+        {
             std::cout << "[Enemy] ¡Te alcanzó un enemigo en (" << px << "," << py << ")!\n";
         }
     }
 }
 
-
-
-void Game::drawEnemies() const {
-    auto visible = [&](int x,int y){
-        return !map.fogEnabled() || map.isVisible(x,y);
+void Game::drawEnemies() const
+{
+    auto visible = [&](int x, int y)
+    {
+        return !map.fogEnabled() || map.isVisible(x, y);
     };
-    for (const auto& e : enemies) {
-        if (!visible(e.getX(), e.getY())) continue;
-        e.draw(tileSize);
+
+    for (size_t i = 0; i < enemies.size(); ++i)
+    {
+        const auto &e = enemies[i];
+        if (!visible(e.getX(), e.getY()))
+            continue;
+
+        // elige textura por facing
+        const Texture2D *tex = nullptr;
+        switch (i < enemyFacing.size() ? enemyFacing[i] : EnemyFacing::Down)
+        {
+        case EnemyFacing::Up:
+            tex = &itemSprites.enemyUp;
+            break;
+        case EnemyFacing::Down:
+            tex = &itemSprites.enemyDown;
+            break;
+        case EnemyFacing::Left:
+            tex = &itemSprites.enemyLeft;
+            break;
+        case EnemyFacing::Right:
+            tex = &itemSprites.enemyRight;
+            break;
+        }
+
+        const float xpx = (float)(e.getX() * tileSize);
+        const float ypx = (float)(e.getY() * tileSize);
+
+        if (tex && tex->id != 0)
+        {
+            Rectangle src{0, 0, (float)tex->width, (float)tex->height};
+            Rectangle dst{xpx, ypx, (float)tileSize, (float)tileSize};
+            Vector2 origin{0, 0};
+            DrawTexturePro(*tex, src, dst, origin, 0.0f, WHITE);
+        }
+        else if (itemSprites.enemy.id != 0)
+        {
+            // Fallback a enemy.png si no hay direccionales
+            Rectangle src{0, 0, (float)itemSprites.enemy.width, (float)itemSprites.enemy.height};
+            Rectangle dst{xpx, ypx, (float)tileSize, (float)tileSize};
+            Vector2 origin{0, 0};
+            DrawTexturePro(itemSprites.enemy, src, dst, origin, 0.0f, WHITE);
+        }
+        else
+        {
+            // Fallback final: rectángulo rojo
+            e.draw(tileSize);
+        }
     }
 }
