@@ -83,8 +83,10 @@ private:
     // Mundo y jugador
     Map map;
     int px = 0, py = 0;
-    int hp = 6;
-    int hpMax = 6;
+    int hp = 5;
+    int hpMax = 5;
+    float damageCooldown = 0.0f;        // invulnerabilidad breve tras recibir daño
+    const float DAMAGE_COOLDOWN = 0.6f; // ~0.6s
 
     // Semillas
     unsigned fixedSeed = 0;
@@ -115,7 +117,9 @@ private:
     // Helpers de enemigos
     void spawnEnemiesForLevel();                   // crear enemigos al iniciar nivel
     void updateEnemiesAfterPlayerMove(bool moved); // IA y colisión básica (placeholder)
-    void drawEnemies() const;                      // dibujado
+    void drawEnemies() const;  
+    void takeDamage(int amount);
+                 
 
     // Movimiento
     MovementMode moveMode = MovementMode::StepByStep;

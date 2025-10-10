@@ -119,7 +119,7 @@ void Game::newRun()
     currentLevel = 1;
     state = GameState::Playing;
     moveCooldown = 0.0f;
-    hp = 3;
+    hp = 5;
 
     hasKey = false;
     hasShield = false;
@@ -432,12 +432,14 @@ void Game::processInput()
     }
 
     // H: perder vida
-    if (IsKeyPressed(KEY_H)) {
+    if (IsKeyPressed(KEY_H))
+    {
         hp = std::max(0, hp - 1);
     }
 
-    //J: Ganar vida
-    if (IsKeyPressed(KEY_J)) {
+    // J: Ganar vida
+    if (IsKeyPressed(KEY_J))
+    {
         hp = std::min(hpMax, hp + 1);
     }
 }
@@ -504,6 +506,8 @@ void Game::update()
     clampCameraToMap();
 
     // Aquí podrías añadir daño / enemigos y pasar a Game Over si hp<=0
+    // enfriar el cooldown de daño
+    damageCooldown = std::max(0.0f, damageCooldown - GetFrameTime());
 }
 
 void Game::onExitReached()
@@ -949,12 +953,34 @@ void Game::updateEnemiesAfterPlayerMove(bool moved)
         enemies[i].setPos(nx, ny);
     }
 
-    // 6) Colisión con el jugador (placeholder)
-    for (auto &e : enemies)
+    // 6) Colisión con el jugador: eliminar enemigos que te alcanzan y bajar 1 vida (máx. una vez por tick)
+    std::vector<size_t> toRemove;
+    toRemove.reserve(enemies.size());
+    for (size_t i = 0; i < enemies.size(); ++i)
     {
-        if (e.collidesWith(px, py))
+        if (enemies[i].collidesWith(px, py))
         {
-            std::cout << "[Enemy] ¡Te alcanzó un enemigo en (" << px << "," << py << ")!\n";
+            toRemove.push_back(i);
+        }
+    }
+
+    if (!toRemove.empty())
+    {
+        // aplica 1 daño como máximo en este tick
+        if (damageCooldown <= 0.0f)
+        {
+            takeDamage(1);
+            damageCooldown = DAMAGE_COOLDOWN;
+        }
+        // elimina a todos los que colisionaron (y su facing) en orden descendente
+        std::sort(toRemove.rbegin(), toRemove.rend());
+        for (size_t idx : toRemove)
+        {
+            enemies.erase(enemies.begin() + (long)idx);
+            if (idx < enemyFacing.size())
+            {
+                enemyFacing.erase(enemyFacing.begin() + (long)idx);
+            }
         }
     }
 }
@@ -1014,4 +1040,11 @@ void Game::drawEnemies() const
             e.draw(tileSize);
         }
     }
+}
+
+void Game::takeDamage(int amount) {
+    int old = hp;
+    hp = std::max(0, hp - amount);
+    std::cout << "[HP] -" << amount << "  (" << old << " → " << hp << ")\n";
+    // Más adelante: si hp == 0 => Game Over / respawn / gastar escudo, etc.
 }
