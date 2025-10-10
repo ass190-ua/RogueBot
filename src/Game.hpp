@@ -1,9 +1,14 @@
 #ifndef GAME_HPP
 #define GAME_HPP
 
+#include <random>
+#include <vector>
+
 #include "Map.hpp"
 #include "HUD.hpp"
 #include "Player.hpp"
+#include "raylib.h"
+#include "ItemSpawner.hpp"  
 
 enum class MovementMode {
     StepByStep,
@@ -13,6 +18,22 @@ enum class MovementMode {
 enum class GameState {
     Playing,
     Victory
+};
+
+struct ItemSprites {
+    Texture2D keycard{};
+    Texture2D shield{};
+    Texture2D pila{};         
+    Texture2D glasses{};
+    Texture2D swordBlue{};
+    Texture2D swordGreen{};
+    Texture2D swordRed{};
+    Texture2D plasma1{};
+    Texture2D plasma2{};
+    Texture2D battery{};      
+    bool loaded = false;
+    void load();
+    void unload();
 };
 
 class Game {
@@ -33,7 +54,7 @@ public:
     int getPlayerY() const { return py; }
 
     // radio FOV 
-    int getFovRadius() const { return 8; }
+    int getFovRadius() const { return fovTiles; }
 
     // HUD: Getters de vida
     int getHP() const { return hp; }
@@ -59,6 +80,11 @@ private:
     unsigned runSeed   = 0;
     unsigned levelSeed = 0;
 
+    // RNG y contexto de run (para spawns)
+    std::mt19937 rng;               
+    RunContext runCtx;
+    std::vector<ItemSpawn> items;
+
     // Movimiento
     MovementMode moveMode = MovementMode::StepByStep;
     float moveCooldown = 0.0f;
@@ -80,6 +106,7 @@ private:
     void processInput();
     void update();
     void render();
+    void clampCameraToMap();
 
     // Utilidades
     void tryMove(int dx, int dy);
@@ -87,6 +114,31 @@ private:
 
     // niebla activada o no
     bool fogEnabled = true;
+
+    int fovTiles = 8;                  
+    int defaultFovFromViewport() const;
+
+    // Cámara (útil si quieres zoom o scroll)
+    Camera2D camera{};
+    float cameraZoom = 1.0f;  // control de zoom
+
+    // Dibujo de ítems (placeholder de colores hasta tener sprites)
+    void drawItems() const;  
+    void drawItemSprite(const ItemSpawn& it) const;
+
+    // --- inventario mínimo ---
+    bool hasKey = false;
+    bool hasShield = false;
+    bool hasBattery = false;
+    int  swordTier = 0;   // 0=sin espada, 1..3
+    int  plasmaTier = 0;  // 0=sin pistola, 1..2
+
+    // --- helpers de recogida ---
+    void tryPickupHere();                // busca item en (px,py) y lo recoge
+    void onPickup(const ItemSpawn& it);  // aplica lógica de inventario
+
+    // Sprites de ítems
+    ItemSprites itemSprites; 
 };
 
 #endif
