@@ -740,34 +740,136 @@ void Game::spawnEnemiesForLevel()
     }
 }
 
-void Game::updateEnemiesAfterPlayerMove(bool moved)
-{
-    if (!moved)
-        return;
+void Game::updateEnemiesAfterPlayerMove(bool moved) {
+    if (!moved) return;
 
-    for (auto &e : enemies)
-    {
-        int dx = px - e.getX();
-        int dy = py - e.getY();
-        float distPx = std::sqrt(float(dx * dx + dy * dy)) * float(tileSize);
-        if (distPx <= float(ENEMY_DETECT_RADIUS_PX))
-        {
-            e.stepChase(px, py, map);
+    struct Intent {
+        int fromx, fromy;   // origen
+        int tox, toy;       // destino propuesto
+        bool wants;         // quiere moverse
+        int  score;         // menor = mejor (distancia al jugador tras moverse)
+        size_t idx;         // índice del enemigo (para desempates estables)
+    };
+
+    auto inRangePx = [&](int ex, int ey)->bool {
+        int dx = px - ex, dy = py - ey;
+        float distPx = std::sqrt(float(dx*dx + dy*dy)) * float(tileSize);
+        return distPx <= float(ENEMY_DETECT_RADIUS_PX);
+    };
+
+    auto can = [&](int nx, int ny)->bool {
+        return nx>=0 && ny>=0 && nx<map.width() && ny<map.height() && map.isWalkable(nx,ny);
+    };
+
+    auto sgn = [](int v){ return (v>0) - (v<0); };
+
+    auto greedyNext = [&](int ex, int ey)->std::pair<int,int>{
+        int dx = px - ex, dy = py - ey;
+        if (dx == 0 && dy == 0) return {ex, ey};
+        if (std::abs(dx) >= std::abs(dy)) {
+            int nx = ex + sgn(dx), ny = ey;
+            if (can(nx,ny)) return {nx,ny};
+            nx = ex; ny = ey + sgn(dy);
+            if (can(nx,ny)) return {nx,ny};
+        } else {
+            int nx = ex, ny = ey + sgn(dy);
+            if (can(nx,ny)) return {nx,ny};
+            nx = ex + sgn(dx); ny = ey;
+            if (can(nx,ny)) return {nx,ny};
+        }
+        return {ex, ey}; // bloqueado
+    };
+
+    // 1) Construir intenciones
+    std::vector<Intent> intents;
+    intents.reserve(enemies.size());
+    for (size_t i = 0; i < enemies.size(); ++i) {
+        const auto& e = enemies[i];
+        Intent it{ e.getX(), e.getY(), e.getX(), e.getY(), false, 1'000'000, i };
+
+        if (inRangePx(e.getX(), e.getY())) {
+            auto [nx, ny] = greedyNext(e.getX(), e.getY());
+            it.tox = nx; it.toy = ny;
+            it.wants = (nx != e.getX() || ny != e.getY());
+            it.score = std::abs(px - nx) + std::abs(py - ny);
+        } else {
+            // fuera de rango: no se mueve
+            it.score = std::abs(px - e.getX()) + std::abs(py - e.getY());
+        }
+        intents.push_back(it);
+    }
+
+    // 2) Resolver conflictos de MISMO destino: gana menor score; si empatan, menor idx
+    for (size_t i = 0; i < intents.size(); ++i) {
+        if (!intents[i].wants) continue;
+        for (size_t j = i + 1; j < intents.size(); ++j) {
+            if (!intents[j].wants) continue;
+            if (intents[i].tox == intents[j].tox && intents[i].toy == intents[j].toy) {
+                bool jWins = (intents[j].score < intents[i].score) ||
+                             (intents[j].score == intents[i].score && intents[j].idx < intents[i].idx);
+                if (jWins) {
+                    intents[i].tox = intents[i].fromx; intents[i].toy = intents[i].fromy; intents[i].wants = false;
+                } else {
+                    intents[j].tox = intents[j].fromx; intents[j].toy = intents[j].fromy; intents[j].wants = false;
+                }
+            }
         }
     }
 
-    for (auto &e : enemies)
-    {
-        if (e.collidesWith(px, py))
-        {
+    // 3) No invadir la casilla de un enemigo que se queda quieto
+    for (size_t i = 0; i < intents.size(); ++i) {
+        if (!intents[i].wants) continue;
+        for (size_t j = 0; j < intents.size(); ++j) {
+            if (i == j) continue;
+            bool otherStays = !intents[j].wants || (intents[j].tox == intents[j].fromx && intents[j].toy == intents[j].fromy);
+            if (otherStays && intents[i].tox == intents[j].fromx && intents[i].toy == intents[j].fromy) {
+                intents[i].tox = intents[i].fromx; intents[i].toy = intents[i].fromy; intents[i].wants = false;
+                break;
+            }
+        }
+    }
+
+    // 4) Evitar "swap" cabeza-con-cabeza (A<->B). Gana mejor score; si empatan, menor idx
+    for (size_t i = 0; i < intents.size(); ++i) {
+        if (!intents[i].wants) continue;
+        for (size_t j = i + 1; j < intents.size(); ++j) {
+            if (!intents[j].wants) continue;
+            bool headOnSwap =
+                intents[i].tox == intents[j].fromx && intents[i].toy == intents[j].fromy &&
+                intents[j].tox == intents[i].fromx && intents[j].toy == intents[i].fromy;
+            if (headOnSwap) {
+                bool jWins = (intents[j].score < intents[i].score) ||
+                             (intents[j].score == intents[i].score && intents[j].idx < intents[i].idx);
+                if (jWins) {
+                    intents[i].tox = intents[i].fromx; intents[i].toy = intents[i].fromy; intents[i].wants = false;
+                } else {
+                    intents[j].tox = intents[j].fromx; intents[j].toy = intents[j].fromy; intents[j].wants = false;
+                }
+            }
+        }
+    }
+
+    // 5) Aplicar
+    for (size_t i = 0; i < enemies.size(); ++i) {
+        enemies[i].setPos(intents[i].tox, intents[i].toy);
+    }
+
+    // 6) Colisión con el jugador (placeholder)
+    for (auto& e : enemies) {
+        if (e.collidesWith(px, py)) {
             std::cout << "[Enemy] ¡Te alcanzó un enemigo en (" << px << "," << py << ")!\n";
-            // aquí luego haremos daño/game over en otro commit
         }
     }
 }
 
-void Game::drawEnemies() const
-{
-    for (const auto &e : enemies)
+
+
+void Game::drawEnemies() const {
+    auto visible = [&](int x,int y){
+        return !map.fogEnabled() || map.isVisible(x,y);
+    };
+    for (const auto& e : enemies) {
+        if (!visible(e.getX(), e.getY())) continue;
         e.draw(tileSize);
+    }
 }
