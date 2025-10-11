@@ -45,8 +45,6 @@ void ItemSprites::load()
     enemyDown = loadTex("assets/sprites/enemies/enemy_down.png");
     enemyLeft = loadTex("assets/sprites/enemies/enemy_left.png");
     enemyRight = loadTex("assets/sprites/enemies/enemy_right.png");
-    // (si mantienes también enemy = ... , perfecto; nos sirve de fallback)
-
     loaded = true;
 }
 
@@ -69,9 +67,64 @@ void ItemSprites::unload()
     UnloadTexture(enemyDown);
     UnloadTexture(enemyLeft);
     UnloadTexture(enemyRight);
-    // si tienes enemy: UnloadTexture(enemy);
-
     loaded = false;
+}
+
+// === Ataque melee por tiles ===================================================
+struct AttackRuntime
+{
+    // parámetros
+    int rangeTiles = 1;      // 1 o 2 tiles de alcance
+    float cooldown = 0.20f;  // s entre golpes
+    float swingTime = 0.10f; // s que dura el gesto/flash
+
+    // estado runtime
+    float cdTimer = 0.f;
+    float swingTimer = 0.f;
+    bool swinging = false;
+
+    // modo: false = cruz (4 direcciones adyacentes); true = solo al frente
+    bool frontOnly = true;
+
+    // última dirección del jugador (discreta) para "frente"
+    IVec2 lastDir = {0, 1};
+
+    // tiles golpeados este gesto (para debug/flash)
+    std::vector<IVec2> lastTiles;
+};
+static AttackRuntime gAttack;
+
+// Normaliza a eje dominante (N/S/E/O)
+static inline IVec2 dominantAxis(IVec2 d)
+{
+    if (std::abs(d.x) >= std::abs(d.y))
+        return {(d.x >= 0) ? 1 : -1, 0};
+    else
+        return {0, (d.y >= 0) ? 1 : -1};
+}
+
+// Genera los tiles objetivo según modo y rango
+static inline std::vector<IVec2> computeMeleeTiles(IVec2 center, IVec2 lastDir, int range, bool frontOnly)
+{
+    std::vector<IVec2> out;
+    out.reserve(frontOnly ? range : range * 4);
+    if (frontOnly)
+    {
+        IVec2 f = dominantAxis(lastDir.x == 0 && lastDir.y == 0 ? IVec2{0, 1} : lastDir);
+        for (int t = 1; t <= range; ++t)
+            out.push_back({center.x + f.x * t, center.y + f.y * t});
+    }
+    else
+    {
+        for (int t = 1; t <= range; ++t)
+        {
+            out.push_back({center.x + t, center.y});
+            out.push_back({center.x - t, center.y});
+            out.push_back({center.x, center.y + t});
+            out.push_back({center.x, center.y - t});
+        }
+    }
+    return out;
 }
 
 Game::Game(unsigned seed) : fixedSeed(seed)
@@ -130,6 +183,9 @@ void Game::newRun()
     // reinicia progreso persistente del run
     runCtx.espadaMejorasObtenidas = 0;
     runCtx.plasmaMejorasObtenidas = 0;
+    // reset ataque
+    gAttack = AttackRuntime{};
+    gAttack.frontOnly = true;
 
     newLevel(currentLevel);
 }
@@ -347,6 +403,9 @@ void Game::processInput()
 
         if (moved)
         {
+            // NUEVO: actualizar "frente" del ataque según el último paso
+            if (dx != 0 || dy != 0)
+                gAttack.lastDir = {dx, dy};
             player.setGridPos(px, py);
             player.setDirectionFromDelta(dx, dy);
             if (map.fogEnabled())
@@ -390,6 +449,9 @@ void Game::processInput()
 
             if (moved)
             {
+                // NUEVO
+                if (dx != 0 || dy != 0)
+                    gAttack.lastDir = {dx, dy};
                 player.setGridPos(px, py);
                 player.setDirectionFromDelta(dx, dy);
                 if (map.fogEnabled())
@@ -412,6 +474,10 @@ void Game::processInput()
 
             if (moved)
             {
+
+                // NUEVO
+                if (dx != 0 || dy != 0)
+                    gAttack.lastDir = {dx, dy};
                 player.setGridPos(px, py);
                 player.setDirectionFromDelta(dx, dy);
                 if (map.fogEnabled())
@@ -429,6 +495,47 @@ void Game::processInput()
 
         // Actualiza animación (idle si no hubo movimiento este frame)
         player.update(dt, moved);
+    }
+
+    // === ATAQUE MELEE =============================================================
+    gAttack.cdTimer   = std::max(0.f, gAttack.cdTimer - dt);
+    if (gAttack.swinging) {
+        gAttack.swingTimer = std::max(0.f, gAttack.swingTimer - dt);
+        if (gAttack.swingTimer <= 0.f) {
+            gAttack.swinging = false;
+            gAttack.lastTiles.clear();
+        }
+    }
+
+    // Rango: 1 tile base, 2 si swordTier >= 2
+    gAttack.rangeTiles = (swordTier >= 2) ? 2 : 1;
+
+    // Input de ataque: SPACE o click izq
+    const bool attackPressed = IsKeyPressed(KEY_SPACE) || IsMouseButtonPressed(MOUSE_LEFT_BUTTON);
+
+    if (attackPressed && gAttack.cdTimer <= 0.f) {
+        gAttack.swinging   = true;
+        gAttack.swingTimer = gAttack.swingTime;
+        gAttack.cdTimer    = gAttack.cooldown;
+
+        IVec2 center{px, py};
+        gAttack.lastTiles = computeMeleeTiles(center, gAttack.lastDir, gAttack.rangeTiles, gAttack.frontOnly);
+
+        std::vector<size_t> toRemove;
+        toRemove.reserve(enemies.size());
+        for (size_t i=0; i<enemies.size(); ++i) {
+            int ex = enemies[i].getX(), ey = enemies[i].getY();
+            for (const auto& t : gAttack.lastTiles) {
+                if (t.x == ex && t.y == ey) { toRemove.push_back(i); break; }
+            }
+        }
+        if (!toRemove.empty()) {
+            std::sort(toRemove.rbegin(), toRemove.rend());
+            for (size_t idx : toRemove) {
+                enemies.erase(enemies.begin() + (long)idx);
+                if (idx < enemyFacing.size()) enemyFacing.erase(enemyFacing.begin() + (long)idx);
+            }
+        }
     }
 
     // H: perder vida
@@ -543,7 +650,18 @@ void Game::render()
 
     // Ítems del nivel (placeholder en colores)
     drawItems();
-
+     // === DEBUG: flash de tiles golpeados (melee) =========================
+    // Requiere que exista gAttack (AttackRuntime) y que lo actualices en processInput()
+    if (gAttack.swinging && !gAttack.lastTiles.empty()) {
+        Color fill = {255, 230, 50, 120}; // amarillo translúcido
+        for (const auto& t : gAttack.lastTiles) {
+            int xpx = t.x * tileSize;
+            int ypx = t.y * tileSize;
+            DrawRectangle(xpx, ypx, tileSize, tileSize, fill);
+            DrawRectangleLines(xpx, ypx, tileSize, tileSize, YELLOW);
+        }
+    }
+    
     EndMode2D();
     // --- Fin de cámara ---
 
@@ -1042,7 +1160,8 @@ void Game::drawEnemies() const
     }
 }
 
-void Game::takeDamage(int amount) {
+void Game::takeDamage(int amount)
+{
     int old = hp;
     hp = std::max(0, hp - amount);
     std::cout << "[HP] -" << amount << "  (" << old << " → " << hp << ")\n";
