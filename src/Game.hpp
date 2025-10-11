@@ -20,7 +20,8 @@ enum class MovementMode
 enum class GameState
 {
     Playing,
-    Victory
+    Victory,
+    GameOver
 };
 
 struct ItemSprites
@@ -71,6 +72,14 @@ public:
     int getHP() const { return hp; }
     int getHPMax() const { return hpMax; }
 
+     enum class EnemyFacing
+    {
+        Down,
+        Up,
+        Left,
+        Right
+    };
+
 private:
     // Jugador
     Player player;
@@ -88,27 +97,24 @@ private:
     float damageCooldown = 0.0f;        // invulnerabilidad breve tras recibir daño
     const float DAMAGE_COOLDOWN = 0.6f; // ~0.6s
 
+    
+    
     // Semillas
     unsigned fixedSeed = 0;
     unsigned runSeed = 0;
     unsigned levelSeed = 0;
-
+    
     // RNG y contexto de run (para spawns)
     std::mt19937 rng;
     RunContext runCtx;
     std::vector<ItemSpawn> items;
-
+    
     // --- Enemigos ---
     std::vector<Enemy> enemies;
     int ENEMY_DETECT_RADIUS_PX = 32 * 6; // ~6 tiles si tileSize=32
-    enum class EnemyFacing
-    {
-        Down,
-        Up,
-        Left,
-        Right
-    };
+   
     std::vector<EnemyFacing> enemyFacing; // mismo tamaño que enemies
+    void enemyTryAttackFacing();
 
     // Cantidad por nivel (ajústalo si quieres)
     int enemiesPerLevel(int lvl) const { return (lvl == 1) ? 3 : (lvl == 2) ? 4

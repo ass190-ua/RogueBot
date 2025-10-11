@@ -127,6 +127,78 @@ static inline std::vector<IVec2> computeMeleeTiles(IVec2 center, IVec2 lastDir, 
     return out;
 }
 
+// Genera tiles del ataque pero CORTANDO por paredes/no walkables.
+static inline std::vector<IVec2> computeMeleeTilesOccluded(
+    IVec2 center, IVec2 lastDir, int range, bool frontOnly, const Map &map)
+{
+    auto walkable = [&](int x, int y) -> bool
+    {
+        return x >= 0 && y >= 0 && x < map.width() && y < map.height() && map.isWalkable(x, y);
+    };
+
+    std::vector<IVec2> out;
+    out.reserve(range * (frontOnly ? 1 : 4));
+
+    auto pushRay = [&](IVec2 dir)
+    {
+        for (int t = 1; t <= range; ++t)
+        {
+            int tx = center.x + dir.x * t;
+            int ty = center.y + dir.y * t;
+            if (!walkable(tx, ty))
+                break; // pared/obstáculo: cortamos y NO añadimos
+            out.push_back({tx, ty});
+        }
+    };
+
+    if (frontOnly)
+    {
+        IVec2 f = dominantAxis((lastDir.x == 0 && lastDir.y == 0) ? IVec2{0, 1} : lastDir);
+        pushRay(f);
+    }
+    else
+    {
+        pushRay({1, 0});
+        pushRay({-1, 0});
+        pushRay({0, 1});
+        pushRay({0, -1});
+    }
+    return out;
+}
+
+// === HP y combate ================================================
+static std::vector<int> gEnemyHP;      // HP por enemigo (paralelo a enemies)
+static std::vector<float> gEnemyAtkCD; // cooldown de ataque enemigo (s)
+
+static constexpr int ENEMY_BASE_HP = 100;             // % (0..100)
+static constexpr int PLAYER_MELEE_DMG = 25;           // daño por golpe del jugador
+static constexpr int ENEMY_CONTACT_DMG = 1;           // daño al jugador por golpe enemigo
+static constexpr float ENEMY_ATTACK_COOLDOWN = 0.40f; // s entre golpes del mismo enemigo
+static constexpr int RANGE_MELEE_HAND = 1;
+static constexpr int RANGE_SWORD     = 3; // para cuando implementes espada
+static constexpr int RANGE_PISTOL    = 7; // para cuando implementes pistola
+
+static inline bool isAdjacent4(int ax, int ay, int bx, int by)
+{
+    return (std::abs(ax - bx) + std::abs(ay - by)) == 1;
+}
+
+static inline IVec2 facingToDir(Game::EnemyFacing f)
+{
+    switch (f)
+    {
+    case Game::EnemyFacing::Up:
+        return {0, -1};
+    case Game::EnemyFacing::Down:
+        return {0, 1};
+    case Game::EnemyFacing::Left:
+        return {-1, 0};
+    case Game::EnemyFacing::Right:
+        return {1, 0};
+    }
+    return {0, 1};
+}
+
 Game::Game(unsigned seed) : fixedSeed(seed)
 {
     // Configurar ventana en fullscreen
@@ -199,7 +271,7 @@ void Game::newLevel(int level)
     // Deriva una seed distinta por nivel, determinista dentro del mismo run
     levelSeed = seedForLevel(runSeed, level);
     std::cout << "[Level] " << level << "/" << maxLevels
-              << "  (seed nivel: " << levelSeed << ")\n";
+              << " (seed nivel: " << levelSeed << ")\n";
 
     map.generate(tilesX, tilesY, levelSeed);
 
@@ -275,12 +347,28 @@ void Game::tryMove(int dx, int dy)
 {
     if (dx == 0 && dy == 0)
         return;
+
     int nx = px + dx, ny = py + dy;
 
     if (nx >= 0 && ny >= 0 && nx < map.width() && ny < map.height() && map.at(nx, ny) != WALL)
     {
-        px = nx;
-        py = ny;
+        // ⬇️ AÑADIDO: impedir entrar en una casilla ocupada por un enemigo
+        bool occupied = false;
+        for (const auto &e : enemies)
+        {
+            if (e.getX() == nx && e.getY() == ny)
+            {
+                occupied = true;
+                break;
+            }
+        }
+
+        if (!occupied)
+        {
+            px = nx;
+            py = ny;
+        }
+        // (si está ocupada, simplemente no te mueves)
     }
 }
 
@@ -397,17 +485,20 @@ void Game::processInput()
         if (IsKeyPressed(KEY_D) || IsKeyPressed(KEY_RIGHT))
             dx = +1;
 
+        if (dx != 0 || dy != 0)
+        {
+            gAttack.lastDir = {dx, dy};
+            player.setDirectionFromDelta(dx, dy); // para que el sprite gire sin moverse
+        }
+
         int oldx = px, oldy = py;
         tryMove(dx, dy);
         moved = (px != oldx || py != oldy);
 
         if (moved)
         {
-            // NUEVO: actualizar "frente" del ataque según el último paso
-            if (dx != 0 || dy != 0)
-                gAttack.lastDir = {dx, dy};
+
             player.setGridPos(px, py);
-            player.setDirectionFromDelta(dx, dy);
             if (map.fogEnabled())
                 map.computeVisibility(px, py, getFovRadius());
 
@@ -440,6 +531,13 @@ void Game::processInput()
             dx = -1;
         if (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT))
             dx = +1;
+
+        // permite girarte sin moverte
+        if (dx != 0 || dy != 0)
+        {
+            gAttack.lastDir = {dx, dy};
+            player.setDirectionFromDelta(dx, dy);
+        }
 
         if (pressedNow)
         {
@@ -498,44 +596,102 @@ void Game::processInput()
     }
 
     // === ATAQUE MELEE =============================================================
-    gAttack.cdTimer   = std::max(0.f, gAttack.cdTimer - dt);
-    if (gAttack.swinging) {
+    gAttack.cdTimer = std::max(0.f, gAttack.cdTimer - dt);
+    if (gAttack.swinging)
+    {
         gAttack.swingTimer = std::max(0.f, gAttack.swingTimer - dt);
-        if (gAttack.swingTimer <= 0.f) {
+        if (gAttack.swingTimer <= 0.f)
+        {
             gAttack.swinging = false;
             gAttack.lastTiles.clear();
         }
     }
 
     // Rango: 1 tile base, 2 si swordTier >= 2
-    gAttack.rangeTiles = (swordTier >= 2) ? 2 : 1;
+    gAttack.rangeTiles = RANGE_MELEE_HAND;
 
     // Input de ataque: SPACE o click izq
     const bool attackPressed = IsKeyPressed(KEY_SPACE) || IsMouseButtonPressed(MOUSE_LEFT_BUTTON);
 
-    if (attackPressed && gAttack.cdTimer <= 0.f) {
-        gAttack.swinging   = true;
-        gAttack.swingTimer = gAttack.swingTime;
-        gAttack.cdTimer    = gAttack.cooldown;
-
+    if (attackPressed && gAttack.cdTimer <= 0.f)
+    {
+        // 1) Calcula tiles válidos con oclusión ANTES de iniciar el gesto
         IVec2 center{px, py};
-        gAttack.lastTiles = computeMeleeTiles(center, gAttack.lastDir, gAttack.rangeTiles, gAttack.frontOnly);
+        auto tiles = computeMeleeTilesOccluded(center, gAttack.lastDir, gAttack.rangeTiles, gAttack.frontOnly, map);
+
+        if (tiles.empty())
+        {
+            // Delante hay pared/obstáculo: NO swing, NO cooldown, NO flash
+            // (opcional) std::cout << "[Melee] Bloqueado por pared\n";
+            return;
+        }
+
+        // 2) Ahora sí, inicia gesto/flash/cooldown
+        gAttack.swinging = true;
+        gAttack.swingTimer = gAttack.swingTime;
+        gAttack.cdTimer = gAttack.cooldown;
+        gAttack.lastTiles = std::move(tiles);
 
         std::vector<size_t> toRemove;
         toRemove.reserve(enemies.size());
-        for (size_t i=0; i<enemies.size(); ++i) {
-            int ex = enemies[i].getX(), ey = enemies[i].getY();
-            for (const auto& t : gAttack.lastTiles) {
-                if (t.x == ex && t.y == ey) { toRemove.push_back(i); break; }
+
+        bool hitSomeone = false;
+
+        for (size_t i = 0; i < enemies.size(); ++i)
+        {
+            const int ex = enemies[i].getX();
+            const int ey = enemies[i].getY();
+
+            bool impacted = false;
+            for (const auto &t : gAttack.lastTiles)
+            {
+                if (t.x == ex && t.y == ey)
+                {
+                    impacted = true;
+                    break;
+                }
             }
+            if (!impacted)
+                continue;
+
+            if (gEnemyHP.size() != enemies.size())
+            {
+                gEnemyHP.resize(enemies.size(), ENEMY_BASE_HP);
+                gEnemyAtkCD.resize(enemies.size(), 0.0f);
+            }
+
+            hitSomeone = true;
+
+            int before = gEnemyHP[i];
+            gEnemyHP[i] = std::max(0, gEnemyHP[i] - PLAYER_MELEE_DMG);
+
+            std::cout << "[Melee] Player -> Enemy (" << ex << "," << ey << ") "
+                      << before << "% -> " << gEnemyHP[i] << "%\n";
+
+            if (gEnemyHP[i] <= 0)
+                toRemove.push_back(i);
         }
-        if (!toRemove.empty()) {
+
+        if (!toRemove.empty())
+        {
             std::sort(toRemove.rbegin(), toRemove.rend());
-            for (size_t idx : toRemove) {
+            for (size_t idx : toRemove)
+            {
                 enemies.erase(enemies.begin() + (long)idx);
-                if (idx < enemyFacing.size()) enemyFacing.erase(enemyFacing.begin() + (long)idx);
+                if (idx < enemyFacing.size())
+                    enemyFacing.erase(enemyFacing.begin() + (long)idx);
+                if (idx < gEnemyHP.size())
+                    gEnemyHP.erase(gEnemyHP.begin() + (long)idx);
+                if (idx < gEnemyAtkCD.size())
+                    gEnemyAtkCD.erase(gEnemyAtkCD.begin() + (long)idx);
             }
         }
+
+        if (!hitSomeone)
+            std::cout << "[Melee] Swing (no target)\n";
+
+        // Enemigo intenta contraatacar si está enfrente y mirando
+        enemyTryAttackFacing();
     }
 
     // H: perder vida
@@ -615,6 +771,10 @@ void Game::update()
     // Aquí podrías añadir daño / enemigos y pasar a Game Over si hp<=0
     // enfriar el cooldown de daño
     damageCooldown = std::max(0.0f, damageCooldown - GetFrameTime());
+    for (auto &cd : gEnemyAtkCD)
+    {
+        cd = std::max(0.0f, cd - GetFrameTime());
+    }
 }
 
 void Game::onExitReached()
@@ -650,18 +810,20 @@ void Game::render()
 
     // Ítems del nivel (placeholder en colores)
     drawItems();
-     // === DEBUG: flash de tiles golpeados (melee) =========================
+    // === DEBUG: flash de tiles golpeados (melee) =========================
     // Requiere que exista gAttack (AttackRuntime) y que lo actualices en processInput()
-    if (gAttack.swinging && !gAttack.lastTiles.empty()) {
+    if (gAttack.swinging && !gAttack.lastTiles.empty())
+    {
         Color fill = {255, 230, 50, 120}; // amarillo translúcido
-        for (const auto& t : gAttack.lastTiles) {
+        for (const auto &t : gAttack.lastTiles)
+        {
             int xpx = t.x * tileSize;
             int ypx = t.y * tileSize;
             DrawRectangle(xpx, ypx, tileSize, tileSize, fill);
             DrawRectangleLines(xpx, ypx, tileSize, tileSize, YELLOW);
         }
     }
-    
+
     EndMode2D();
     // --- Fin de cámara ---
 
@@ -884,6 +1046,9 @@ void Game::spawnEnemiesForLevel()
         }
     }
     enemyFacing.assign(enemies.size(), EnemyFacing::Down);
+    // HP y cooldowns paralelos a "enemies"
+    gEnemyHP.assign(enemies.size(), ENEMY_BASE_HP);
+    gEnemyAtkCD.assign(enemies.size(), 0.0f);
 }
 
 void Game::updateEnemiesAfterPlayerMove(bool moved)
@@ -1053,54 +1218,30 @@ void Game::updateEnemiesAfterPlayerMove(bool moved)
     for (size_t i = 0; i < enemies.size(); ++i)
     {
         int ox = intents[i].fromx, oy = intents[i].fromy;
-        int nx = intents[i].tox, ny = intents[i].toy;
+        int tx = intents[i].tox, ty = intents[i].toy;
 
-        if (nx != ox || ny != oy)
+        // Facing por DELTA INTENTADO (aunque luego no se mueva)
+        int dxTry = tx - ox, dyTry = ty - oy;
+        if (dxTry != 0 || dyTry != 0)
         {
-            int dx = nx - ox;
-            int dy = ny - oy;
-            if (std::abs(dx) >= std::abs(dy))
-            {
-                enemyFacing[i] = (dx > 0) ? EnemyFacing::Right : EnemyFacing::Left;
-            }
+            if (std::abs(dxTry) >= std::abs(dyTry))
+                enemyFacing[i] = (dxTry > 0) ? EnemyFacing::Right : EnemyFacing::Left;
             else
-            {
-                enemyFacing[i] = (dy > 0) ? EnemyFacing::Down : EnemyFacing::Up;
-            }
+                enemyFacing[i] = (dyTry > 0) ? EnemyFacing::Down : EnemyFacing::Up;
         }
+
+        // No permitir que un enemigo se meta en la casilla del jugador
+        int nx = tx, ny = ty;
+        if (nx == px && ny == py)
+        {
+            nx = ox;
+            ny = oy;
+        }
+
         enemies[i].setPos(nx, ny);
     }
 
-    // 6) Colisión con el jugador: eliminar enemigos que te alcanzan y bajar 1 vida (máx. una vez por tick)
-    std::vector<size_t> toRemove;
-    toRemove.reserve(enemies.size());
-    for (size_t i = 0; i < enemies.size(); ++i)
-    {
-        if (enemies[i].collidesWith(px, py))
-        {
-            toRemove.push_back(i);
-        }
-    }
-
-    if (!toRemove.empty())
-    {
-        // aplica 1 daño como máximo en este tick
-        if (damageCooldown <= 0.0f)
-        {
-            takeDamage(1);
-            damageCooldown = DAMAGE_COOLDOWN;
-        }
-        // elimina a todos los que colisionaron (y su facing) en orden descendente
-        std::sort(toRemove.rbegin(), toRemove.rend());
-        for (size_t idx : toRemove)
-        {
-            enemies.erase(enemies.begin() + (long)idx);
-            if (idx < enemyFacing.size())
-            {
-                enemyFacing.erase(enemyFacing.begin() + (long)idx);
-            }
-        }
-    }
+    enemyTryAttackFacing();
 }
 
 void Game::drawEnemies() const
@@ -1157,6 +1298,30 @@ void Game::drawEnemies() const
             // Fallback final: rectángulo rojo
             e.draw(tileSize);
         }
+
+        // barra de vida sobre el enemigo i
+        // barra de vida sobre el enemigo i
+        if (i < gEnemyHP.size())
+        {
+            const int w = tileSize;
+            const int h = 4;
+            const int x = (int)(e.getX() * tileSize);
+            const int y = (int)(e.getY() * tileSize) - (h + 2);
+
+            int hpw = (int)std::lround(w * (gEnemyHP[i] / 100.0)); // 0..w
+            hpw = std::clamp(hpw, 0, w);
+
+            DrawRectangle(x, y, w, h, (Color){60, 60, 60, 200}); // fondo
+
+            // --- COLOR GRADIENTE VERDE -> ROJO segun % ---
+            float pct = std::clamp(gEnemyHP[i] / 100.0f, 0.0f, 1.0f);
+            unsigned char r = (unsigned char)std::lround(255 * (1.0f - pct)); // sube al bajar la vida
+            unsigned char g = (unsigned char)std::lround(255 * pct);          // baja al bajar la vida
+            Color lifeCol = {r, g, 0, 230};
+
+            DrawRectangle(x, y, hpw, h, lifeCol);  // barra
+            DrawRectangleLines(x, y, w, h, BLACK); // borde
+        }
     }
 }
 
@@ -1164,6 +1329,53 @@ void Game::takeDamage(int amount)
 {
     int old = hp;
     hp = std::max(0, hp - amount);
-    std::cout << "[HP] -" << amount << "  (" << old << " → " << hp << ")\n";
-    // Más adelante: si hp == 0 => Game Over / respawn / gastar escudo, etc.
+    int oldPct = (int)std::lround(100.0 * old / std::max(1, hpMax));
+    int newPct = (int)std::lround(100.0 * hp / std::max(1, hpMax));
+    std::cout << "[HP] -" << amount << " (" << old << "→" << hp
+              << ") " << oldPct << "%→" << newPct << "%\n";
+
+    // Más adelante: if (hp == 0) state = GameState::GameOver;
+    // Si mueres, pasa a GameOver y limpia el swing de melee para que no se quede dibujado.
+    if (hp == 0 && state == GameState::Playing)
+    {
+        state = GameState::GameOver;
+        gAttack.swinging = false;
+        gAttack.lastTiles.clear();
+        std::cout << "[GameOver] Has sido destruido.\n";
+    }
+}
+
+void Game::enemyTryAttackFacing()
+{
+    for (size_t i = 0; i < enemies.size(); ++i)
+    {
+        const int ex = enemies[i].getX();
+        const int ey = enemies[i].getY();
+
+        if (!isAdjacent4(ex, ey, px, py))
+            continue;
+
+        // 1) ¿El enemigo mira al jugador?
+        IVec2 edir = facingToDir(i < enemyFacing.size() ? enemyFacing[i] : EnemyFacing::Down);
+        int sdx = (px > ex) - (px < ex);
+        int sdy = (py > ey) - (py < ey);
+        if (edir.x != sdx || edir.y != sdy)
+            continue;
+
+        // 2) ➕ ¿El jugador mira al enemigo? (si quieres la regla de “ambos mirándose”)
+        IVec2 pdir = dominantAxis((gAttack.lastDir.x == 0 && gAttack.lastDir.y == 0) ? IVec2{0, 1} : gAttack.lastDir);
+        int psx = (ex > px) - (ex < px);
+        int psy = (ey > py) - (ey < py);
+        bool playerFacingEnemy = (pdir.x == psx && pdir.y == psy);
+        if (!playerFacingEnemy)
+            continue;
+
+        if (i < gEnemyAtkCD.size() && gEnemyAtkCD[i] <= 0.0f && damageCooldown <= 0.0f)
+        {
+            takeDamage(ENEMY_CONTACT_DMG);
+            gEnemyAtkCD[i] = ENEMY_ATTACK_COOLDOWN;
+            damageCooldown = DAMAGE_COOLDOWN;
+            std::cout << "[EnemyAtk] (" << ex << "," << ey << ") facing player and player facing enemy.\n";
+        }
+    }
 }
