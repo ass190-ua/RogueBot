@@ -1,0 +1,31 @@
+ROGUEBOT:  Guía rápida de objetos
+=================================
+
+LLAVE MAESTRA
+Abre la salida del nivel. Sin llave no puedes salir.
+
+ESCUDO (un solo uso)
+Si el jugador ha recogido el escudo, el próximo golpe del enemigo no te quita vida y el escudo se rompe.
+
+
+PILAS (Buenas / Malas)
+Pila BUENA (pila verde): recupera 1 vida al recogerla.
+Pila MALA (pila roja): quita 1 vida al recogerla.
+
+ESPADA LÁSER (niveles 1–3)
+En cada nivel aumenta el daño:
+Nivel 1 → Azul. Nivel 2 → Verde (solo si ya tienes la 1).
+Nivel 3 → Roja (solo si ya tienes 1 y 2).
+Si no coges la 1 en el primer nivel, en el segundo nivel no aparecerá ninguna espada.
+
+PISTOLA DE PLASMA (niveles 1–2)
+Arma a distancia. Aparece desde el nivel 2.
+Nivel 1 → Azul. Nivel 2 → Roja (más daño/alcance).
+Si no coges la primera pistola, no aparecerá la segunda en el siguiente nivel.
+
+GAFAS 3D (Buenas / Malas)
+Buenas: Amplían tu campo de visión cuando jueges con niebla.
+Malas: Reducen tu campo de visión cuando jueges con niebla.
+
+BATERÍA DE VIDA EXTRA (solo nivel 3)
+Objeto único. Si mueres y la has cogido, te revive automáticamente con aprox. media vida.
