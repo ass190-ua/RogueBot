@@ -19,6 +19,7 @@ enum class MovementMode
 
 enum class GameState
 {
+    MainMenu,
     Playing,
     Victory,
     GameOver
@@ -133,7 +134,7 @@ private:
     const float MOVE_INTERVAL = 0.12f;
 
     // Estados y niveles
-    GameState state = GameState::Playing;
+    GameState state = GameState::MainMenu;
     int currentLevel = 1;
     const int maxLevels = 3;
 
@@ -148,6 +149,8 @@ private:
     void processInput();
     void update();
     void render();
+    void renderMainMenu();                         
+    Rectangle uiCenterRect(float w, float h) const;
     void clampCameraToMap();
 
     // Utilidades
