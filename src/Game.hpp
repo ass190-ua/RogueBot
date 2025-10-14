@@ -17,7 +17,8 @@ enum class MovementMode {
 
 enum class GameState {
     Playing,
-    Victory
+    Victory,
+    GameOver
 };
 
 struct ItemSprites {

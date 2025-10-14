@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cmath>
 
+
 // FX: Explosión simple (pierdes vida)
 void HUD::DrawBurst(Vector2 center, float t) {
   t = std::clamp(t, 0.0f, 1.0f);
@@ -165,12 +166,32 @@ void HUD::drawVictory(const Game &game) const {
 }
 
 void HUD::drawGameOver(const Game &game) const {
-  DrawRectangle(0, 0, game.getScreenW(), game.getScreenH(),
+  const int sw = game.getScreenW();
+  const int sh = game.getScreenH();
+
+  DrawRectangle(0, 0, sw, sh,
                 Color{0, 0, 0, 150});
-  const char *txt = "GAME OVER";
-  int tw = MeasureText(txt, 32);
-  DrawText(txt, (game.getScreenW() - tw) / 2, game.getScreenH() / 2 - 16, 32,
-           RED);
-  DrawText("Pulsa R para reintentar", (game.getScreenW() - 320) / 2,
-           game.getScreenH() / 2 + 24, 20, RAYWHITE);
+
+  const float scale = std::min(sw / 1280.0f, sh / 720.0f);
+  const int titleSize = (int)std::round(64.0f * scale);
+  const int tipSize = (int)std::round(24.0f * scale);
+  const int spacing = (int)std::round(12.0f * scale);
+
+  const char* TITLE = "GAME OVER";
+  const char* TIP = "Pulsa R para comenzar de nuevo";
+
+  const int titleW = MeasureText(TITLE, titleSize);
+  const int tipW = MeasureText(TIP, tipSize);
+
+  const int totalH = titleSize + spacing + tipSize;
+  const int titleX = (sw - titleW) / 2;
+  const int titleY = sh / 2 - totalH / 2;
+  const int tipX = (sw - tipW) / 2;
+  const int tipY = titleY + titleSize + spacing;
+
+  DrawText(TITLE, titleX + 2, titleY + 2, titleSize, (Color){0, 0, 0, 180});
+  DrawText(TITLE, titleX, titleY, titleSize, RED);
+
+  DrawText(TIP, tipX + 1, tipY + 1, tipSize, (Color){0, 0, 0, 160});
+  DrawText(TIP, tipX, tipY, tipSize, RAYWHITE);
 }
