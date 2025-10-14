@@ -3,6 +3,7 @@
 
 #include <random>
 #include <vector>
+#include <string>
 
 #include "Map.hpp"
 #include "HUD.hpp"
@@ -73,7 +74,7 @@ public:
     int getHP() const { return hp; }
     int getHPMax() const { return hpMax; }
 
-     enum class EnemyFacing
+    enum class EnemyFacing
     {
         Down,
         Up,
@@ -98,22 +99,20 @@ private:
     float damageCooldown = 0.0f;        // invulnerabilidad breve tras recibir daño
     const float DAMAGE_COOLDOWN = 0.6f; // ~0.6s
 
-    
-    
     // Semillas
     unsigned fixedSeed = 0;
     unsigned runSeed = 0;
     unsigned levelSeed = 0;
-    
+
     // RNG y contexto de run (para spawns)
     std::mt19937 rng;
     RunContext runCtx;
     std::vector<ItemSpawn> items;
-    
+
     // --- Enemigos ---
     std::vector<Enemy> enemies;
     int ENEMY_DETECT_RADIUS_PX = 32 * 6; // ~6 tiles si tileSize=32
-   
+
     std::vector<EnemyFacing> enemyFacing; // mismo tamaño que enemies
     void enemyTryAttackFacing();
 
@@ -124,9 +123,8 @@ private:
     // Helpers de enemigos
     void spawnEnemiesForLevel();                   // crear enemigos al iniciar nivel
     void updateEnemiesAfterPlayerMove(bool moved); // IA y colisión básica (placeholder)
-    void drawEnemies() const;  
+    void drawEnemies() const;
     void takeDamage(int amount);
-                 
 
     // Movimiento
     MovementMode moveMode = MovementMode::StepByStep;
@@ -149,7 +147,8 @@ private:
     void processInput();
     void update();
     void render();
-    void renderMainMenu();                         
+    void renderMainMenu();
+    void renderHelpOverlay();
     Rectangle uiCenterRect(float w, float h) const;
     void clampCameraToMap();
 
@@ -184,6 +183,15 @@ private:
 
     // Sprites de ítems
     ItemSprites itemSprites;
+
+    // --- Menú v2: visor “Leer antes de jugar” ---
+    bool showHelp = false; // si está abierto el visor
+    int helpScroll = 0;    // desplazamiento vertical del texto
+    std::string helpText;
+    Rectangle btnPlay{0, 0, 0, 0};
+    Rectangle btnRead{0, 0, 0, 0};
+    Rectangle btnBack{0, 0, 0, 0}; // botón "Volver" del panel de ayuda
+
 };
 
 #endif
