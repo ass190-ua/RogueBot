@@ -155,14 +155,37 @@ void HUD::drawPlaying(const Game &game) const {
 
 // Overlays de fin de run
 void HUD::drawVictory(const Game &game) const {
-  DrawRectangle(0, 0, game.getScreenW(), game.getScreenH(),
-                Color{0, 0, 0, 150});
-  const char *win = "VICTORIA: ¡Has completado los 3 niveles!";
-  int tw = MeasureText(win, 32);
-  DrawText(win, (game.getScreenW() - tw) / 2, game.getScreenH() / 2 - 16, 32,
-           LIME);
-  DrawText("Pulsa R para empezar un nuevo run", (game.getScreenW() - 400) / 2,
-           game.getScreenH() / 2 + 24, 20, RAYWHITE);
+    const int sw = game.getScreenW();
+    const int sh = game.getScreenH();
+
+    // Fondo translúcido
+    DrawRectangle(0, 0, sw, sh, Color{0, 0, 0, 150});
+
+    // Escalado adaptable a resolución (igual que Game Over)
+    const float scale = std::min(sw / 1280.0f, sh / 720.0f);
+    const int titleSize = static_cast<int>(64.0f * scale);
+    const int tipSize   = static_cast<int>(24.0f * scale);
+    const int spacing   = static_cast<int>(12.0f * scale);
+
+    // Textos
+    const char* TITLE = "VICTORIA";
+    const char* TIP   = "Pulsa R para comenzar de nuevo";
+
+    // Medidas y posiciones centradas
+    const int titleW = MeasureText(TITLE, titleSize);
+    const int tipW   = MeasureText(TIP, tipSize);
+    const int totalH = titleSize + spacing + tipSize;
+    const int titleX = (sw - titleW) / 2;
+    const int titleY = sh / 2 - totalH / 2;
+    const int tipX   = (sw - tipW) / 2;
+    const int tipY   = titleY + titleSize + spacing;
+
+    // Sombra y texto principal (igual que en Game Over)
+    DrawText(TITLE, titleX + 2, titleY + 2, titleSize, (Color){0, 0, 0, 180});
+    DrawText(TITLE, titleX, titleY, titleSize, LIME);
+
+    DrawText(TIP, tipX + 1, tipY + 1, tipSize, (Color){0, 0, 0, 160});
+    DrawText(TIP, tipX, tipY, tipSize, RAYWHITE);
 }
 
 void HUD::drawGameOver(const Game &game) const {

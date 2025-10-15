@@ -11,6 +11,8 @@ static inline unsigned now_seed()
     return static_cast<unsigned>(time(nullptr));
 }
 
+static bool gQuitRequested = false;
+
 static Texture2D loadTex(const char *path)
 {
     Image img = LoadImage(path);
@@ -212,6 +214,7 @@ Game::Game(unsigned seed) : fixedSeed(seed)
     // Configurar ventana en fullscreen
     SetConfigFlags(FLAG_FULLSCREEN_MODE);
     InitWindow(0, 0, "RogueBot Alpha"); // tamaño se ajusta por el flag
+    SetExitKey(KEY_NULL); // Desactiva el cierre por ESC; lo gestionamos nosotros
 
     player.load("assets/sprites/player");
     itemSprites.load();
@@ -382,7 +385,7 @@ const char *Game::movementModeText() const
 
 void Game::run()
 {
-    while (!WindowShouldClose())
+    while (!WindowShouldClose() && !gQuitRequested)
     {
         processInput();
         update();
@@ -463,7 +466,7 @@ void Game::processInput()
             return; // no procesar más input mientras está el visor
         }
 
-        // Geometría de los 2 botones del menú
+        // Geometría de los 3 botones del menú
         int bw = (int)std::round(screenW * 0.35f);
         bw = std::clamp(bw, 320, 560);
         int bh = (int)std::round(screenH * 0.12f);
@@ -473,6 +476,7 @@ void Game::processInput()
 
         Rectangle playBtn = {(float)((screenW - bw) / 2), (float)startY, (float)bw, (float)bh};
         Rectangle readBtn = {(float)((screenW - bw) / 2), (float)(startY + bh + gap), (float)bw, (float)bh};
+        Rectangle quitBtn = {(float)((screenW - bw) / 2), (float)(startY + (bh + gap) * 2), (float)bw, (float)bh};
 
         // Click izquierdo: JUGAR o LEER
         if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
@@ -502,8 +506,23 @@ void Game::processInput()
                 helpScroll = 0;
                 return;
             }
+            if (CheckCollisionPointRec(mp, quitBtn))
+            {
+                gQuitRequested = true; // el bucle principal terminará de forma limpia
+                return;
+            }
         }
         return; // no procesar más input del juego mientras estamos en el menú
+    }
+
+    // ESC en cualquier estado que no sea el menú -> volver al menú
+    if (IsKeyPressed(KEY_ESCAPE) && state != GameState::MainMenu)
+    {
+        showHelp = false;             // por si acaso
+        gAttack.swinging = false;     // limpia flashes de melee
+        gAttack.lastTiles.clear();
+        state = GameState::MainMenu;
+        return;
     }
 
     // Reiniciar run completo
@@ -1577,6 +1596,7 @@ void Game::renderMainMenu()
 
     Rectangle playBtn = {(float)((screenW - bw) / 2), (float)startY, (float)bw, (float)bh};
     Rectangle readBtn = {(float)((screenW - bw) / 2), (float)(startY + bh + gap), (float)bw, (float)bh};
+    Rectangle quitBtn = {(float)((screenW - bw) / 2), (float)(startY + (bh + gap) * 2), (float)bw, (float)bh};
 
     Vector2 mp = GetMousePosition();
 
@@ -1682,6 +1702,7 @@ void Game::renderMainMenu()
 
     drawPixelButton(playBtn, "JUGAR");
     drawPixelButton(readBtn, "LEER ANTES DE JUGAR");
+    drawPixelButton(quitBtn, "SALIR");
 
     // Overlay de ayuda (si está abierto)
     if (showHelp)
