@@ -74,7 +74,6 @@ void ItemSprites::unload()
 }
 
 // === Ataque melee por tiles
-// ===================================================
 struct AttackRuntime
 {
     // parámetros
