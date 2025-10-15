@@ -1,31 +1,60 @@
-ROGUEBOT:  Guía rápida de objetos
+ROGUEBOT - GUIA RAPIDA DE OBJETOS
 =================================
 
 LLAVE MAESTRA
-Abre la salida del nivel. Sin llave no puedes salir.
+Abre la salida del nivel (tile verde).
+Sin la llave, no podras abandonar el nivel.
 
-ESCUDO (un solo uso)
-Si el jugador ha recogido el escudo, el próximo golpe del enemigo no te quita vida y el escudo se rompe.
+----------------------------------------------
 
+ESCUDO (uso unico)
+Bloquea el proximo golpe enemigo, evitando la perdida de vida.
+Se destruye al activarse o tras 120 segundos si no se utiliza.
 
-PILAS (Buenas / Malas)
-Pila BUENA (pila verde): recupera 1 vida al recogerla.
-Pila MALA (pila roja): quita 1 vida al recogerla.
+----------------------------------------------
 
-ESPADA LÁSER (niveles 1–3)
-En cada nivel aumenta el daño:
-Nivel 1 → Azul. Nivel 2 → Verde (solo si ya tienes la 1).
-Nivel 3 → Roja (solo si ya tienes 1 y 2).
-Si no coges la 1 en el primer nivel, en el segundo nivel no aparecerá ninguna espada.
+PILAS DE ENERGIA
+Pila BUENA: recupera +1 vida al recogerla.
+Pila OXIDADA: quita -1 vida al recogerla.
+Consejo: parecen iguales... fijate bien antes de recogerlas.
 
-PISTOLA DE PLASMA (niveles 1–2)
-Arma a distancia. Aparece desde el nivel 2.
-Nivel 1 → Azul. Nivel 2 → Roja (más daño/alcance).
-Si no coges la primera pistola, no aparecerá la segunda en el siguiente nivel.
+----------------------------------------------
 
-GAFAS 3D (Buenas / Malas)
-Buenas: Amplían tu campo de visión cuando jueges con niebla.
-Malas: Reducen tu campo de visión cuando jueges con niebla.
+ESPADA LASER (niveles 1-3)
+Aumenta su potencia de ataque en cada nivel:
+Nivel 1 -> Azul
+Nivel 2 -> Verde (solo si ya tienes la 1)
+Nivel 3 -> Roja (solo si ya tienes la 2)
+Si no recoges la espada anterior, aparecera la version previa en el siguiente nivel.
+Evolucion progresiva: conserva tus versiones para alcanzar la maxima potencia.
 
-BATERÍA DE VIDA EXTRA (solo nivel 3)
-Objeto único. Si mueres y la has cogido, te revive automáticamente con aprox. media vida.
+----------------------------------------------
+
+PISTOLA DE PLASMA (niveles 2-3)
+Arma a distancia.
+Nivel 1 -> Azul (disparo simple)
+Nivel 2 -> Roja (doble rafaga)
+Si no recoges la primera, solo obtendras la version azul en el ultimo nivel.
+
+----------------------------------------------
+
+GAFAS 3D (Buenas / Rotas)
+Buenas: amplian tu campo de vision bajo niebla durante 20 segundos.
+Rotas: reducen tu campo de vision durante 20 segundos.
+Utiles para explorar niveles con visibilidad limitada.
+
+----------------------------------------------
+
+BATERIA DE VIDA EXTRA (solo nivel 3)
+Objeto unico y raro.
+Si mueres y la tienes equipada, te revive automaticamente con aproximadamente el 50% de tu vida.
+Ultimo recurso para sobrevivir al nivel final.
+
+----------------------------------------------
+
+NOTAS ADICIONALES
+- Algunos objetos visuales aun no estan implementados. (Actualmente solo esta la llave maestra).
+- Los objetos recogidos se pierden al reiniciar una partida.
+- Las duraciones pueden variar segun futuras versiones.
+
+----------------------------------------------

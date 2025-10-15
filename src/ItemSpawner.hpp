@@ -41,8 +41,8 @@ struct SpawnConfig {
     int gafasN1 = 1, gafasN2 = 1, gafasN3 = 2;
 
     // Probabilidades variantes
-    double probPilaBuena = 0.7; // 70% buenas, 30% malas
-    double probGafasBuenas = 0.5;
+    double probPilaBuena = 0.65; // 65% buenas, 35% malas
+    double probGafasBuenas = 0.35;
 
     // Separaciones y distancias (BFS)
     int minSepEntreItems = 4;
