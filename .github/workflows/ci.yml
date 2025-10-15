@@ -1,7 +1,9 @@
 name: CI
 
 on:
+  workflow_dispatch:          # permitir lanzarlo manualmente desde Actions
   pull_request:
+    branches: [ develop, main ]
   push:
     branches: [ develop, main, 'feature/**' ]
 
