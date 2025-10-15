@@ -181,10 +181,10 @@ void HUD::drawVictory(const Game &game) const {
     const int tipY   = titleY + titleSize + spacing;
 
     // Sombra y texto principal (igual que en Game Over)
-    DrawText(TITLE, titleX + 2, titleY + 2, titleSize, (Color){0, 0, 0, 180});
+    DrawText(TITLE, titleX + 2, titleY + 2, titleSize, Color{0, 0, 0, 180});
     DrawText(TITLE, titleX, titleY, titleSize, LIME);
 
-    DrawText(TIP, tipX + 1, tipY + 1, tipSize, (Color){0, 0, 0, 160});
+    DrawText(TIP, tipX + 1, tipY + 1, tipSize, Color{0, 0, 0, 160});
     DrawText(TIP, tipX, tipY, tipSize, RAYWHITE);
 }
 
@@ -212,9 +212,9 @@ void HUD::drawGameOver(const Game &game) const {
   const int tipX = (sw - tipW) / 2;
   const int tipY = titleY + titleSize + spacing;
 
-  DrawText(TITLE, titleX + 2, titleY + 2, titleSize, (Color){0, 0, 0, 180});
+  DrawText(TITLE, titleX + 2, titleY + 2, titleSize, Color{0, 0, 0, 180});
   DrawText(TITLE, titleX, titleY, titleSize, RED);
 
-  DrawText(TIP, tipX + 1, tipY + 1, tipSize, (Color){0, 0, 0, 160});
+  DrawText(TIP, tipX + 1, tipY + 1, tipSize, Color{0, 0, 0, 160});
   DrawText(TIP, tipX, tipY, tipSize, RAYWHITE);
 }

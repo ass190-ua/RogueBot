@@ -1478,7 +1478,7 @@ void Game::drawEnemies() const
             int hpw = (int)std::lround(w * (gEnemyHP[i] / 100.0)); // 0..w
             hpw = std::clamp(hpw, 0, w);
 
-            DrawRectangle(x, y, w, h, (Color){60, 60, 60, 200}); // fondo
+            DrawRectangle(x, y, w, h, Color{60, 60, 60, 200}); // fondo
 
             // --- COLOR GRADIENTE VERDE -> ROJO segun % ---
             float pct = std::clamp(gEnemyHP[i] / 100.0f, 0.0f, 1.0f);
@@ -1714,7 +1714,7 @@ void Game::renderMainMenu()
 void Game::renderHelpOverlay()
 {
     // Fondo oscuro translúcido
-    DrawRectangle(0, 0, screenW, screenH, (Color){0, 0, 0, 180});
+    DrawRectangle(0, 0, screenW, screenH, Color{0, 0, 0, 180});
 
     // Panel más ancho/alto
     int panelW = (int)std::round(screenW * 0.86f);
@@ -1726,8 +1726,8 @@ void Game::renderHelpOverlay()
     int px = (screenW - panelW) / 2;
     int py = (screenH - panelH) / 2;
 
-    DrawRectangle(px, py, panelW, panelH, (Color){20, 20, 20, 255});
-    DrawRectangleLines(px, py, panelW, panelH, (Color){220, 220, 220, 255});
+    DrawRectangle(px, py, panelW, panelH, Color{20, 20, 20, 255});
+    DrawRectangleLines(px, py, panelW, panelH, Color{220, 220, 220, 255});
 
     // Título
     const char *title = "Guia de objetos";
@@ -1771,7 +1771,7 @@ void Game::renderHelpOverlay()
     {
         if (i == helpText.size() || helpText[i] == '\n')
         {
-            DrawText(line.c_str(), left, y, fontSize, (Color){230, 230, 230, 255});
+            DrawText(line.c_str(), left, y, fontSize, Color{230, 230, 230, 255});
             y += lineH;
             line.clear();
         }
@@ -1791,10 +1791,10 @@ void Game::renderHelpOverlay()
                          (float)(tw + 12), (float)(backFs + 8)};
 
     bool hover = CheckCollisionPointRec(GetMousePosition(), backHit);
-    Color link = hover ? (Color){255, 100, 100, 255} : (Color){230, 60, 60, 255};
+    Color link = hover ? Color{255, 100, 100, 255} : Color{230, 60, 60, 255};
 
     // Sombra suave + texto
-    DrawText(backTxt, tx + 1, ty + 1, backFs, (Color){0, 0, 0, 160});
+    DrawText(backTxt, tx + 1, ty + 1, backFs, Color{0, 0, 0, 160});
     DrawText(backTxt, tx, ty, backFs, link);
 
     // Subrayado al pasar el ratón
