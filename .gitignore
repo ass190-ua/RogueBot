@@ -25,3 +25,5 @@ compile_commands.json
 # Vendor
 vendor/lib/*
 !vendor/lib/.keep
+
+.cache/
