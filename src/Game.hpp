@@ -4,7 +4,6 @@
 #include <random>
 #include <vector>
 #include <string>
-
 #include "Map.hpp"
 #include "HUD.hpp"
 #include "Player.hpp"
@@ -12,22 +11,19 @@
 #include "raylib.h"
 #include "ItemSpawner.hpp"
 
-enum class MovementMode
-{
+enum class MovementMode {
     StepByStep,
     RepeatCooldown
 };
 
-enum class GameState
-{
+enum class GameState {
     MainMenu,
     Playing,
     Victory,
     GameOver
 };
 
-struct ItemSprites
-{
+struct ItemSprites {
     Texture2D keycard{};
     Texture2D shield{};
     Texture2D pila{};
@@ -49,13 +45,12 @@ struct ItemSprites
     void unload();
 };
 
-class Game
-{
+class Game {
 public:
     explicit Game(unsigned seed = 0);
     void run();
 
-    // === Getters usados por HUD ===
+    // Getters usados por HUD
     int getScreenW() const { return screenW; }
     int getScreenH() const { return screenH; }
     unsigned getRunSeed() const { return runSeed; }
@@ -74,8 +69,7 @@ public:
     int getHP() const { return hp; }
     int getHPMax() const { return hpMax; }
 
-    enum class EnemyFacing
-    {
+    enum class EnemyFacing {
         Down,
         Up,
         Left,
@@ -109,7 +103,10 @@ private:
     RunContext runCtx;
     std::vector<ItemSpawn> items;
 
-    // --- Enemigos ---
+    std::vector<int>   enemyHP;     // 0..100 por cada enemigo
+    std::vector<float> enemyAtkCD;  // cooldown de ataque (s) por enemigo
+
+    // Enemigos
     std::vector<Enemy> enemies;
     int ENEMY_DETECT_RADIUS_PX = 32 * 6; // ~6 tiles si tileSize=32
 
@@ -170,27 +167,33 @@ private:
     void drawItems() const;
     void drawItemSprite(const ItemSpawn &it) const;
 
-    // --- inventario mínimo ---
+    // inventario mínimo
     bool hasKey = false;
     bool hasShield = false;
     bool hasBattery = false;
     int swordTier = 0;  // 0=sin espada, 1..3
     int plasmaTier = 0; // 0=sin pistola, 1..2
 
-    // --- helpers de recogida ---
+    // helpers de recogida
     void tryPickupHere();               // busca item en (px,py) y lo recoge
     void onPickup(const ItemSpawn &it); // aplica lógica de inventario
 
     // Sprites de ítems
     ItemSprites itemSprites;
 
-    // --- Menú v2: visor “Leer antes de jugar” ---
+    // Menú v2: visor “Leer antes de jugar”
     bool showHelp = false; // si está abierto el visor
     int helpScroll = 0;    // desplazamiento vertical del texto
     std::string helpText;
     Rectangle btnPlay{0, 0, 0, 0};
     Rectangle btnRead{0, 0, 0, 0};
     Rectangle btnBack{0, 0, 0, 0}; // botón "Volver" del panel de ayuda
+
+    void handleMenuInput();               // input cuando state == MainMenu
+    void handlePlayingInput(float dt);    // cámara, movimiento, ataque, etc.
+    void centerCameraOnPlayer();
+    void recomputeFovIfNeeded();
+    void onSuccessfulStep(int dx, int dy);
 
 };
 
