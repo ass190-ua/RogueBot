@@ -153,21 +153,36 @@ help:
 # Benchmarks -jN y ccache #
 # ======================= #
 
-# Detección de un comando 'time' razonablemente portátil
+# Detección de /usr/bin/time y de número de CPUs (Linux/macOS)
 TIME_CMD := $(shell command -v /usr/bin/time 2>/dev/null || command -v gtime 2>/dev/null || echo time)
 TIME_FMT := %E real, %U user, %S sys, CPU %P, Mem %M KB
+NPROC    := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
 
-bench: ; @for n in 1 2 3 4 8 12 16 ; do \
-		echo "\033[1;34m== make -j$$n ==\033[0m"; \
-		$(TIME_CMD) -f "$(TIME_FMT)" $(MAKE) -j$$n --no-print-directory all >/dev/null ; \
-		$(MAKE) --no-print-directory clean >/dev/null ; \
-	done
-
+# --- Bench "SIN ccache" (como en el informe) ---
+# - Fuerza build desde cero en cada iteración (-jN)
+# - Desactiva ccache con CCACHE_DISABLE=1
 bench-nocache: ; @for n in 1 2 3 4 8 12 16 ; do \
 		echo "\033[1;34m== make -j$$n (nocache) ==\033[0m"; \
-		$(TIME_CMD) -f "$(TIME_FMT)" $(MAKE) -j$$n --no-print-directory all USE_CCACHE=0 >/dev/null ; \
-		$(MAKE) --no-print-directory clean >/dev/null ; \
+		CCACHE_DISABLE=1 $(MAKE) --no-print-directory distclean >/dev/null ; \
+		CCACHE_DISABLE=1 $(TIME_CMD) -f "$(TIME_FMT)" $(MAKE) -j$$n --no-print-directory all >/dev/null ; \
 	done
+
+# --- Bench "CON ccache" (como en el informe) ---
+# - Limpia la caché y estadísticas
+# - 1ª compilación (misses) con -j$(NPROC) + ccache -s
+# - 2ª compilación (hits)   con -j$(NPROC) + ccache -s
+bench:
+	@echo "\033[1;34m== ccache: clear + zero ==\033[0m"
+	@ccache -C || true
+	@ccache -z || true
+	@$(MAKE) --no-print-directory distclean >/dev/null
+	@echo "\033[1;34m== CCACHE 1ª (poblar caché) -j$(NPROC) ==\033[0m"
+	@$(TIME_CMD) -f "CCACHE 1ª | $(TIME_FMT)" $(MAKE) -j$(NPROC) --no-print-directory all >/dev/null
+	@ccache -s || true
+	@echo "\033[1;34m== CCACHE 2ª (cache hits) -j$(NPROC) ==\033[0m"
+	@$(MAKE) --no-print-directory clean >/dev/null
+	@$(TIME_CMD) -f "CCACHE 2ª | $(TIME_FMT)" $(MAKE) -j$(NPROC) --no-print-directory all >/dev/null
+	@ccache -s || true
 
 # =========================== #
 # Utilidades para el informe  #
