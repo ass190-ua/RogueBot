@@ -242,12 +242,25 @@ void Game::run() {
 
 void Game::processInput() {
     // ESC desde cualquier sitio distinto al menú -> volver al menú
-    if (IsKeyPressed(KEY_ESCAPE) && state != GameState::MainMenu) {
-        showHelp = false;
-        gAttack.swinging = false;
-        gAttack.lastTiles.clear();
-        state = GameState::MainMenu;
-        return;
+    // También permitimos usar un botón del mando (por ejemplo, B o Start)
+    if (state != GameState::MainMenu) {
+        bool escPressed = IsKeyPressed(KEY_ESCAPE);
+        // Comprobar botón de mando que actúe como ESC
+        const int gp0 = 0;
+        if (IsGamepadAvailable(gp0)) {
+            // Usamos el botón derecho de la cara (B) o el botón central
+            escPressed = escPressed ||
+                         IsGamepadButtonPressed(gp0, GAMEPAD_BUTTON_RIGHT_FACE_RIGHT) ||
+                         IsGamepadButtonPressed(gp0, GAMEPAD_BUTTON_MIDDLE_RIGHT) ||
+                         IsGamepadButtonPressed(gp0, GAMEPAD_BUTTON_MIDDLE);
+        }
+        if (escPressed) {
+            showHelp = false;
+            gAttack.swinging = false;
+            gAttack.lastTiles.clear();
+            state = GameState::MainMenu;
+            return;
+        }
     }
 
     // Reiniciar run completo (igual que antes)
@@ -298,6 +311,49 @@ void Game::processInput() {
 }
 
 void Game::handleMenuInput() {
+    // --- Soporte básico de mando en el menú principal ---
+    // Permite iniciar la partida, abrir el visor de ayuda o salir usando
+    // los botones del mando. Usamos el mando 0 por defecto.  Si el visor
+    // de ayuda está abierto, sólo permitimos cerrarlo.
+    const int menuGamepad = 0;
+    if (IsGamepadAvailable(menuGamepad)) {
+        // Cerrar visor de ayuda con botón B (derecha) o volver atrás
+        if (showHelp) {
+            if (IsGamepadButtonPressed(menuGamepad, GAMEPAD_BUTTON_RIGHT_FACE_RIGHT) ||
+                IsGamepadButtonPressed(menuGamepad, GAMEPAD_BUTTON_LEFT_FACE_RIGHT)) {
+                showHelp = false;
+            }
+        }
+        else {
+            // Botón A (face down) = jugar
+            if (IsGamepadButtonPressed(menuGamepad, GAMEPAD_BUTTON_RIGHT_FACE_DOWN)) {
+                newRun();
+                return;
+            }
+            // Botón X/Y (face up) = leer/ayuda
+            if (IsGamepadButtonPressed(menuGamepad, GAMEPAD_BUTTON_RIGHT_FACE_UP)) {
+                if (helpText.empty()) {
+                    char *buf = LoadFileText("assets/docs/objetos.txt");
+                    if (buf) {
+                        helpText.assign(buf);
+                        UnloadFileText(buf);
+                    }
+                    else {
+                        helpText = "No se encontro 'assets/docs/objetos.txt'.\n";
+                    }
+                }
+                showHelp = true;
+                helpScroll = 0;
+                return;
+            }
+            // Botón B (face right) = salir del juego
+            if (IsGamepadButtonPressed(menuGamepad, GAMEPAD_BUTTON_RIGHT_FACE_RIGHT)) {
+                gQuitRequested = true;
+                return;
+            }
+        }
+    }
+
     // --- Si el visor de ayuda está abierto ---
     if (showHelp) {
         int panelW = (int)std::round(screenW * 0.86f);
@@ -407,6 +463,28 @@ void Game::handlePlayingInput(float dt) {
         cameraZoom = expf(logf(cameraZoom) + wheel * 0.1f);
     }
 
+    // Zoom con el stick derecho del mando
+    const int zoomPad = 0;
+    if (IsGamepadAvailable(zoomPad)) {
+        float rightY = GetGamepadAxisMovement(zoomPad, GAMEPAD_AXIS_RIGHT_Y);
+        const float zoomThr = 0.2f;
+        if (rightY < -zoomThr) {
+            // Arriba (negativo) → acercar cámara
+            cameraZoom += (-rightY) * dt;
+        }
+        else if (rightY > zoomThr) {
+            // Abajo (positivo) → alejar cámara
+            cameraZoom -= rightY * dt;
+        }
+        // Reset de cámara con el botón del stick derecho
+        if (IsGamepadButtonPressed(zoomPad, GAMEPAD_BUTTON_RIGHT_THUMB)) {
+            cameraZoom = 1.0f;
+            camera.zoom = cameraZoom;
+            camera.rotation = 0.0f;
+            clampCameraToMap();
+        }
+    }
+
     cameraZoom = std::clamp(cameraZoom, 0.5f, 3.0f);
     camera.zoom = cameraZoom;
     clampCameraToMap();
@@ -423,6 +501,62 @@ void Game::handlePlayingInput(float dt) {
     int  dx = 0, dy = 0;
     bool moved = false;
 
+    // ============================================
+    // Soporte de mando (gamepad) para movimiento y ataque
+    // Para permitir el uso de un mando junto al teclado, recogemos
+    // el estado del primer mando disponible. Se usan los botones
+    // del "D‑pad" (izquierdo) y el stick izquierdo para mover, y
+    // algunos botones frontales para atacar.  Si no hay mando
+    // conectado, estas variables se mantienen en cero y no
+    // interferirán con el control mediante teclado y ratón.
+    int  gpDx = 0, gpDy = 0;
+    bool gpAttackPressed = false;
+    bool gpDpadPressed = false;
+    bool gpAnalogActive = false;
+    const int gamepadId = 0;
+    if (IsGamepadAvailable(gamepadId)) {
+        // Detectar botón de ataque (cara derecha inferior o gatillos delanteros)
+        if (IsGamepadButtonPressed(gamepadId, GAMEPAD_BUTTON_RIGHT_FACE_DOWN) ||
+            IsGamepadButtonPressed(gamepadId, GAMEPAD_BUTTON_RIGHT_TRIGGER_1) ||
+            IsGamepadButtonPressed(gamepadId, GAMEPAD_BUTTON_RIGHT_TRIGGER_2)) {
+            gpAttackPressed = true;
+        }
+
+        // Leer el stick analógico izquierdo (movimiento continuo)
+        float axisX = GetGamepadAxisMovement(gamepadId, GAMEPAD_AXIS_LEFT_X);
+        float axisY = GetGamepadAxisMovement(gamepadId, GAMEPAD_AXIS_LEFT_Y);
+        const float thr = 0.5f;
+        // Consideramos activo el modo analógico si alguna componente supera el umbral
+        if (axisX < -thr || axisX > thr || axisY < -thr || axisY > thr) {
+            gpAnalogActive = true;
+            if (axisY < -thr) gpDy = -1;
+            else if (axisY > thr) gpDy = +1;
+            if (axisX < -thr) gpDx = -1;
+            else if (axisX > thr) gpDx = +1;
+        }
+
+        // Leer la cruceta (D‑pad) como movimiento discreto (solo pulsaciones)
+        if (IsGamepadButtonPressed(gamepadId, GAMEPAD_BUTTON_LEFT_FACE_UP)) {
+            gpDx = 0; gpDy = -1; gpDpadPressed = true;
+        }
+        if (IsGamepadButtonPressed(gamepadId, GAMEPAD_BUTTON_LEFT_FACE_DOWN)) {
+            gpDx = 0; gpDy = +1; gpDpadPressed = true;
+        }
+        if (IsGamepadButtonPressed(gamepadId, GAMEPAD_BUTTON_LEFT_FACE_LEFT)) {
+            gpDx = -1; gpDy = 0; gpDpadPressed = true;
+        }
+        if (IsGamepadButtonPressed(gamepadId, GAMEPAD_BUTTON_LEFT_FACE_RIGHT)) {
+            gpDx = +1; gpDy = 0; gpDpadPressed = true;
+        }
+
+        // Cambiar el modo de movimiento automáticamente según el input del mando
+        if (gpAnalogActive) {
+            moveMode = MovementMode::RepeatCooldown;
+        } else if (gpDpadPressed) {
+            moveMode = MovementMode::StepByStep;
+        }
+    }
+
     if (moveMode == MovementMode::StepByStep) {
         // Un paso por pulsación
         if (IsKeyPressed(KEY_W) || IsKeyPressed(KEY_UP))    dy = -1;
@@ -430,17 +564,24 @@ void Game::handlePlayingInput(float dt) {
         if (IsKeyPressed(KEY_A) || IsKeyPressed(KEY_LEFT))  dx = -1;
         if (IsKeyPressed(KEY_D) || IsKeyPressed(KEY_RIGHT)) dx = +1;
 
+        // Complementar con eventos de mando (D‑pad) en modo paso a paso
+        // Si no hay input de teclado, asigna el desplazamiento del mando.
+        if (dx == 0 && dy == 0 && (gpDx != 0 || gpDy != 0)) {
+            dx = gpDx;
+            dy = gpDy;
+        }
+
         if (dx != 0 || dy != 0) {
             gAttack.lastDir = {dx, dy};
             player.setDirectionFromDelta(dx, dy); // girar sin moverse
-        }
 
-        int oldx = px, oldy = py;
-        tryMove(dx, dy);
-        moved = (px != oldx || py != oldy);
+            int oldx = px, oldy = py;
+            tryMove(dx, dy);
+            moved = (px != oldx || py != oldy);
 
-        if (moved) {
-            onSuccessfulStep(dx, dy);
+            if (moved) {
+                onSuccessfulStep(dx, dy);
+            }
         }
 
         // Animación (idle si no te moviste)
@@ -450,15 +591,24 @@ void Game::handlePlayingInput(float dt) {
         // Repetición con cooldown mientras mantienes tecla
         moveCooldown -= dt;
 
-        const bool pressedNow = IsKeyPressed(KEY_W) || IsKeyPressed(KEY_S) ||
-                                IsKeyPressed(KEY_A) || IsKeyPressed(KEY_D) ||
-                                IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_DOWN) ||
-                                IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_RIGHT);
+        // Detectar si hay una pulsación inicial de cualquier dirección
+        bool pressedNow = IsKeyPressed(KEY_W) || IsKeyPressed(KEY_S) ||
+                          IsKeyPressed(KEY_A) || IsKeyPressed(KEY_D) ||
+                          IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_DOWN) ||
+                          IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_RIGHT);
+        // Añadir las pulsaciones del mando: cruceta y stick analógico
+        // Si gpDpadPressed o gpAnalogActive está activo, iniciamos un paso inmediato
+        pressedNow = pressedNow || gpDpadPressed || gpAnalogActive;
 
+        // Lectura continua de teclas
         if (IsKeyDown(KEY_W) || IsKeyDown(KEY_UP))    dy = -1;
         if (IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN))  dy = +1;
         if (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT))  dx = -1;
         if (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT)) dx = +1;
+
+        // Complementar con valores del mando
+        if (dx == 0 && gpDx != 0) dx = gpDx;
+        if (dy == 0 && gpDy != 0) dy = gpDy;
 
         // permite girarte sin moverte
         if (dx != 0 || dy != 0) {
@@ -506,9 +656,10 @@ void Game::handlePlayingInput(float dt) {
     // Rango base del puño
     gAttack.rangeTiles = RANGE_MELEE_HAND;
 
-    // Input de ataque: SPACE o click izquierdo
+    // Input de ataque: SPACE, click izquierdo o botones del gamepad
     const bool attackPressed = IsKeyPressed(KEY_SPACE) ||
-                               IsMouseButtonPressed(MOUSE_LEFT_BUTTON);
+                               IsMouseButtonPressed(MOUSE_LEFT_BUTTON) ||
+                               gpAttackPressed;
 
     if (attackPressed && gAttack.cdTimer <= 0.f) {
         // Calcula tiles válidos con oclusión ANTES de iniciar el gesto
