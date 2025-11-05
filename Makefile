@@ -1,0 +1,197 @@
+# ====================================================== #
+# RogueBot — Makefile GNU (Hito 2 - Entregable 1)        #
+# - Multidirectorio: descubre src/**.cpp automáticamente #
+# - Paralelizable (make -jN) + dependencias .d           #
+# - ccache opcional, auto si está instalado              #
+# - Benchmarks -jN y utilidades ccache para el informe   #
+# ====================================================== #
+
+# --- Proyecto --- #
+PROJECT      := roguebot
+SRC_DIRS     := src
+BUILD_DIR    := build_gnu
+OBJ_DIR      := $(BUILD_DIR)/obj
+BIN_DIR      := $(BUILD_DIR)/bin
+TARGET       := $(BIN_DIR)/$(PROJECT)
+
+# --- Herramientas / ccache --- #
+CCACHE_BIN   := $(shell command -v ccache 2>/dev/null)
+CXX          ?= g++
+ifdef CCACHE_BIN
+CXX := ccache $(CXX)
+endif
+
+# --- Descubrimiento de fuentes --- #
+SRCS := $(shell find $(SRC_DIRS) -name '*.cpp')
+# Mapea: src/aaa/bbb.cpp -> build_gnu/obj/src/aaa/bbb.o
+OBJS := $(patsubst %.cpp,$(OBJ_DIR)/%.o,$(SRCS))
+DEPS := $(OBJS:.o=.d)
+
+# --- Flags de compilación/enlace --- #
+CXXSTANDARD  ?= -std=gnu++17
+OPTFLAGS     ?= -O2 -pipe
+WARNFLAGS    ?= -Wall -Wextra -Wno-unknown-pragmas
+DEPFLAGS     := -MMD -MP
+
+# Incluye la raíz de src para headers en subcarpetas (core/, systems/, etc.)
+INC_DIRS := $(shell find $(SRC_DIRS) -type d)
+INCLUDES := $(addprefix -I,$(INC_DIRS))
+
+# Ruta de assets; si prefieres absoluta como en CMake:  -DRB_ASSET_ROOT=\"$(CURDIR)/assets\"
+DEFINES      := -DRB_ASSET_ROOT=\"assets\"
+
+CXXFLAGS     ?= $(CXXSTANDARD) $(OPTFLAGS) $(WARNFLAGS) $(DEPFLAGS) $(DEFINES) $(INCLUDES)
+
+# --- raylib (pkg-config si está; si no, fallbacks por plataforma) --- #
+RAYLIB_CFLAGS := $(shell pkg-config --cflags raylib 2>/dev/null)
+RAYLIB_LIBS   := $(shell pkg-config --libs   raylib 2>/dev/null)
+
+ifeq ($(RAYLIB_LIBS),)
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Linux)
+RAYLIB_LIBS := -lraylib -lm -lpthread -ldl -lrt -lX11
+endif
+ifeq ($(UNAME_S),Darwin)
+RAYLIB_LIBS := -lraylib -framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo -framework AudioToolbox
+RAYLIB_CFLAGS += -I/usr/local/include -I/opt/homebrew/include
+LDFLAGS += -L/usr/local/lib -L/opt/homebrew/lib
+endif
+endif
+
+# Fallback Windows (MinGW/MSYS2)
+ifeq ($(OS),Windows_NT)
+RAYLIB_LIBS ?= -lraylib -lopengl32 -lgdi32 -lwinmm
+endif
+
+# Añade flags de raylib si pkg-config los da
+CXXFLAGS += $(RAYLIB_CFLAGS)
+
+# --- Ajustes MSYS2/MinGW (extensión .exe + libs del sistema) --- #
+UNAME_S := $(shell uname -s)
+ifeq ($(findstring MINGW,$(UNAME_S)),MINGW)
+  EXEEXT := .exe
+  RAYLIB_LIBS += -lopengl32 -lgdi32 -lwinmm
+else
+  EXEEXT :=
+endif
+
+TARGET := $(BIN_DIR)/$(PROJECT)$(EXEEXT)
+
+# ================== #
+# Reglas principales #
+# ================== #
+
+.PHONY: all clean distclean run print-vars help \
+        bench bench-nocache ccache-zero ccache-clear ccache-stats
+
+all: $(TARGET)
+
+$(TARGET): $(OBJS) | $(BIN_DIR)
+	@echo "\033[1;34m [LINK]\033[0m $@"
+	$(CXX) $(LDFLAGS) -o $@ $(OBJS) $(RAYLIB_LIBS)
+
+# Compilación de cada .cpp -> .o (crea carpeta espejo en obj/)
+$(OBJ_DIR)/%.o: %.cpp | $(OBJ_DIR)
+	@mkdir -p $(dir $@)
+	@echo "\033[1;32m [CXX ]\033[0m $<"
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+# Directorios intermedios
+$(OBJ_DIR) $(BIN_DIR):
+	@mkdir -p $@
+
+# Limpiar
+clean:
+	@echo "\033[1;33m [CLEAN]\033[0m objetos"
+	@rm -rf "$(OBJ_DIR)"
+
+distclean:
+	@echo "\033[1;33m [CLEAN]\033[0m todo build_gnu"
+	@rm -rf "$(BUILD_DIR)"
+
+# Ejecutar
+run: $(TARGET)
+	@echo "\033[1;36m [RUN ]\033[0m $(TARGET)"
+	@$(TARGET)
+
+# Ayuda / diagnóstico
+print-vars:
+	@echo "\033[1;36m=====================================\033[0m"
+	@echo " 🤖 \033[1;36mRogueBot — Variables del entorno\033[0m"
+	@echo "\033[1;36m=====================================\033[0m"
+	@echo ""
+	@echo "\033[1;33mPROJECT    \033[0m = \033[1;32m$(PROJECT)\033[0m"
+	@echo "\033[1;33mCXX        \033[0m = \033[1;32m$(CXX)\033[0m"
+	@echo "\033[1;33mCXXFLAGS   \033[0m = \033[0;37m$(CXXFLAGS)\033[0m"
+	@echo "\033[1;33mLDFLAGS    \033[0m = \033[0;37m$(LDFLAGS)\033[0m"
+	@echo "\033[1;33mRAYLIB_LIBS\033[0m = \033[0;37m$(RAYLIB_LIBS)\033[0m"
+	@echo "\033[1;33mSRCS (#)   \033[0m = \033[1;36m$(words $(SRCS))\033[0m"
+	@echo "\033[1;33mOBJS (#)   \033[0m = \033[1;36m$(words $(OBJS))\033[0m"
+	@echo ""
+
+help:
+	@echo ""
+	@echo "\033[1;36m====================================\033[0m"
+	@echo " 🤖 \033[1;36mRogueBot — Comandos disponibles\033[0m"
+	@echo "\033[1;36m====================================\033[0m"
+	@echo ""
+	@echo "\033[1;32m make / make all\033[0m               	 -> compila todo"
+	@echo "\033[1;32m make -jN\033[0m                      	 -> compila en paralelo (con N hilos)"
+	@echo "\033[1;32m make -j\$$\(nproc\)\033[0m          	 -> usa automaticamente todos los hilos disponibles (no escribir las \)"
+	@echo "\033[1;36m make run\033[0m                      	 -> ejecuta el binario"
+	@echo "\033[1;33m make clean\033[0m                    	 -> limpia objetos"
+	@echo "\033[1;33m make distclean\033[0m                	 -> limpia todo el build"
+	@echo "\033[1;36m make print-vars\033[0m               	 -> muestra variables importantes"
+	@echo "\033[1;32m make bench\033[0m                    	 -> mide tiempos con ccache"
+	@echo "\033[1;32m make bench-nocache USE_CCACHE=0\033[0m -> mide tiempos sin ccache"
+	@echo "\033[1;36m make ccache-zero\033[0m              	 -> pone a cero estadísticas"
+	@echo "\033[1;36m make ccache-clear\033[0m             	 -> limpia la caché"
+	@echo "\033[1;36m make ccache-stats\033[0m             	 -> muestra estadísticas"
+	@echo ""
+
+# ======================= #
+# Benchmarks -jN y ccache #
+# ======================= #
+
+# Detección de /usr/bin/time y de número de CPUs (Linux/macOS)
+TIME_CMD := $(shell command -v /usr/bin/time 2>/dev/null || command -v gtime 2>/dev/null || echo time)
+TIME_FMT := %E real, %U user, %S sys, CPU %P, Mem %M KB
+NPROC    := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
+
+# --- Bench "SIN ccache" (como en el informe) ---
+# - Fuerza build desde cero en cada iteración (-jN)
+# - Desactiva ccache con CCACHE_DISABLE=1
+bench-nocache: ; @for n in 1 2 3 4 8 12 16 ; do \
+		echo "\033[1;34m== make -j$$n (nocache) ==\033[0m"; \
+		CCACHE_DISABLE=1 $(MAKE) --no-print-directory distclean >/dev/null ; \
+		CCACHE_DISABLE=1 $(TIME_CMD) -f "$(TIME_FMT)" $(MAKE) -j$$n --no-print-directory all >/dev/null ; \
+	done
+
+# --- Bench "CON ccache" (como en el informe) ---
+# - Limpia la caché y estadísticas
+# - 1ª compilación (misses) con -j$(NPROC) + ccache -s
+# - 2ª compilación (hits)   con -j$(NPROC) + ccache -s
+bench:
+	@echo "\033[1;34m== ccache: clear + zero ==\033[0m"
+	@ccache -C || true
+	@ccache -z || true
+	@$(MAKE) --no-print-directory distclean >/dev/null
+	@echo "\033[1;34m== CCACHE 1ª (poblar caché) -j$(NPROC) ==\033[0m"
+	@$(TIME_CMD) -f "CCACHE 1ª | $(TIME_FMT)" $(MAKE) -j$(NPROC) --no-print-directory all >/dev/null
+	@ccache -s || true
+	@echo "\033[1;34m== CCACHE 2ª (cache hits) -j$(NPROC) ==\033[0m"
+	@$(MAKE) --no-print-directory clean >/dev/null
+	@$(TIME_CMD) -f "CCACHE 2ª | $(TIME_FMT)" $(MAKE) -j$(NPROC) --no-print-directory all >/dev/null
+	@ccache -s || true
+
+# =========================== #
+# Utilidades para el informe  #
+# =========================== #
+
+# Nota: estas dianas no fallan si ccache no está instalado (|| true)
+ccache-zero:  ; @ccache -z || true
+ccache-clear: ; @ccache -C || true
+ccache-stats: ; @ccache -s || true
+
+# Incluir dependencias autogeneradas (-MMD)
+-include $(DEPS)
