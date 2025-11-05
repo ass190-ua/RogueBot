@@ -13,24 +13,24 @@ elseif (MSVC)
   add_compile_options(/W4)
 endif()
 
-# --- Fuentes: detectar automáticamente todos los .cpp de src/ ---
-# CONFIGURE_DEPENDS hace que CMake reconfigure cuando cambian los contenidos de src/
+# --- Fuentes: detectar automáticamente todos los .cpp de src/ (multidirectorio) ---
 file(GLOB_RECURSE RB_SOURCES CONFIGURE_DEPENDS
   "${CMAKE_SOURCE_DIR}/src/*.cpp"
 )
 
 add_executable(roguebot ${RB_SOURCES})
 
-# Incluye cabeceras propias (no falla si la carpeta no existe)
+# --- Includes propios (mantienen #include "Game.hpp" tras mover a core/systems) ---
 target_include_directories(roguebot PRIVATE
-  ${CMAKE_SOURCE_DIR}/src
-  ${CMAKE_SOURCE_DIR}/vendor/include
+  "${CMAKE_SOURCE_DIR}/src"
+  "${CMAKE_SOURCE_DIR}/src/core"
+  "${CMAKE_SOURCE_DIR}/src/systems"
+  "${CMAKE_SOURCE_DIR}/vendor/include"
 )
 
-# --- Raylib: intenta del sistema y si no, usa FetchContent (5.0) ---
+# --- Raylib: del sistema o FetchContent (5.0) ---
 include(FetchContent)
 find_package(raylib QUIET)
-
 if(NOT raylib_FOUND)
   message(STATUS "raylib no encontrado en el sistema → usando FetchContent (raylib 5.0)")
   FetchContent_Declare(
@@ -40,10 +40,9 @@ if(NOT raylib_FOUND)
   )
   FetchContent_MakeAvailable(raylib)
 endif()
-
 target_link_libraries(roguebot PRIVATE raylib)
 
-# Extras Linux (raylib suele arrastrar todo, pero por compatibilidad mantenemos)
+# Extras Linux
 if(UNIX AND NOT APPLE)
   target_link_libraries(roguebot PRIVATE m pthread dl rt X11)
 endif()
@@ -53,5 +52,5 @@ set_target_properties(roguebot PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )
 
-# Definición para localizar assets en runtime si usáis rutas relativas
+# Def para localizar assets en runtime
 target_compile_definitions(roguebot PRIVATE RB_ASSET_ROOT="${CMAKE_SOURCE_DIR}/assets")
