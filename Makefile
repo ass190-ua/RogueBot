@@ -1,9 +1,10 @@
 # ====================================================== #
-# RogueBot — Makefile GNU (Hito 2 - Entregable 1)        #
+# RogueBot — Makefile GNU (Hito 2 - Entregable 1+2)      #
 # - Multidirectorio: descubre src/**.cpp automáticamente #
 # - Paralelizable (make -jN) + dependencias .d           #
 # - ccache opcional, auto si está instalado              #
 # - Benchmarks -jN y utilidades ccache para el informe   #
+# - Empaquetado: install/uninstall/dist (.deb)           #
 # ====================================================== #
 
 # --- Proyecto --- #
@@ -15,8 +16,7 @@ BIN_DIR      := $(BUILD_DIR)/bin
 TARGET       := $(BIN_DIR)/$(PROJECT)
 
 # --- Herramientas / ccache --- #
-CCACHE_BIN   := $(shell command -v ccache 2>/dev/null)
-CXX          ?= g++
+CXX ?= g++
 ifdef CCACHE_BIN
 CXX := ccache $(CXX)
 endif
@@ -37,10 +37,12 @@ DEPFLAGS     := -MMD -MP
 INC_DIRS := $(shell find $(SRC_DIRS) -type d)
 INCLUDES := $(addprefix -I,$(INC_DIRS))
 
-# Ruta de assets; si prefieres absoluta como en CMake:  -DRB_ASSET_ROOT=\"$(CURDIR)/assets\"
-DEFINES      := -DRB_ASSET_ROOT=\"assets\"
+# Ruta de assets (parametrizable). En dev: "assets".
+# En empaquetado Debian: sobreescribir con ASSET_ROOT=/usr/share/roguebot/assets
+ASSET_ROOT   ?= assets
+DEFINES      := -DRB_ASSET_ROOT=\"$(ASSET_ROOT)\"
 
-CXXFLAGS     ?= $(CXXSTANDARD) $(OPTFLAGS) $(WARNFLAGS) $(DEPFLAGS) $(DEFINES) $(INCLUDES)
+CXXFLAGS     := $(CXXSTANDARD) $(OPTFLAGS) $(WARNFLAGS) $(DEPFLAGS) $(DEFINES) $(INCLUDES)
 
 # --- raylib (pkg-config si está; si no, fallbacks por plataforma) --- #
 RAYLIB_CFLAGS := $(shell pkg-config --cflags raylib 2>/dev/null)
@@ -78,11 +80,21 @@ endif
 TARGET := $(BIN_DIR)/$(PROJECT)$(EXEEXT)
 
 # ================== #
+# Instalación / pkg  #
+# ================== #
+PREFIX       ?= /usr
+DESTDIR      ?=
+ASSETS_DIR   ?= assets
+APP_DESKTOP  ?= packaging/roguebot.desktop
+APP_ICON     ?= packaging/icons/roguebot.png
+
+# ================== #
 # Reglas principales #
 # ================== #
 
 .PHONY: all clean distclean run print-vars help \
-        bench bench-nocache ccache-zero ccache-clear ccache-stats
+        bench bench-nocache ccache-zero ccache-clear ccache-stats \
+        install uninstall dist
 
 all: $(TARGET)
 
@@ -125,6 +137,7 @@ print-vars:
 	@echo "\033[1;33mCXXFLAGS   \033[0m = \033[0;37m$(CXXFLAGS)\033[0m"
 	@echo "\033[1;33mLDFLAGS    \033[0m = \033[0;37m$(LDFLAGS)\033[0m"
 	@echo "\033[1;33mRAYLIB_LIBS\033[0m = \033[0;37m$(RAYLIB_LIBS)\033[0m"
+	@echo "\033[1;33mASSET_ROOT \033[0m = \033[0;37m$(ASSET_ROOT)\033[0m"
 	@echo "\033[1;33mSRCS (#)   \033[0m = \033[1;36m$(words $(SRCS))\033[0m"
 	@echo "\033[1;33mOBJS (#)   \033[0m = \033[1;36m$(words $(OBJS))\033[0m"
 	@echo ""
@@ -147,6 +160,9 @@ help:
 	@echo "\033[1;36m make ccache-zero\033[0m              	 -> pone a cero estadísticas"
 	@echo "\033[1;36m make ccache-clear\033[0m             	 -> limpia la caché"
 	@echo "\033[1;36m make ccache-stats\033[0m             	 -> muestra estadísticas"
+	@echo "\033[1;35m make install [DESTDIR=staging]\033[0m  -> instala en árbol de empaquetado"
+	@echo "\033[1;33m make uninstall\033[0m                  -> desinstala (útil en dev)"
+	@echo "\033[1;35m make dist\033[0m                       -> genera paquete .deb en ./dist"
 	@echo ""
 
 # ======================= #
@@ -184,14 +200,49 @@ bench:
 	@$(TIME_CMD) -f "CCACHE 2ª | $(TIME_FMT)" $(MAKE) -j$(NPROC) --no-print-directory all >/dev/null
 	@ccache -s || true
 
-# =========================== #
-# Utilidades para el informe  #
-# =========================== #
+# ================== #
+# Instalación system #
+# ================== #
+# Durante el empaquetado .deb, debhelper llamará a "make install"
+# dentro de un árbol de staging. Por eso es crucial usar DESTDIR+PREFIX.
+install: all
+	@echo "\033[1;35m [INSTALL]\033[0m into $(DESTDIR)$(PREFIX)"
+	# binario
+	install -d "$(DESTDIR)$(PREFIX)/bin"
+	install -m 0755 "$(TARGET)" "$(DESTDIR)$(PREFIX)/bin/roguebot"
 
-# Nota: estas dianas no fallan si ccache no está instalado (|| true)
-ccache-zero:  ; @ccache -z || true
-ccache-clear: ; @ccache -C || true
-ccache-stats: ; @ccache -s || true
+	# assets del juego (usa '/.' para copiar también archivos ocultos y sin romper si hay espacios)
+	install -d "$(DESTDIR)$(PREFIX)/share/roguebot/assets"
+	cp -r "$(ASSETS_DIR)/." "$(DESTDIR)$(PREFIX)/share/roguebot/assets/"
+
+	# .desktop
+	install -d "$(DESTDIR)$(PREFIX)/share/applications"
+	install -m 0644 "$(APP_DESKTOP)" "$(DESTDIR)$(PREFIX)/share/applications/roguebot.desktop"
+
+	# icono (256x256)
+	install -d "$(DESTDIR)$(PREFIX)/share/icons/hicolor/256x256/apps"
+	install -m 0644 "$(APP_ICON)" "$(DESTDIR)$(PREFIX)/share/icons/hicolor/256x256/apps/roguebot.png"
+
+# (Opcional) Desinstalación útil en dev (no usado por Debian)
+uninstall:
+	@echo "\033[1;33m [UNINSTALL]\033[0m from $(DESTDIR)$(PREFIX)"
+	@rm -f  $(DESTDIR)$(PREFIX)/bin/roguebot
+	@rm -f  $(DESTDIR)$(PREFIX)/share/applications/roguebot.desktop
+	@rm -f  $(DESTDIR)$(PREFIX)/share/icons/hicolor/256x256/apps/roguebot.png
+	@rm -rf $(DESTDIR)$(PREFIX)/share/roguebot
+
+# ====================== #
+# Empaquetado (.deb)     #
+# ====================== #
+dist:
+	@echo "\033[1;35m [DEB]\033[0m build package"
+	@rm -rf dist && mkdir -p dist
+	# Construcción del paquete binario sin firmar
+	dpkg-buildpackage -us -uc -b
+	# Mover artefactos al directorio dist
+	@mkdir -p dist
+	@mv ../*.deb dist/ 2>/dev/null || true
+	@echo "\033[1;32m Paquete generado en ./dist \033[0m"
 
 # Incluir dependencias autogeneradas (-MMD)
 -include $(DEPS)
