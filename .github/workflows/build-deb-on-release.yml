@@ -1,0 +1,37 @@
+name: Build RogueBot .deb on release
+
+on:
+  release:
+    types: [published]     # Se ejecuta al publicar una nueva release
+  workflow_dispatch:        # Opcional: poder lanzarla a mano desde Actions
+
+jobs:
+  build-deb:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            dpkg-dev \
+            debhelper \
+            fakeroot \
+            pkg-config \
+            libraylib-dev
+
+      - name: Build .deb with make dist
+        run: |
+          # Usamos la raylib del sistema en lugar de la estática
+          PREFER_RAYLIB_STATIC=0 make dist
+
+      - name: Upload .deb to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.deb
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

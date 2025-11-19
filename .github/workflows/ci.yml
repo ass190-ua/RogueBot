@@ -12,39 +12,24 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      # Toolchain + deps para construir raylib (vía FetchContent si no está en el sistema)
-      - name: Install toolchain & system dependencies
+      - name: Install build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            build-essential cmake pkg-config \
-            libx11-dev libxrandr-dev libxi-dev libxxf86vm-dev \
-            libxinerama-dev libxcursor-dev \
-            libgl1-mesa-dev mesa-common-dev libglu1-mesa-dev \
-            libasound2-dev
+          sudo apt-get install -y \
+            build-essential \
+            pkg-config \
+            libraylib-dev
 
-      # (Opcional) Cache del build de CMake para acelerar
-      - name: Cache CMake build
-        uses: actions/cache@v4
-        with:
-          path: |
-            build
-            ~/.cache
-          key: cmake-${{ runner.os }}-${{ hashFiles('CMakeLists.txt', 'src/**/*.cpp', 'src/**/*.hpp') }}
-          restore-keys: |
-            cmake-${{ runner.os }}-
+      - name: Build RogueBot (Makefile, build_gnu)
+        run: |
+          # Usamos raylib del sistema
+          PREFER_RAYLIB_STATIC=0 make -j2
 
-      - name: Configure
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-
-      - name: Build
-        run: cmake --build build --config Release -- -j 2
-
-      # Subimos el binario para poder descargarlo desde el job
-      - name: Upload binary
+      - name: Upload binary artifact
         uses: actions/upload-artifact@v4
         with:
           name: roguebot-linux
-          path: build/bin/roguebot
+          path: build_gnu/bin/roguebot
