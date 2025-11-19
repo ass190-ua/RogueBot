@@ -1,0 +1,11 @@
+Package: roguebot
+Version: 1.0.0-1
+Architecture: amd64
+Maintainer: Roguebot
+Installed-Size: 1911
+Depends: libc6 (>= 2.38), libgcc-s1 (>= 3.0), libstdc++6 (>= 13.1)
+Section: games
+Priority: optional
+Homepage: https://github.com/ass190-ua/RogueBot
+Description: RogueBot — Roguelike con raylib
+ Un juego tipo roguelike en C++ usando raylib (proyecto DCA).

@@ -12,39 +12,37 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      # Toolchain + deps para construir raylib (vía FetchContent si no está en el sistema)
-      - name: Install toolchain & system dependencies
+      - name: Install build toolchain & system libs for raylib
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            build-essential cmake pkg-config \
+            build-essential \
+            git \
+            cmake \
+            pkg-config \
             libx11-dev libxrandr-dev libxi-dev libxxf86vm-dev \
             libxinerama-dev libxcursor-dev \
-            libgl1-mesa-dev mesa-common-dev libglu1-mesa-dev \
+            libgl1-mesa-dev libglu1-mesa-dev mesa-common-dev \
             libasound2-dev
 
-      # (Opcional) Cache del build de CMake para acelerar
-      - name: Cache CMake build
-        uses: actions/cache@v4
-        with:
-          path: |
-            build
-            ~/.cache
-          key: cmake-${{ runner.os }}-${{ hashFiles('CMakeLists.txt', 'src/**/*.cpp', 'src/**/*.hpp') }}
-          restore-keys: |
-            cmake-${{ runner.os }}-
+      - name: Build and install raylib (static, /usr/local)
+        run: |
+          git clone --depth 1 https://github.com/raysan5/raylib.git
+          cd raylib/src
+          make PLATFORM=PLATFORM_DESKTOP
+          sudo make install
+          cd ../..
 
-      - name: Configure
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+      - name: Build RogueBot (Makefile, build_gnu)
+        run: |
+          # Usa la librería estática instalada en /usr/local (PREFER_RAYLIB_STATIC=1 por defecto)
+          make -j2
 
-      - name: Build
-        run: cmake --build build --config Release -- -j 2
-
-      # Subimos el binario para poder descargarlo desde el job
-      - name: Upload binary
+      - name: Upload binary artifact
         uses: actions/upload-artifact@v4
         with:
           name: roguebot-linux
-          path: build/bin/roguebot
+          path: build_gnu/bin/roguebot

@@ -1,9 +1,9 @@
 # ====================================================== #
-# RogueBot — Makefile GNU (Hito 2 - Entregable 1)        #
+# RogueBot — Makefile GNU (Hito 2 - Entregable 1+2)      #
 # - Multidirectorio: descubre src/**.cpp automáticamente #
 # - Paralelizable (make -jN) + dependencias .d           #
-# - ccache opcional, auto si está instalado              #
-# - Benchmarks -jN y utilidades ccache para el informe   #
+# - Benchmarks y empaquetado (.deb)                      #
+# - Raylib estática por defecto (PREFER_RAYLIB_STATIC=1) #
 # ====================================================== #
 
 # --- Proyecto --- #
@@ -14,9 +14,10 @@ OBJ_DIR      := $(BUILD_DIR)/obj
 BIN_DIR      := $(BUILD_DIR)/bin
 TARGET       := $(BIN_DIR)/$(PROJECT)
 
+UNAME_S := $(shell uname -s)
+
 # --- Herramientas / ccache --- #
-CCACHE_BIN   := $(shell command -v ccache 2>/dev/null)
-CXX          ?= g++
+CXX ?= g++
 ifdef CCACHE_BIN
 CXX := ccache $(CXX)
 endif
@@ -37,52 +38,81 @@ DEPFLAGS     := -MMD -MP
 INC_DIRS := $(shell find $(SRC_DIRS) -type d)
 INCLUDES := $(addprefix -I,$(INC_DIRS))
 
-# Ruta de assets; si prefieres absoluta como en CMake:  -DRB_ASSET_ROOT=\"$(CURDIR)/assets\"
-DEFINES      := -DRB_ASSET_ROOT=\"assets\"
+# Ruta de assets (parametrizable). En dev: "assets".
+# En empaquetado Debian: ASSET_ROOT=/usr/share/roguebot/assets
+ASSET_ROOT   ?= assets
+DEFINES      := -DRB_ASSET_ROOT=\"$(ASSET_ROOT)\"
 
-CXXFLAGS     ?= $(CXXSTANDARD) $(OPTFLAGS) $(WARNFLAGS) $(DEPFLAGS) $(DEFINES) $(INCLUDES)
+CXXFLAGS     := $(CXXSTANDARD) $(OPTFLAGS) $(WARNFLAGS) $(DEPFLAGS) $(DEFINES) $(INCLUDES)
 
-# --- raylib (pkg-config si está; si no, fallbacks por plataforma) --- #
-RAYLIB_CFLAGS := $(shell pkg-config --cflags raylib 2>/dev/null)
-RAYLIB_LIBS   := $(shell pkg-config --libs   raylib 2>/dev/null)
+# =============================== #
+# raylib (estática por defecto)   #
+# =============================== #
+# Si quieres usar la raylib del sistema (pkg-config), ejecuta:
+#    make PREFER_RAYLIB_STATIC=0
+PREFER_RAYLIB_STATIC ?= 1
 
-ifeq ($(RAYLIB_LIBS),)
-UNAME_S := $(shell uname -s)
-ifeq ($(UNAME_S),Linux)
-RAYLIB_LIBS := -lraylib -lm -lpthread -ldl -lrt -lX11
-endif
-ifeq ($(UNAME_S),Darwin)
-RAYLIB_LIBS := -lraylib -framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo -framework AudioToolbox
-RAYLIB_CFLAGS += -I/usr/local/include -I/opt/homebrew/include
-LDFLAGS += -L/usr/local/lib -L/opt/homebrew/lib
-endif
+# Por defecto, sin extensión .exe (se ajusta más abajo para MinGW)
+EXEEXT :=
+
+ifeq ($(PREFER_RAYLIB_STATIC),1)
+  # Forzar librería estática instalada en /usr/local por 'sudo make install' de raylib
+  CXXFLAGS += -I/usr/local/include
+  ifeq ($(UNAME_S),Linux)
+    RAYLIB_LIBS := /usr/local/lib/libraylib.a -lGL -lm -lpthread -ldl -lrt -lX11
+  endif
+  ifeq ($(UNAME_S),Darwin)
+    RAYLIB_LIBS := /usr/local/lib/libraylib.a -framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo -framework AudioToolbox
+    LDFLAGS += -L/usr/local/lib
+  endif
+else
+  # --- raylib (pkg-config si está; si no, fallbacks por plataforma) --- #
+  RAYLIB_CFLAGS := $(shell pkg-config --cflags raylib 2>/dev/null)
+  RAYLIB_LIBS   := $(shell pkg-config --libs   raylib 2>/dev/null)
+
+  ifeq ($(RAYLIB_LIBS),)
+    ifeq ($(UNAME_S),Linux)
+      RAYLIB_LIBS := -lraylib -lm -lpthread -ldl -lrt -lX11
+    endif
+    ifeq ($(UNAME_S),Darwin)
+      RAYLIB_LIBS := -lraylib -framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo -framework AudioToolbox
+      RAYLIB_CFLAGS += -I/usr/local/include -I/opt/homebrew/include
+      LDFLAGS += -L/usr/local/lib -L/opt/homebrew/lib
+    endif
+  endif
+
+  # Añade flags de raylib si pkg-config los da
+  CXXFLAGS += $(RAYLIB_CFLAGS)
 endif
 
 # Fallback Windows (MinGW/MSYS2)
-ifeq ($(OS),Windows_NT)
-RAYLIB_LIBS ?= -lraylib -lopengl32 -lgdi32 -lwinmm
-endif
-
-# Añade flags de raylib si pkg-config los da
-CXXFLAGS += $(RAYLIB_CFLAGS)
-
-# --- Ajustes MSYS2/MinGW (extensión .exe + libs del sistema) --- #
-UNAME_S := $(shell uname -s)
 ifeq ($(findstring MINGW,$(UNAME_S)),MINGW)
   EXEEXT := .exe
-  RAYLIB_LIBS += -lopengl32 -lgdi32 -lwinmm
-else
-  EXEEXT :=
+  ifeq ($(PREFER_RAYLIB_STATIC),1)
+    RAYLIB_LIBS := /usr/local/lib/libraylib.a -lopengl32 -lgdi32 -lwinmm
+  else
+    RAYLIB_LIBS += -lopengl32 -lgdi32 -lwinmm
+  endif
 endif
 
 TARGET := $(BIN_DIR)/$(PROJECT)$(EXEEXT)
+
+# ================== #
+# Instalación / pkg  #
+# ================== #
+PREFIX       ?= /usr
+DESTDIR      ?=
+ASSETS_DIR   ?= assets
+APP_DESKTOP  ?= packaging/roguebot.desktop
+APP_ICON     ?= packaging/icons/roguebot.png
 
 # ================== #
 # Reglas principales #
 # ================== #
 
 .PHONY: all clean distclean run print-vars help \
-        bench bench-nocache ccache-zero ccache-clear ccache-stats
+        bench bench-nocache ccache-zero ccache-clear ccache-stats \
+        install uninstall dist
 
 all: $(TARGET)
 
@@ -125,6 +155,8 @@ print-vars:
 	@echo "\033[1;33mCXXFLAGS   \033[0m = \033[0;37m$(CXXFLAGS)\033[0m"
 	@echo "\033[1;33mLDFLAGS    \033[0m = \033[0;37m$(LDFLAGS)\033[0m"
 	@echo "\033[1;33mRAYLIB_LIBS\033[0m = \033[0;37m$(RAYLIB_LIBS)\033[0m"
+	@echo "\033[1;33mASSET_ROOT \033[0m = \033[0;37m$(ASSET_ROOT)\033[0m"
+	@echo "\033[1;33mPREFER_RAYLIB_STATIC \033[0m = \033[1;32m$(PREFER_RAYLIB_STATIC)\033[0m"
 	@echo "\033[1;33mSRCS (#)   \033[0m = \033[1;36m$(words $(SRCS))\033[0m"
 	@echo "\033[1;33mOBJS (#)   \033[0m = \033[1;36m$(words $(OBJS))\033[0m"
 	@echo ""
@@ -137,7 +169,7 @@ help:
 	@echo ""
 	@echo "\033[1;32m make / make all\033[0m               	 -> compila todo"
 	@echo "\033[1;32m make -jN\033[0m                      	 -> compila en paralelo (con N hilos)"
-	@echo "\033[1;32m make -j\$$\(nproc\)\033[0m          	 -> usa automaticamente todos los hilos disponibles (no escribir las \)"
+	@echo "\033[1;32m make -j\$$\(nproc\)\033[0m          	 -> usa automaticamente todos los hilos disponibles"
 	@echo "\033[1;36m make run\033[0m                      	 -> ejecuta el binario"
 	@echo "\033[1;33m make clean\033[0m                    	 -> limpia objetos"
 	@echo "\033[1;33m make distclean\033[0m                	 -> limpia todo el build"
@@ -147,30 +179,25 @@ help:
 	@echo "\033[1;36m make ccache-zero\033[0m              	 -> pone a cero estadísticas"
 	@echo "\033[1;36m make ccache-clear\033[0m             	 -> limpia la caché"
 	@echo "\033[1;36m make ccache-stats\033[0m             	 -> muestra estadísticas"
+	@echo "\033[1;35m make install [DESTDIR=staging]\033[0m  -> instala en árbol de empaquetado"
+	@echo "\033[1;33m make uninstall\033[0m                  -> desinstala (útil en dev)"
+	@echo "\033[1;35m make dist\033[0m                       -> genera paquete .deb en ./dist"
 	@echo ""
 
 # ======================= #
 # Benchmarks -jN y ccache #
 # ======================= #
 
-# Detección de /usr/bin/time y de número de CPUs (Linux/macOS)
 TIME_CMD := $(shell command -v /usr/bin/time 2>/dev/null || command -v gtime 2>/dev/null || echo time)
 TIME_FMT := %E real, %U user, %S sys, CPU %P, Mem %M KB
 NPROC    := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
 
-# --- Bench "SIN ccache" (como en el informe) ---
-# - Fuerza build desde cero en cada iteración (-jN)
-# - Desactiva ccache con CCACHE_DISABLE=1
 bench-nocache: ; @for n in 1 2 3 4 8 12 16 ; do \
 		echo "\033[1;34m== make -j$$n (nocache) ==\033[0m"; \
 		CCACHE_DISABLE=1 $(MAKE) --no-print-directory distclean >/dev/null ; \
-		CCACHE_DISABLE=1 $(TIME_CMD) -f "$(TIME_FMT)" $(MAKE) -j$$n --no-print-directory all >/dev/null ; \
+		CCACHE_DISABLE=1 $(TIME_CMD) -f "$(TIME_FMT)" $(MAKE) -j$$n --no-print-directory all >/devnull ; \
 	done
 
-# --- Bench "CON ccache" (como en el informe) ---
-# - Limpia la caché y estadísticas
-# - 1ª compilación (misses) con -j$(NPROC) + ccache -s
-# - 2ª compilación (hits)   con -j$(NPROC) + ccache -s
 bench:
 	@echo "\033[1;34m== ccache: clear + zero ==\033[0m"
 	@ccache -C || true
@@ -184,14 +211,47 @@ bench:
 	@$(TIME_CMD) -f "CCACHE 2ª | $(TIME_FMT)" $(MAKE) -j$(NPROC) --no-print-directory all >/dev/null
 	@ccache -s || true
 
-# =========================== #
-# Utilidades para el informe  #
-# =========================== #
+# ================== #
+# Instalación system #
+# ================== #
+install: all
+	@echo "\033[1;35m [INSTALL]\033[0m into $(DESTDIR)$(PREFIX)"
+	# binario
+	install -d "$(DESTDIR)$(PREFIX)/bin"
+	install -m 0755 "$(TARGET)" "$(DESTDIR)$(PREFIX)/bin/roguebot"
 
-# Nota: estas dianas no fallan si ccache no está instalado (|| true)
-ccache-zero:  ; @ccache -z || true
-ccache-clear: ; @ccache -C || true
-ccache-stats: ; @ccache -s || true
+	# assets del juego (usa '/.' para copiar también archivos ocultos)
+	install -d "$(DESTDIR)$(PREFIX)/share/roguebot/assets"
+	cp -r "$(ASSETS_DIR)/." "$(DESTDIR)$(PREFIX)/share/roguebot/assets/"
+
+	# .desktop
+	install -d "$(DESTDIR)$(PREFIX)/share/applications"
+	install -m 0644 "$(APP_DESKTOP)" "$(DESTDIR)$(PREFIX)/share/applications/roguebot.desktop"
+
+	# icono (256x256)
+	install -d "$(DESTDIR)$(PREFIX)/share/icons/hicolor/256x256/apps"
+	install -m 0644 "$(APP_ICON)" "$(DESTDIR)$(PREFIX)/share/icons/hicolor/256x256/apps/roguebot.png"
+
+# (Opcional) Desinstalación útil en dev (no usado por Debian)
+uninstall:
+	@echo "\033[1;33m [UNINSTALL]\033[0m from $(DESTDIR)$(PREFIX)"
+	@rm -f  "$(DESTDIR)$(PREFIX)/bin/roguebot"
+	@rm -f  "$(DESTDIR)$(PREFIX)/share/applications/roguebot.desktop"
+	@rm -f  "$(DESTDIR)$(PREFIX)/share/icons/hicolor/256x256/apps/roguebot.png"
+	@rm -rf "$(DESTDIR)$(PREFIX)/share/roguebot"
+
+# ====================== #
+# Empaquetado (.deb)     #
+# ====================== #
+dist:
+	@echo "\033[1;35m [DEB]\033[0m build package"
+	@rm -rf dist && mkdir -p dist
+	# Construcción del paquete binario sin firmar
+	dpkg-buildpackage -us -uc -b
+	# Mover artefactos al directorio dist
+	@mkdir -p dist
+	@mv ../*.deb dist/ 2>/dev/null || true
+	@echo "\033[1;32m Paquete generado en ./dist \033[0m"
 
 # Incluir dependencias autogeneradas (-MMD)
 -include $(DEPS)
