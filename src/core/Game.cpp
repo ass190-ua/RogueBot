@@ -6,6 +6,7 @@
 #include <iostream>
 #include <climits>
 #include "GameUtils.hpp"
+#include "AssetPath.hpp"
 
 static inline unsigned now_seed() {
     return static_cast<unsigned>(time(nullptr));
@@ -14,12 +15,13 @@ static inline unsigned now_seed() {
 static bool gQuitRequested = false;
 
 static Texture2D loadTex(const char *path) {
-    Image img = LoadImage(path);
+    const std::string full = assetPath(path);
+    Image img = LoadImage(full.c_str());
     if (img.data == nullptr) {
-        // fallback: 1x1 blanco si falla
-        Image white = GenImageColor(1, 1, WHITE);
+        Image white = GenImageColor(32, 32, WHITE);
         Texture2D t = LoadTextureFromImage(white);
         UnloadImage(white);
+        std::cerr << "[ASSETS] FALLBACK tex para: " << full << "\n";
         return t;
     }
     Texture2D t = LoadTextureFromImage(img);

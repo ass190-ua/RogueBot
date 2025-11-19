@@ -5,9 +5,9 @@ Version: 1.0.0-1
 Auto-Built-Package: debug-symbols
 Architecture: amd64
 Maintainer: Roguebot
-Installed-Size: 171
+Installed-Size: 174
 Depends: roguebot (= 1.0.0-1)
 Section: debug
 Priority: optional
 Description: debug symbols for roguebot
-Build-Ids: 08bf901c99a50a98bffadce90a2ce139251ed88a
+Build-Ids: a20dcce509f6894b925f1def50e225eefbd61466

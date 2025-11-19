@@ -1,10 +1,17 @@
 #include "Player.hpp"
 #include <stdexcept>
+#include <iostream>
+#include "AssetPath.hpp"
 
-static Texture2D loadTexPoint(const std::string& path) {
-    Texture2D t = LoadTexture(path.c_str());
-    // Evitar borrosidad (pixel art nítido)
-    SetTextureFilter(t, TEXTURE_FILTER_POINT);
+static Texture2D loadTexPoint(const std::string& rel) {
+    const std::string full = assetPath(rel);
+    Texture2D t = LoadTexture(full.c_str());
+    if (t.id == 0) {
+        std::cerr << "[ASSETS] FALLBACK tex point para: " << full << "\n";
+        Image white = GenImageColor(32, 32, WHITE);
+        t = LoadTextureFromImage(white);
+        UnloadImage(white);
+    }
     return t;
 }
 
