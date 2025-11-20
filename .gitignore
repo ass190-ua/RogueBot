@@ -1,3 +1,4 @@
+
 # ============================================= #
 # 🧩 RogueBot — .gitignore optimizado           #
 # Proyecto C++ (CMake / Make / Raylib / VSCode) #
@@ -74,3 +75,18 @@ __pycache__/
 # === ENVIRONMENT FILES (opcional) === #
 .env
 .env.local
+_staging/
+third_party/
+
+# === DEBIAN PACKAGING (build artifacts) === #
+# Ignorar directorios y archivos generados al construir paquetes .deb.
+debian/roguebot/
+debian/.debhelper/
+dist/
+*.deb
+*.build
+*.buildinfo
+*.changes
+debian/debhelper-build-stamp
+debian/files
+debian/*.substvars

@@ -1,8 +1,0 @@
-[Desktop Entry]
-Name=RogueBot
-Comment=Roguelike hecho con raylib
-Exec=roguebot
-Icon=roguebot
-Terminal=false
-Type=Application
-Categories=Game;
