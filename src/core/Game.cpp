@@ -29,6 +29,21 @@ static Texture2D loadTex(const char *path) {
     return t;
 }
 
+static bool loadTextAsset(const char *relPath, std::string &outText) {
+    const std::string full = assetPath(relPath);
+    char *buf = LoadFileText(full.c_str());
+    if (buf) {
+        outText.assign(buf);
+        UnloadFileText(buf);
+        return true;
+    }
+    else {
+        outText = "No se encontro '" + full + "'.\n";
+        std::cerr << "[ASSETS] No se pudo cargar texto desde: " << full << "\n";
+        return false;
+    }
+}
+
 void ItemSprites::load() {
     if (loaded)
         return;
@@ -335,14 +350,7 @@ void Game::handleMenuInput() {
             // Botón X/Y (face up) = leer/ayuda
             if (IsGamepadButtonPressed(menuGamepad, GAMEPAD_BUTTON_RIGHT_FACE_UP)) {
                 if (helpText.empty()) {
-                    char *buf = LoadFileText("assets/docs/objetos.txt");
-                    if (buf) {
-                        helpText.assign(buf);
-                        UnloadFileText(buf);
-                    }
-                    else {
-                        helpText = "No se encontro 'assets/docs/objetos.txt'.\n";
-                    }
+                    loadTextAsset("assets/docs/objetos.txt", helpText);
                 }
                 showHelp = true;
                 helpScroll = 0;
@@ -433,14 +441,7 @@ void Game::handleMenuInput() {
         // Botón LEER ANTES DE JUGAR
         if (CheckCollisionPointRec(mp, readBtn)) {
             if (helpText.empty()) {
-                char *buf = LoadFileText("assets/docs/objetos.txt");
-                if (buf) {
-                    helpText.assign(buf);
-                    UnloadFileText(buf);
-                }
-                else {
-                    helpText = "No se encontro 'assets/docs/objetos.txt'.\n";
-                }
+                loadTextAsset("assets/docs/objetos.txt", helpText);
             }
             showHelp = true;
             helpScroll = 0;
