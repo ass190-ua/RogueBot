@@ -1,7 +1,7 @@
-name: CI
+name: CI / build-linux
 
 on:
-  workflow_dispatch:          # permitir lanzarlo manualmente desde Actions
+  workflow_dispatch:          # permitir lanzarlo a mano
   pull_request:
     branches: [ develop, main ]
   push:
@@ -28,21 +28,18 @@ jobs:
             libgl1-mesa-dev libglu1-mesa-dev mesa-common-dev \
             libasound2-dev
 
-      - name: Build and install raylib (static, /usr/local)
+      - name: Configure CMake (Release)
         run: |
-          git clone --depth 1 https://github.com/raysan5/raylib.git
-          cd raylib/src
-          make PLATFORM=PLATFORM_DESKTOP
-          sudo make install
-          cd ../..
+          cmake -B build -DCMAKE_BUILD_TYPE=Release \
+                -DPREFER_RAYLIB_STATIC=ON \
+                -DUSE_EXTERNAL_RAYLIB=OFF \
+                -DASSET_ROOT=assets
 
-      - name: Build RogueBot (Makefile, build_gnu)
-        run: |
-          # Usa la librería estática instalada en /usr/local (PREFER_RAYLIB_STATIC=1 por defecto)
-          make -j2
+      - name: Build RogueBot
+        run: cmake --build build -j$(nproc)
 
       - name: Upload binary artifact
         uses: actions/upload-artifact@v4
         with:
           name: roguebot-linux
-          path: build_gnu/bin/roguebot
+          path: build/roguebot
