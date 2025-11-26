@@ -42,7 +42,9 @@ jobs:
       - name: Create packages (DEB + TGZ)
         run: cmake --build build --target package
 
+      # --- subir a la release solo si el evento es "release" ---
       - name: Upload Linux packages to GitHub Release
+        if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
           files: |
@@ -50,6 +52,16 @@ jobs:
             build/*.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # --- si se lanza a mano, subir como artifacts del workflow ---
+      - name: Upload Linux packages as workflow artifacts (manual run)
+        if: github.event_name != 'release'
+        uses: actions/upload-artifact@v4
+        with:
+          name: roguebot-linux-packages
+          path: |
+            build/*.deb
+            build/*.tar.gz
 
   # ============================================================
   #  🪟 Windows: ZIP “portable” + instalador NSIS (.exe)
@@ -79,6 +91,7 @@ jobs:
         run: cmake --build build --config Release --target package
 
       - name: Upload Windows packages to GitHub Release
+        if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
           files: |
@@ -86,3 +99,12 @@ jobs:
             build/*.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Windows packages as workflow artifacts (manual run)
+        if: github.event_name != 'release'
+        uses: actions/upload-artifact@v4
+        with:
+          name: roguebot-windows-packages
+          path: |
+            build/*.zip
+            build/*.exe
