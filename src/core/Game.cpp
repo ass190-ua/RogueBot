@@ -280,10 +280,26 @@ void Game::processInput() {
         }
     }
 
-    // Reiniciar run completo (igual que antes)
-    if (IsKeyPressed(KEY_R)) {
-        if (fixedSeed == 0) runSeed = nextRunSeed();
+    // Helper para reiniciar el run (R o botón Y)
+    auto restartRun = [&]() {
+        if (fixedSeed == 0) 
+            runSeed = nextRunSeed();
         newRun();
+    };
+
+    // Reiniciar run completo con teclado (R)
+    if (IsKeyPressed(KEY_R)) {
+        restartRun();
+        return;
+    }
+
+    // Reiniciar run con mando: botón Y (cara arriba).
+    // Sólo fuera del menú principal para no romper la ayuda del menú.
+    const int gpRestart = 0;
+    if (state != GameState::MainMenu &&
+        IsGamepadAvailable(gpRestart) &&
+        IsGamepadButtonPressed(gpRestart, GAMEPAD_BUTTON_RIGHT_FACE_UP)) {
+        restartRun();
         return;
     }
 
@@ -591,17 +607,17 @@ void Game::handlePlayingInput(float dt) {
         player.update(dt, moved);
     }
     else {
-        // Repetición con cooldown mientras mantienes tecla
+        // Repetición con cooldown mientras mantienes tecla / mando
         moveCooldown -= dt;
 
         // Detectar si hay una pulsación inicial de cualquier dirección
+        // (teclado o D-pad). El stick analógico NO cuenta como "pulsación
+        // nueva" para que respete el cooldown.
         bool pressedNow = IsKeyPressed(KEY_W) || IsKeyPressed(KEY_S) ||
-                          IsKeyPressed(KEY_A) || IsKeyPressed(KEY_D) ||
-                          IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_DOWN) ||
-                          IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_RIGHT);
-        // Añadir las pulsaciones del mando: cruceta y stick analógico
-        // Si gpDpadPressed o gpAnalogActive está activo, iniciamos un paso inmediato
-        pressedNow = pressedNow || gpDpadPressed || gpAnalogActive;
+                        IsKeyPressed(KEY_A) || IsKeyPressed(KEY_D) ||
+                        IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_DOWN) ||
+                        IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_RIGHT) ||
+                        gpDpadPressed;
 
         // Lectura continua de teclas
         if (IsKeyDown(KEY_W) || IsKeyDown(KEY_UP))    dy = -1;
