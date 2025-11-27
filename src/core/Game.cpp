@@ -107,6 +107,7 @@ Game::Game(unsigned seed) : fixedSeed(seed) {
 
     // newRun(); // primera partida (empieza en Level 1)
     state = GameState::MainMenu;
+    mainMenuSelection = 0;
 }
 
 // Devuelve la seed del RUN (si hay fija, esa; si no, aleatoria en cada R)
@@ -276,6 +277,7 @@ void Game::processInput() {
             gAttack.swinging = false;
             gAttack.lastTiles.clear();
             state = GameState::MainMenu;
+            mainMenuSelection = 0;   // volver con JUGAR seleccionado
             return;
         }
     }
@@ -344,48 +346,14 @@ void Game::processInput() {
 }
 
 void Game::handleMenuInput() {
-    // --- Soporte básico de mando en el menú principal ---
-    // Permite iniciar la partida, abrir el visor de ayuda o salir usando
-    // los botones del mando. Usamos el mando 0 por defecto.  Si el visor
-    // de ayuda está abierto, sólo permitimos cerrarlo.
     const int menuGamepad = 0;
-    if (IsGamepadAvailable(menuGamepad)) {
-        // Cerrar visor de ayuda con botón B (derecha) o volver atrás
-        if (showHelp) {
-            if (IsGamepadButtonPressed(menuGamepad, GAMEPAD_BUTTON_RIGHT_FACE_RIGHT) ||
-                IsGamepadButtonPressed(menuGamepad, GAMEPAD_BUTTON_LEFT_FACE_RIGHT)) {
-                showHelp = false;
-            }
-        }
-        else {
-            // Botón A (face down) = jugar
-            if (IsGamepadButtonPressed(menuGamepad, GAMEPAD_BUTTON_RIGHT_FACE_DOWN)) {
-                newRun();
-                return;
-            }
-            // Botón X/Y (face up) = leer/ayuda
-            if (IsGamepadButtonPressed(menuGamepad, GAMEPAD_BUTTON_RIGHT_FACE_UP)) {
-                if (helpText.empty()) {
-                    loadTextAsset("assets/docs/objetos.txt", helpText);
-                }
-                showHelp = true;
-                helpScroll = 0;
-                return;
-            }
-            // Botón B (face right) = salir del juego
-            if (IsGamepadButtonPressed(menuGamepad, GAMEPAD_BUTTON_RIGHT_FACE_RIGHT)) {
-                gQuitRequested = true;
-                return;
-            }
-        }
-    }
 
-    // --- Si el visor de ayuda está abierto ---
+    // --- Si el visor de ayuda está abierto, sólo gestionamos scroll y "volver" ---
     if (showHelp) {
         int panelW = (int)std::round(screenW * 0.86f);
         int panelH = (int)std::round(screenH * 0.76f);
         if (panelW > 1500) panelW = 1500;
-        if (panelH > 900) panelH = 900;
+        if (panelH > 900)  panelH = 900;
         int pxl = (screenW - panelW) / 2;
         int pyl = (screenH - panelH) / 2;
 
@@ -396,14 +364,25 @@ void Game::handleMenuInput() {
             if (helpScroll < 0) helpScroll = 0;
         }
 
+        // Scroll con joystick izquierdo
+        if (IsGamepadAvailable(menuGamepad)) {
+            float ay = GetGamepadAxisMovement(menuGamepad, GAMEPAD_AXIS_LEFT_Y);
+            const float dead = 0.25f;
+            if (std::fabs(ay) > dead) {
+                const float speed = 400.0f; // ajusta si va muy rápido/lento
+                helpScroll += (int)(ay * speed * GetFrameTime());
+                if (helpScroll < 0) helpScroll = 0;
+            }
+        }
+
         // Calcular límites del scroll
-        int margin = 24;
+        int margin    = 24;
         int titleSize = (int)std::round(panelH * 0.06f);
-        int top = pyl + margin + titleSize + 16;
-        int backFs = std::max(16, (int)std::round(panelH * 0.048f));
-        int footerH = backFs + 16;
+        int top       = pyl + margin + titleSize + 16;
+        int backFs    = std::max(16, (int)std::round(panelH * 0.048f));
+        int footerH   = backFs + 16;
         int viewportH = panelH - (top - pyl) - margin - footerH;
-        int fontSize = (int)std::round(screenH * 0.022f);
+        int fontSize  = (int)std::round(screenH * 0.022f);
         if (fontSize < 16) fontSize = 16;
         int lineH = (int)std::round(fontSize * 1.25f);
         int lines = 1;
@@ -420,22 +399,30 @@ void Game::handleMenuInput() {
         Rectangle backHit = { (float)(tx - 6), (float)(ty - 4),
                               (float)(tw + 12), (float)(backFs + 8) };
 
-        // Clic o ESC → cerrar visor
-        if ((IsMouseButtonPressed(MOUSE_LEFT_BUTTON) &&
-             CheckCollisionPointRec(GetMousePosition(), backHit)) ||
-            IsKeyPressed(KEY_ESCAPE)) {
+        bool clickBack = IsMouseButtonPressed(MOUSE_LEFT_BUTTON) &&
+                         CheckCollisionPointRec(GetMousePosition(), backHit);
+        bool escBack   = IsKeyPressed(KEY_ESCAPE);
+        bool gpBack    = false;
+
+        if (IsGamepadAvailable(menuGamepad)) {
+            gpBack = IsGamepadButtonPressed(menuGamepad, GAMEPAD_BUTTON_RIGHT_FACE_RIGHT) || // B
+                     IsGamepadButtonPressed(menuGamepad, GAMEPAD_BUTTON_LEFT_FACE_RIGHT)  || // cruceta derecha
+                     IsGamepadButtonPressed(menuGamepad, GAMEPAD_BUTTON_RIGHT_FACE_DOWN);    // A
+        }
+
+        if (clickBack || escBack || gpBack) {
             showHelp = false;
         }
         return; // No procesar nada más mientras se muestra ayuda
     }
 
-    // --- Geometría de botones principales ---
+    // --- Geometría de botones principales (para ratón y selección lógica) ---
     int bw = (int)std::round(screenW * 0.35f);
     bw = std::clamp(bw, 320, 560);
     int bh = (int)std::round(screenH * 0.12f);
     bh = std::clamp(bh, 72, 120);
     int startY = (int)std::round(screenH * 0.52f);
-    int gap = (int)std::round(screenH * 0.04f);
+    int gap    = (int)std::round(screenH * 0.04f);
 
     Rectangle playBtn = { (float)((screenW - bw) / 2), (float)startY,
                           (float)bw, (float)bh };
@@ -444,29 +431,102 @@ void Game::handleMenuInput() {
     Rectangle quitBtn = { (float)((screenW - bw) / 2),
                           (float)(startY + (bh + gap) * 2), (float)bw, (float)bh };
 
-    // --- Clic izquierdo: JUGAR / LEER / SALIR ---
+    // --- Ratón: clic directo sobre botones ---
     if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
         Vector2 mp = GetMousePosition();
 
-        // Botón JUGAR
         if (CheckCollisionPointRec(mp, playBtn)) {
             newRun();
             return;
         }
 
-        // Botón LEER ANTES DE JUGAR
         if (CheckCollisionPointRec(mp, readBtn)) {
             if (helpText.empty()) {
                 loadTextAsset("assets/docs/objetos.txt", helpText);
             }
-            showHelp = true;
+            showHelp  = true;
             helpScroll = 0;
             return;
         }
 
-        // Botón SALIR
         if (CheckCollisionPointRec(mp, quitBtn)) {
             gQuitRequested = true;
+            return;
+        }
+    }
+
+    // --- Teclado: flechas / WASD para moverse y Enter/Espacio para confirmar ---
+    auto activateSelection = [&]() {
+        if (mainMenuSelection == 0) {
+            newRun();
+        }
+        else if (mainMenuSelection == 1) {
+            if (helpText.empty()) {
+                loadTextAsset("assets/docs/objetos.txt", helpText);
+            }
+            showHelp  = true;
+            helpScroll = 0;
+        }
+        else { // 2 = SALIR
+            gQuitRequested = true;
+        }
+    };
+
+    if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) {
+        mainMenuSelection = (mainMenuSelection + 3 - 1) % 3;
+    }
+    if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
+        mainMenuSelection = (mainMenuSelection + 1) % 3;
+    }
+    if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE)) {
+        activateSelection();
+        return;
+    }
+
+    // --- Mando: cruceta + joystick izquierdo + botón A ---
+    if (IsGamepadAvailable(menuGamepad)) {
+        // Cruceta
+        if (IsGamepadButtonPressed(menuGamepad, GAMEPAD_BUTTON_LEFT_FACE_UP)) {
+            mainMenuSelection = (mainMenuSelection + 3 - 1) % 3;
+        }
+        if (IsGamepadButtonPressed(menuGamepad, GAMEPAD_BUTTON_LEFT_FACE_DOWN)) {
+            mainMenuSelection = (mainMenuSelection + 1) % 3;
+        }
+
+        // Joystick izquierdo (un paso por "empujón")
+        static bool stickNeutral = true;
+        float ay = GetGamepadAxisMovement(menuGamepad, GAMEPAD_AXIS_LEFT_Y);
+        const float dead = 0.35f;
+
+        if (std::fabs(ay) < dead) {
+            stickNeutral = true;
+        }
+        else if (stickNeutral) {
+            if (ay < 0.0f) {
+                // Arriba
+                mainMenuSelection = (mainMenuSelection + 3 - 1) % 3;
+            }
+            else {
+                // Abajo
+                mainMenuSelection = (mainMenuSelection + 1) % 3;
+            }
+            stickNeutral = false;
+        }
+
+        // Confirmar con A
+        if (IsGamepadButtonPressed(menuGamepad, GAMEPAD_BUTTON_RIGHT_FACE_DOWN)) {
+            activateSelection();
+            return;
+        }
+
+        // Atajos antiguos que ya tenías (opcional mantenerlos)
+        // Y/X (botón arriba) = abrir ayuda directo
+        if (IsGamepadButtonPressed(menuGamepad, GAMEPAD_BUTTON_RIGHT_FACE_UP)) {
+            if (helpText.empty()) {
+                loadTextAsset("assets/docs/objetos.txt", helpText);
+            }
+            showHelp  = true;
+            helpScroll = 0;
             return;
         }
     }
@@ -528,16 +588,16 @@ void Game::handlePlayingInput(float dt) {
     // algunos botones frontales para atacar.  Si no hay mando
     // conectado, estas variables se mantienen en cero y no
     // interferirán con el control mediante teclado y ratón.
-    int  gpDx = 0, gpDy = 0;
+        int  gpDx = 0, gpDy = 0;
     bool gpAttackPressed = false;
-    bool gpDpadPressed = false;
-    bool gpAnalogActive = false;
-    const int gamepadId = 0;
+    bool gpDpadPressed   = false;
+    bool gpAnalogActive  = false;
+    const int gamepadId  = 0;
+
     if (IsGamepadAvailable(gamepadId)) {
-        // Detectar botón de ataque (cara derecha inferior o gatillos delanteros)
-        if (IsGamepadButtonPressed(gamepadId, GAMEPAD_BUTTON_RIGHT_FACE_DOWN) ||
-            IsGamepadButtonPressed(gamepadId, GAMEPAD_BUTTON_RIGHT_TRIGGER_1) ||
-            IsGamepadButtonPressed(gamepadId, GAMEPAD_BUTTON_RIGHT_TRIGGER_2)) {
+        // Botón de ataque básico: cara derecha inferior (X / A según el mando)
+        // RB y RT ya NO cuentan como ataque básico.
+        if (IsGamepadButtonPressed(gamepadId, GAMEPAD_BUTTON_RIGHT_FACE_LEFT)) {
             gpAttackPressed = true;
         }
 
@@ -545,6 +605,7 @@ void Game::handlePlayingInput(float dt) {
         float axisX = GetGamepadAxisMovement(gamepadId, GAMEPAD_AXIS_LEFT_X);
         float axisY = GetGamepadAxisMovement(gamepadId, GAMEPAD_AXIS_LEFT_Y);
         const float thr = 0.5f;
+
         // Consideramos activo el modo analógico si alguna componente supera el umbral
         if (axisX < -thr || axisX > thr || axisY < -thr || axisY > thr) {
             gpAnalogActive = true;
