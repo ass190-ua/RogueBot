@@ -157,11 +157,11 @@ cd /c/Users/asscr/Desktop/RogueBot   # ajusta la ruta a tu caso
 
 ```bash
 cmake -B build -G "MinGW Makefiles" \
-  -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
-  -DPREFER_RAYLIB_STATIC=ON \
-  -DUSE_EXTERNAL_RAYLIB=OFF \
-  -DASSET_ROOT=assets
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+      -DPREFER_RAYLIB_STATIC=ON \
+      -DUSE_EXTERNAL_RAYLIB=OFF \
+      -DASSET_ROOT=assets
 ```
 
 - `ASSET_ROOT=assets` porque el ejecutable va junto a la carpeta `assets/` en el ZIP/instalador.
