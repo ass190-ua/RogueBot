@@ -31,7 +31,7 @@ void Game::renderMainMenu() {
     DrawText(title, titleX + stroke, titleY + stroke, titleSize, BLACK);
     DrawText(title, titleX, titleY, titleSize, RED);
 
-    // Botones (ratón)
+    // Botones (ratón / mando)
     int bw = (int)std::round(screenW * 0.46f);
     bw = std::clamp(bw, 360, 720);
     int bh = (int)std::round(screenH * 0.12f);
@@ -57,7 +57,6 @@ void Game::renderMainMenu() {
     auto splitTwoLines = [&](const std::string &s, int fs, int maxW) -> std::pair<std::string, std::string> {
         if (MeasureText(s.c_str(), fs) <= maxW)
             return {s, ""};
-        // Busca el salto óptimo (por espacios)
         int bestIdx = -1, bestWidth = INT_MAX;
         for (size_t i = 0; i < s.size(); ++i) {
             if (s[i] != ' ')
@@ -78,25 +77,40 @@ void Game::renderMainMenu() {
         return {s, ""};
     };
 
-    auto drawPixelButton = [&](Rectangle r, const char *label) {
-        bool hover = CheckCollisionPointRec(mp, r);
+    // Estado actual de selección de menú (0=Jugar, 1=Leer, 2=Salir)
+    bool selPlay = (mainMenuSelection == 0);
+    bool selRead = (mainMenuSelection == 1);
+    bool selQuit = (mainMenuSelection == 2);
+
+    auto drawPixelButton = [&](Rectangle r, const char *label, int index) {
+        bool hover    = CheckCollisionPointRec(mp, r);
+        bool selected = (mainMenuSelection == index);
 
         // Sombra
-        DrawRectangle((int)r.x + 3, (int)r.y + 3, (int)r.width, (int)r.height, Color{0, 0, 0, 120});
+        DrawRectangle((int)r.x + 3, (int)r.y + 3,
+                      (int)r.width, (int)r.height,
+                      Color{0, 0, 0, 120});
 
         // Fondo
-        Color baseBg = Color{25, 25, 30, 255};
-        Color hoverBg = Color{40, 40, 46, 255};
-        DrawRectangleRec(r, hover ? hoverBg : baseBg);
+        Color baseBg     = Color{25, 25, 30, 255};
+        Color hoverBg    = Color{40, 40, 46, 255};
+        Color selectedBg = Color{60, 60, 80, 255};
 
-        // Bordes doble rojo
-        Color outer = hover ? Color{200, 40, 40, 255} : Color{150, 25, 25, 255};
-        Color inner = hover ? Color{255, 70, 70, 255} : Color{210, 45, 45, 255};
+        Color bg = baseBg;
+        if (hover)    bg = hoverBg;
+        if (selected) bg = selectedBg;  // manda la selección del mando
+
+        DrawRectangleRec(r, bg);
+
+        // Bordes doble rojo (activo si hover o seleccionado)
+        bool active = hover || selected;
+        Color outer = active ? Color{200, 40, 40, 255} : Color{150, 25, 25, 255};
+        Color inner = active ? Color{255, 70, 70, 255} : Color{210, 45, 45, 255};
         DrawRectangleLinesEx(r, 4, outer);
         Rectangle innerR = {r.x + 4, r.y + 4, r.width - 8, r.height - 8};
         DrawRectangleLinesEx(innerR, 2, inner);
 
-        // Texto: intenta 1 línea; si no cabe, 2 líneas; si no, reduce fuente
+        // Texto: (todo lo demás igual que lo tenías)
         const int padding = 18;
         int maxW = (int)r.width - padding * 2;
 
@@ -113,7 +127,6 @@ void Game::renderMainMenu() {
             lines = splitTwoLines(s, fs, maxW);
         }
 
-        // Dibujo centrado
         Color txtCol = RAYWHITE;
         if (lines.second.empty()) {
             int tw = MeasureText(lines.first.c_str(), fs);
@@ -133,9 +146,10 @@ void Game::renderMainMenu() {
         }
     };
 
-    drawPixelButton(playBtn, "JUGAR");
-    drawPixelButton(readBtn, "LEER ANTES DE JUGAR");
-    drawPixelButton(quitBtn, "SALIR");
+    // Índices: 0=JUGAR, 1=LEER, 2=SALIR
+    drawPixelButton(playBtn, "JUGAR", 0);
+    drawPixelButton(readBtn, "LEER ANTES DE JUGAR", 1);
+    drawPixelButton(quitBtn, "SALIR", 2);
 
     // Overlay de ayuda (si está abierto)
     if (showHelp)

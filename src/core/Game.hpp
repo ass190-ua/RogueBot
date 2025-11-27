@@ -189,6 +189,9 @@ private:
     Rectangle btnRead{0, 0, 0, 0};
     Rectangle btnBack{0, 0, 0, 0}; // botón "Volver" del panel de ayuda
 
+    // Menú principal: 0 = JUGAR, 1 = LEER, 2 = SALIR
+    int mainMenuSelection = 0;
+
     void handleMenuInput();               // input cuando state == MainMenu
     void handlePlayingInput(float dt);    // cámara, movimiento, ataque, etc.
     void centerCameraOnPlayer();
