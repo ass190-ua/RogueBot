@@ -11,6 +11,23 @@
 #include "raylib.h"
 #include "ItemSpawner.hpp"
 
+struct Projectile {
+    Vector2 pos;
+    Vector2 vel;
+    float   distanceTraveled = 0.0f;
+    float   maxDistance = 0.0f;
+    int     damage = 0;
+    bool    active = true;
+};
+
+struct FloatingText {
+    Vector2 pos;      // Posición en píxeles
+    int value;        // El número a mostrar
+    float timer;      // Tiempo de vida (ej: 1.0s)
+    float lifeTime;   // Duración total (para calcular transparencia)
+    Color color;      // Blanco para daño al enemigo, Rojo para daño al jugador
+};
+
 enum class MovementMode {
     StepByStep,
     RepeatCooldown
@@ -55,6 +72,9 @@ public:
     explicit Game(unsigned seed = 0);
     void run();
 
+    const std::vector<Enemy>& getEnemies() const { return enemies; }
+    const std::vector<ItemSpawn>& getItems() const { return items; }
+
     // Getters HUD
     int getScreenW() const { return screenW; }
     int getScreenH() const { return screenH; }
@@ -86,10 +106,10 @@ private:
 
     Map map;
     int px = 0, py = 0;
-    int hp = 5;
-    int hpMax = 5;
+    int hp = 10;
+    int hpMax = 10;
     float damageCooldown = 0.0f;
-    const float DAMAGE_COOLDOWN = 0.6f;
+    const float DAMAGE_COOLDOWN = 0.2f;
 
     unsigned fixedSeed = 0;
     unsigned runSeed = 0;
@@ -101,13 +121,14 @@ private:
 
     std::vector<int>   enemyHP;
     std::vector<float> enemyAtkCD;
+    std::vector<float> enemyFlashTimer;
     std::vector<Enemy> enemies;
     int ENEMY_DETECT_RADIUS_PX = 32 * 6;
 
     std::vector<EnemyFacing> enemyFacing;
     void enemyTryAttackFacing();
 
-    int enemiesPerLevel(int lvl) const { return (lvl == 1) ? 3 : (lvl == 2) ? 4 : 5; }
+    int enemiesPerLevel(int lvl) const { return (lvl == 1) ? 5 : (lvl == 2) ? 8 : 12;}
 
     InputDevice lastInput = InputDevice::Keyboard; // Por defecto teclado
 
@@ -148,6 +169,7 @@ private:
 
     Camera2D camera{};
     float cameraZoom = 1.0f;
+    float shakeTimer = 0.0f;
 
     void drawItems() const;
     void drawItemSprite(const ItemSpawn &it) const;
@@ -187,6 +209,30 @@ private:
     void centerCameraOnPlayer();
     void recomputeFovIfNeeded();
     void onSuccessfulStep(int dx, int dy);
+
+    // --- SISTEMA DE COMBATE Y PROYECTILES (NUEVO) ---
+    std::vector<Projectile> projectiles; 
+    
+    float plasmaCooldown = 0.0f;
+    int burstShotsLeft = 0;
+    float burstTimer = 0.0f;
+
+    // Funciones de ataque
+    void performMeleeAttack();  // Manos
+    void performSwordAttack();  // Espada
+    void performPlasmaAttack(); // Plasma
+    
+    // Auxiliares proyectiles
+    void spawnProjectile(int dmg);
+    void updateProjectiles(float dt);
+    void drawProjectiles() const;
+
+    // --- TEXTOS FLOTANTES ---
+    std::vector<FloatingText> floatingTexts;
+    
+    void spawnFloatingText(Vector2 pos, int value, Color color);
+    void updateFloatingTexts(float dt);
+    void drawFloatingTexts() const;
 };
 
 #endif

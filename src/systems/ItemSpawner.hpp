@@ -36,13 +36,13 @@ struct RunContext {
 
 struct SpawnConfig {
     // Cuotas por nivel
-    int pilasN1 = 3, pilasN2 = 3, pilasN3 = 4;
-    int escudosN1 = 1, escudosN2 = 2, escudosN3 = 2;
-    int gafasN1 = 1, gafasN2 = 1, gafasN3 = 2;
+    int pilasN1 = 3, pilasN2 = 4, pilasN3 = 5;
+    int escudosN1 = 1, escudosN2 = 2, escudosN3 = 3;
+    int gafasN1 = 2, gafasN2 = 3, gafasN3 = 4;
 
     // Probabilidades variantes
     double probPilaBuena = 0.65; // 65% buenas, 35% malas
-    double probGafasBuenas = 0.35;
+    double probGafasBuenas = 0.65;
 
     // Separaciones y distancias (BFS)
     int minSepEntreItems = 4;
@@ -55,7 +55,7 @@ struct SpawnConfig {
     int bateriaMinDistSpawn = 25;
 
     // Relax de restricciones
-    int relaxPasos = 3;
+    int relaxPasos = 4;
 };
 
 class ItemSpawner {

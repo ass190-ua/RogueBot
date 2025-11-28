@@ -134,17 +134,16 @@ void Game::onPickup(const ItemSpawn &it) {
 
         case ItemType::PilaBuena:
             if (hp < hpMax) {
-                hp++;
-                std::cout << "[Pickup] Pila Buena (+1 HP).\n";
+                hp = std::min(hpMax, hp + 2); // +2 = Recupera 1 Corazón entero
+                std::cout << "[Pickup] Pila Buena (+1 Corazón).\n";
             } else {
-                std::cout << "[Pickup] Pila Buena (Vida llena, sin efecto).\n";
+                std::cout << "[Pickup] Vida llena.\n";
             }
             break;
             
         case ItemType::PilaMala:
-            hp = std::max(0, hp - 1); // Daño directo, ignorando escudo
-            std::cout << "[Pickup] Pila Mala (-1 HP).\n";
-            // Check de muerte se hace en el update
+            hp = std::max(0, hp - 2); // -2 = Quita 1 Corazón entero
+            std::cout << "[Pickup] Pila Mala (-1 Corazón).\n";
             break;
 
         case ItemType::Gafas3DBuenas:

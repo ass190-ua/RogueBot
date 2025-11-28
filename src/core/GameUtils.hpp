@@ -1,15 +1,30 @@
 #pragma once
-#include "Game.hpp"
+#include "Game.hpp" // Para IVec2 y dependencias
+#include "raylib.h"
 #include <vector>
 
-// Constantes de combate/movimiento
-inline constexpr int   ENEMY_BASE_HP           = 100;   // % (0..100)
-inline constexpr int   PLAYER_MELEE_DMG        = 25;    // daño del jugador
-inline constexpr int   ENEMY_CONTACT_DMG       = 1;     // daño por contacto enemigo
-inline constexpr float ENEMY_ATTACK_COOLDOWN   = 0.40f; // s entre golpes enemigo
-inline constexpr int   RANGE_MELEE_HAND        = 1;
-inline constexpr int   RANGE_SWORD             = 3;
-inline constexpr int   RANGE_PISTOL            = 7;
+// --- CONSTANTES DE COMBATE BALANCEADAS ---
+
+// 0. ENEMIGOS (Melee básico enemigo)
+inline constexpr int ENEMY_BASE_HP = 100;        // Vida inicial del enemigo
+inline constexpr int ENEMY_CONTACT_DMG = 1;      // Daño que hace al tocarte (1 corazón)
+inline constexpr float ENEMY_ATTACK_COOLDOWN = 1.0f; // Tiempo entre golpes del enemigo
+
+// 1. MANOS (Melee básico Jugador)
+inline constexpr int DMG_HANDS = 20;       // 5 golpes para matar
+inline constexpr float CD_HANDS = 0.40f;   // Rápido
+
+// 2. ESPADA (Melee fuerte Jugador)
+inline constexpr int DMG_SWORD_T1 = 30;    // 4 golpes
+inline constexpr int DMG_SWORD_T2 = 40;    // 3 golpe
+inline constexpr int DMG_SWORD_T3 = 50;    // 2 golpe
+inline constexpr float CD_SWORD = 0.60f;   // Un poco más lento que las manos
+
+// 3. PLASMA (Rango Jugador)
+inline constexpr int DMG_PLASMA = 40;      // 3 golpes (Tier 1)
+inline constexpr float CD_PLASMA = 0.80f;  // Lento
+inline constexpr float PLASMA_SPEED = 300.0f; // Pixeles por segundo
+inline constexpr float PLASMA_RANGE_TILES = 6.5f;
 
 // Estado del ataque melee
 struct AttackRuntime {
