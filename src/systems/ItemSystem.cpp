@@ -11,18 +11,46 @@ void Game::drawItems() const {
         return true;
     };
 
+    // CAMBIO: Ahora miramos el ÚLTIMO dispositivo usado, no si está conectado
+    const char* promptText = (lastInput == InputDevice::Gamepad) ? "(A)" : "E";
+
     for (const auto &it : items) {
         if (!isVisible(it.tile.x, it.tile.y)) continue;
         drawItemSprite(it);
+        
+        // Dibujar el indicador si el jugador está encima y NO es la llave
+        if (it.tile.x == px && it.tile.y == py && it.type != ItemType::LlaveMaestra) {
+            int txtW = MeasureText(promptText, 10);
+            int txtX = it.tile.x * tileSize + (tileSize - txtW) / 2;
+            int txtY = it.tile.y * tileSize - 12;
+
+            DrawText(promptText, txtX + 1, txtY + 1, 10, BLACK); 
+            DrawText(promptText, txtX, txtY, 10, YELLOW);
+        }
     }
 }
 
-void Game::tryPickupHere() {
+void Game::tryAutoPickup() {
     for (size_t i = 0; i < items.size(); ++i) {
         if (items[i].tile.x == px && items[i].tile.y == py) {
-            onPickup(items[i]);
-            items.erase(items.begin() + i);
-            break;
+            if (items[i].type == ItemType::LlaveMaestra) {
+                onPickup(items[i]);
+                items.erase(items.begin() + i);
+                return; // Solo una por frame
+            }
+        }
+    }
+}
+
+void Game::tryManualPickup() {
+    for (size_t i = 0; i < items.size(); ++i) {
+        if (items[i].tile.x == px && items[i].tile.y == py) {
+            // La llave se ignora aquí porque es automática
+            if (items[i].type != ItemType::LlaveMaestra) {
+                onPickup(items[i]);
+                items.erase(items.begin() + i);
+                return;
+            }
         }
     }
 }
@@ -79,12 +107,13 @@ void Game::onPickup(const ItemSpawn &it) {
 
         case ItemType::Escudo:
             hasShield = true;
-            std::cout << "[Pickup] Escudo preparado.\n";
+            shieldTimer = 60.0f; // Reinicia a 60s siempre
+            std::cout << "[Pickup] Escudo activado (60s).\n";
             break;
 
         case ItemType::BateriaVidaExtra:
             hasBattery = true;
-            std::cout << "[Pickup] Batería extra lista.\n";
+            std::cout << "[Pickup] Bateria vida extra guardada.\n";
             break;
 
         case ItemType::EspadaPickup: {
@@ -104,16 +133,32 @@ void Game::onPickup(const ItemSpawn &it) {
         }
 
         case ItemType::PilaBuena:
-            std::cout << "[Pickup] Pila buena (sin efecto por ahora).\n";
+            if (hp < hpMax) {
+                hp++;
+                std::cout << "[Pickup] Pila Buena (+1 HP).\n";
+            } else {
+                std::cout << "[Pickup] Pila Buena (Vida llena, sin efecto).\n";
+            }
             break;
+            
         case ItemType::PilaMala:
-            std::cout << "[Pickup] Pila mala (sin efecto por ahora).\n";
+            hp = std::max(0, hp - 1); // Daño directo, ignorando escudo
+            std::cout << "[Pickup] Pila Mala (-1 HP).\n";
+            // Check de muerte se hace en el update
             break;
+
         case ItemType::Gafas3DBuenas:
-            std::cout << "[Pickup] Gafas 3D buenas (20s, sin aplicar aún).\n";
+            glassesTimer = 20.0f;
+            glassesFovMod = 5; // Aumenta FOV considerablemente
+            recomputeFovIfNeeded();
+            std::cout << "[Pickup] Gafas 3D Buenas (+FOV 20s).\n";
             break;
+
         case ItemType::Gafas3DMalas:
-            std::cout << "[Pickup] Gafas 3D malas (20s, sin aplicar aún).\n";
+            glassesTimer = 20.0f;
+            glassesFovMod = -4; // Reduce FOV (miope)
+            recomputeFovIfNeeded();
+            std::cout << "[Pickup] Gafas 3D Malas (-FOV 20s).\n";
             break;
     }
 }

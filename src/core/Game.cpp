@@ -89,8 +89,8 @@ void ItemSprites::unload() {
 Game::Game(unsigned seed) : fixedSeed(seed) {
     // Configurar ventana en fullscreen
     SetConfigFlags(FLAG_FULLSCREEN_MODE);
-    InitWindow(0, 0, "RogueBot Alpha"); // tamaño se ajusta por el flag
-    SetExitKey(KEY_NULL); // Desactiva el cierre por ESC; lo gestionamos nosotros
+    InitWindow(0, 0, "RogueBot Alpha"); 
+    SetExitKey(KEY_NULL); // Desactiva el cierre por ESC
 
     player.load("assets/sprites/player");
     itemSprites.load();
@@ -98,32 +98,27 @@ Game::Game(unsigned seed) : fixedSeed(seed) {
     screenW = GetScreenWidth();
     screenH = GetScreenHeight();
 
-    camera.target = {0.0f, 0.0f}; // lo actualizamos tras posicionar al jugador
+    camera.target = {0.0f, 0.0f}; 
     camera.offset = {(float)screenW / 2, (float)screenH / 2};
     camera.rotation = 0.0f;
-    camera.zoom = cameraZoom; // 1.0f por defecto
+    camera.zoom = cameraZoom; 
 
     SetTargetFPS(60);
 
-    // newRun(); // primera partida (empieza en Level 1)
     state = GameState::MainMenu;
     mainMenuSelection = 0;
 }
 
-// Devuelve la seed del RUN (si hay fija, esa; si no, aleatoria en cada R)
 unsigned Game::nextRunSeed() const {
     return fixedSeed > 0 ? fixedSeed : now_seed();
 }
 
-// Mezcla para derivar una seed distinta por nivel del mismo run
 unsigned Game::seedForLevel(unsigned base, int level) const {
-    // Mezcla simple tipo "golden ratio" para variar por nivel
-    const unsigned MIX = 0x9E3779B9u; // 2654435769
+    const unsigned MIX = 0x9E3779B9u; 
     return base ^ (MIX * static_cast<unsigned>(level));
 }
 
 void Game::newRun() {
-    // runSeed: fijo si hay CLI, aleatorio si no
     runSeed = nextRunSeed();
     std::cout << "[Run] Seed base del run: " << runSeed << "\n";
 
@@ -138,10 +133,9 @@ void Game::newRun() {
     swordTier = 0;
     plasmaTier = 0;
 
-    // reinicia progreso persistente del run
     runCtx.espadaMejorasObtenidas = 0;
     runCtx.plasmaMejorasObtenidas = 0;
-    // reset ataque
+    
     gAttack = AttackRuntime{};
     gAttack.frontOnly = true;
 
@@ -153,7 +147,6 @@ void Game::newLevel(int level) {
     int tilesX = (int)std::ceil((screenW / (float)tileSize) * WORLD_SCALE);
     int tilesY = (int)std::ceil((screenH / (float)tileSize) * WORLD_SCALE);
 
-    // Deriva una seed distinta por nivel, determinista dentro del mismo run
     levelSeed = seedForLevel(runSeed, level);
     std::cout << "[Level] " << level << "/" << maxLevels
               << " (seed nivel: " << levelSeed << ")\n";
@@ -173,49 +166,48 @@ void Game::newLevel(int level) {
 
     player.setGridPos(px, py);
 
-    // Recalcular FOV según viewport/tileSize actual
+    // Recalcular FOV
     fovTiles = defaultFovFromViewport();
     map.computeVisibility(px, py, getFovRadius());
 
-    // centrar cámara en jugador (mundo -> píxeles)
     Vector2 playerCenterPx = {px * (float)tileSize + tileSize / 2.0f,
                               py * (float)tileSize + tileSize / 2.0f};
     camera.target = playerCenterPx;
     clampCameraToMap();
 
-    hasKey = false; // hay una llave por nivel
+    hasKey = false; 
 
-    // ==== Spawner de ítems ====
-    // RNG determinista por nivel
     rng = std::mt19937(levelSeed);
 
-    // --- Enemigos del nivel ---
     spawnEnemiesForLevel();
 
-    // (de momento no tienes enemigos: lista vacía.
     std::vector<IVec2> enemyTiles;
     enemyTiles.reserve(enemies.size());
     for (const auto &e : enemies) {
         enemyTiles.push_back({e.getX(), e.getY()});
     }
 
-    // Walkable: todo lo que no sea WALL, con bounds check
     auto isWalkable = [&](int x, int y) { 
         return map.isWalkable(x, y); 
     };
 
-    // Spawn = posición actual del jugador
     IVec2 spawnTile{px, py};
-
-    // Exit = pedimos al mapa su posición
     auto [exitX, exitY] = map.findExitTile();
     IVec2 exitTile{exitX, exitY};
 
-    // Generar ítems de este nivel (solo colocación; sin lógica aún)
     items = ItemSpawner::generate(map.width(), map.height(), isWalkable,
                                   spawnTile, exitTile, enemyTiles,
-                                  level, // 1..3
+                                  level, 
                                   rng, runCtx);
+}
+
+// NUEVO: FOV Dinámico (Gafas)
+int Game::getFovRadius() const {
+    int r = fovTiles;
+    if (glassesTimer > 0.0f) {
+        r += glassesFovMod;
+    }
+    return std::clamp(r, 2, 30);
 }
 
 void Game::tryMove(int dx, int dy) {
@@ -238,7 +230,6 @@ void Game::tryMove(int dx, int dy) {
             px = nx;
             py = ny;
         }
-        // (si está ocupada, simplemente no te mueves)
     }
 }
 
@@ -259,14 +250,10 @@ void Game::run() {
 }
 
 void Game::processInput() {
-    // ESC desde cualquier sitio distinto al menú -> volver al menú
-    // También permitimos usar un botón del mando (por ejemplo, B o Start)
     if (state != GameState::MainMenu) {
         bool escPressed = IsKeyPressed(KEY_ESCAPE);
-        // Comprobar botón de mando que actúe como ESC
         const int gp0 = 0;
         if (IsGamepadAvailable(gp0)) {
-            // Usamos el botón derecho de la cara (B) o el botón central
             escPressed = escPressed ||
                          IsGamepadButtonPressed(gp0, GAMEPAD_BUTTON_RIGHT_FACE_RIGHT) ||
                          IsGamepadButtonPressed(gp0, GAMEPAD_BUTTON_MIDDLE_RIGHT) ||
@@ -277,26 +264,22 @@ void Game::processInput() {
             gAttack.swinging = false;
             gAttack.lastTiles.clear();
             state = GameState::MainMenu;
-            mainMenuSelection = 0;   // volver con JUGAR seleccionado
+            mainMenuSelection = 0;   
             return;
         }
     }
 
-    // Helper para reiniciar el run (R o botón Y)
     auto restartRun = [&]() {
         if (fixedSeed == 0) 
             runSeed = nextRunSeed();
         newRun();
     };
 
-    // Reiniciar run completo con teclado (R)
     if (IsKeyPressed(KEY_R)) {
         restartRun();
         return;
     }
 
-    // Reiniciar run con mando: botón Y (cara arriba).
-    // Sólo fuera del menú principal para no romper la ayuda del menú.
     const int gpRestart = 0;
     if (state != GameState::MainMenu &&
         IsGamepadAvailable(gpRestart) &&
@@ -305,7 +288,6 @@ void Game::processInput() {
         return;
     }
 
-    // Toggle modo de movimiento
     if (IsKeyPressed(KEY_T)) {
         moveMode = (moveMode == MovementMode::StepByStep)
                    ? MovementMode::RepeatCooldown
@@ -313,14 +295,12 @@ void Game::processInput() {
         moveCooldown = 0.0f;
     }
 
-    // Toggle niebla
     if (IsKeyPressed(KEY_F2)) {
         fogEnabled = !fogEnabled;
         map.setFogEnabled(fogEnabled);
         if (fogEnabled) map.computeVisibility(px, py, getFovRadius());
     }
 
-    // Ajuste manual del FOV
     if (IsKeyPressed(KEY_LEFT_BRACKET)) {
         fovTiles = std::max(2, fovTiles - 1);
         if (map.fogEnabled()) map.computeVisibility(px, py, getFovRadius());
@@ -330,7 +310,6 @@ void Game::processInput() {
         if (map.fogEnabled()) map.computeVisibility(px, py, getFovRadius());
     }
 
-    // Derivar por estado
     const float dt = GetFrameTime();
     if (state == GameState::MainMenu) {
         handleMenuInput();
@@ -341,14 +320,12 @@ void Game::processInput() {
         return;
     }
 
-    // Estados no jugables (victoria/game over): solo actualizar animación idle
-    player.update(dt, /*isMoving=*/false);
+    player.update(dt, false);
 }
 
 void Game::handleMenuInput() {
     const int menuGamepad = 0;
 
-    // --- Si el visor de ayuda está abierto, sólo gestionamos scroll y "volver" ---
     if (showHelp) {
         int panelW = (int)std::round(screenW * 0.86f);
         int panelH = (int)std::round(screenH * 0.76f);
@@ -357,25 +334,22 @@ void Game::handleMenuInput() {
         int pxl = (screenW - panelW) / 2;
         int pyl = (screenH - panelH) / 2;
 
-        // Scroll con la rueda del ratón
         float wheel = GetMouseWheelMove();
         if (wheel != 0.0f) {
             helpScroll -= (int)(wheel * 40);
             if (helpScroll < 0) helpScroll = 0;
         }
 
-        // Scroll con joystick izquierdo
         if (IsGamepadAvailable(menuGamepad)) {
             float ay = GetGamepadAxisMovement(menuGamepad, GAMEPAD_AXIS_LEFT_Y);
             const float dead = 0.25f;
             if (std::fabs(ay) > dead) {
-                const float speed = 400.0f; // ajusta si va muy rápido/lento
+                const float speed = 400.0f; 
                 helpScroll += (int)(ay * speed * GetFrameTime());
                 if (helpScroll < 0) helpScroll = 0;
             }
         }
 
-        // Calcular límites del scroll
         int margin    = 24;
         int titleSize = (int)std::round(panelH * 0.06f);
         int top       = pyl + margin + titleSize + 16;
@@ -391,7 +365,6 @@ void Game::handleMenuInput() {
         int maxScroll = std::max(0, lines * lineH - viewportH);
         if (helpScroll > maxScroll) helpScroll = maxScroll;
 
-        // --- Enlace “VOLVER” ---
         const char *backTxt = "VOLVER";
         int tw = MeasureText(backTxt, backFs);
         int tx = pxl + panelW - tw - 16;
@@ -405,18 +378,17 @@ void Game::handleMenuInput() {
         bool gpBack    = false;
 
         if (IsGamepadAvailable(menuGamepad)) {
-            gpBack = IsGamepadButtonPressed(menuGamepad, GAMEPAD_BUTTON_RIGHT_FACE_RIGHT) || // B
-                     IsGamepadButtonPressed(menuGamepad, GAMEPAD_BUTTON_LEFT_FACE_RIGHT)  || // cruceta derecha
-                     IsGamepadButtonPressed(menuGamepad, GAMEPAD_BUTTON_RIGHT_FACE_DOWN);    // A
+            gpBack = IsGamepadButtonPressed(menuGamepad, GAMEPAD_BUTTON_RIGHT_FACE_RIGHT) || 
+                     IsGamepadButtonPressed(menuGamepad, GAMEPAD_BUTTON_LEFT_FACE_RIGHT)  || 
+                     IsGamepadButtonPressed(menuGamepad, GAMEPAD_BUTTON_RIGHT_FACE_DOWN);    
         }
 
         if (clickBack || escBack || gpBack) {
             showHelp = false;
         }
-        return; // No procesar nada más mientras se muestra ayuda
+        return; 
     }
 
-    // --- Geometría de botones principales (para ratón y selección lógica) ---
     int bw = (int)std::round(screenW * 0.35f);
     bw = std::clamp(bw, 320, 560);
     int bh = (int)std::round(screenH * 0.12f);
@@ -431,7 +403,6 @@ void Game::handleMenuInput() {
     Rectangle quitBtn = { (float)((screenW - bw) / 2),
                           (float)(startY + (bh + gap) * 2), (float)bw, (float)bh };
 
-    // --- Ratón: clic directo sobre botones ---
     if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
         Vector2 mp = GetMousePosition();
 
@@ -455,7 +426,6 @@ void Game::handleMenuInput() {
         }
     }
 
-    // --- Teclado: flechas / WASD para moverse y Enter/Espacio para confirmar ---
     auto activateSelection = [&]() {
         if (mainMenuSelection == 0) {
             newRun();
@@ -467,7 +437,7 @@ void Game::handleMenuInput() {
             showHelp  = true;
             helpScroll = 0;
         }
-        else { // 2 = SALIR
+        else { 
             gQuitRequested = true;
         }
     };
@@ -483,9 +453,7 @@ void Game::handleMenuInput() {
         return;
     }
 
-    // --- Mando: cruceta + joystick izquierdo + botón A ---
     if (IsGamepadAvailable(menuGamepad)) {
-        // Cruceta
         if (IsGamepadButtonPressed(menuGamepad, GAMEPAD_BUTTON_LEFT_FACE_UP)) {
             mainMenuSelection = (mainMenuSelection + 3 - 1) % 3;
         }
@@ -493,7 +461,6 @@ void Game::handleMenuInput() {
             mainMenuSelection = (mainMenuSelection + 1) % 3;
         }
 
-        // Joystick izquierdo (un paso por "empujón")
         static bool stickNeutral = true;
         float ay = GetGamepadAxisMovement(menuGamepad, GAMEPAD_AXIS_LEFT_Y);
         const float dead = 0.35f;
@@ -503,24 +470,19 @@ void Game::handleMenuInput() {
         }
         else if (stickNeutral) {
             if (ay < 0.0f) {
-                // Arriba
                 mainMenuSelection = (mainMenuSelection + 3 - 1) % 3;
             }
             else {
-                // Abajo
                 mainMenuSelection = (mainMenuSelection + 1) % 3;
             }
             stickNeutral = false;
         }
 
-        // Confirmar con A
         if (IsGamepadButtonPressed(menuGamepad, GAMEPAD_BUTTON_RIGHT_FACE_DOWN)) {
             activateSelection();
             return;
         }
 
-        // Atajos antiguos que ya tenías (opcional mantenerlos)
-        // Y/X (botón arriba) = abrir ayuda directo
         if (IsGamepadButtonPressed(menuGamepad, GAMEPAD_BUTTON_RIGHT_FACE_UP)) {
             if (helpText.empty()) {
                 loadTextAsset("assets/docs/objetos.txt", helpText);
@@ -533,30 +495,77 @@ void Game::handleMenuInput() {
 }
 
 void Game::handlePlayingInput(float dt) {
-    // Zoom / cámara
-    if (IsKeyDown(KEY_Q)) cameraZoom += 1.0f * dt;   // acercar
-    if (IsKeyDown(KEY_E)) cameraZoom -= 1.0f * dt;   // alejar
+    // --------------------------------------------------------
+    // 1. DETECCIÓN DE DISPOSITIVO (Input Device Detection)
+    // --------------------------------------------------------
+    
+    // A) Detectar Teclado: Si pulsa alguna tecla de juego
+    if (IsKeyDown(KEY_W) || IsKeyDown(KEY_A) || IsKeyDown(KEY_S) || IsKeyDown(KEY_D) ||
+        IsKeyDown(KEY_UP) || IsKeyDown(KEY_DOWN) || IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_RIGHT) ||
+        IsKeyDown(KEY_E) || IsKeyDown(KEY_I) || IsKeyDown(KEY_O) || 
+        IsKeyDown(KEY_SPACE) || IsKeyDown(KEY_ONE) || IsKeyDown(KEY_TWO)) {
+        lastInput = InputDevice::Keyboard;
+    }
 
-    float wheel = GetMouseWheelMove();               // rueda (escala log)
+    // B) Detectar Mando: Si mueve ejes o pulsa botones
+    const int gpId = 0;
+    if (IsGamepadAvailable(gpId)) {
+        bool gpActive = false;
+        
+        // Botones comunes (A, B, X, Y, RB, LB, RT, LT, Dpad)
+        // Checkeamos un rango de botones comunes para ver si toca algo
+        for (int b = GAMEPAD_BUTTON_UNKNOWN + 1; b <= GAMEPAD_BUTTON_RIGHT_THUMB; b++) {
+            if (IsGamepadButtonDown(gpId, b)) {
+                gpActive = true;
+                break;
+            }
+        }
+
+        // Ejes (Sticks) - Umbral más bajo (0.25)
+        if (!gpActive) {
+            float lx = GetGamepadAxisMovement(gpId, GAMEPAD_AXIS_LEFT_X);
+            float ly = GetGamepadAxisMovement(gpId, GAMEPAD_AXIS_LEFT_Y);
+            float rx = GetGamepadAxisMovement(gpId, GAMEPAD_AXIS_RIGHT_X);
+            float ry = GetGamepadAxisMovement(gpId, GAMEPAD_AXIS_RIGHT_Y);
+            if (std::abs(lx) > 0.25f || std::abs(ly) > 0.25f || 
+                std::abs(rx) > 0.25f || std::abs(ry) > 0.25f) {
+                gpActive = true;
+            }
+        }
+
+        // Gatillos (RT/LT) a veces cuentan como ejes
+        if (!gpActive) {
+             float rt = GetGamepadAxisMovement(gpId, GAMEPAD_AXIS_RIGHT_TRIGGER);
+             float lt = GetGamepadAxisMovement(gpId, GAMEPAD_AXIS_LEFT_TRIGGER);
+             if (rt > 0.1f || lt > 0.1f) gpActive = true;
+        }
+
+        if (gpActive) {
+            lastInput = InputDevice::Gamepad;
+        }
+    }
+
+    // --------------------------------------------------------
+    // 2. LÓGICA DE JUEGO (Zoom, Interacción, Movimiento)
+    // --------------------------------------------------------
+
+    // Zoom (I/O o Stick Derecho)
+    if (IsKeyDown(KEY_I)) cameraZoom += 1.0f * dt;
+    if (IsKeyDown(KEY_O)) cameraZoom -= 1.0f * dt;
+
+    float wheel = GetMouseWheelMove();
     if (wheel != 0.0f) {
         cameraZoom = expf(logf(cameraZoom) + wheel * 0.1f);
     }
 
-    // Zoom con el stick derecho del mando
-    const int zoomPad = 0;
-    if (IsGamepadAvailable(zoomPad)) {
-        float rightY = GetGamepadAxisMovement(zoomPad, GAMEPAD_AXIS_RIGHT_Y);
+    if (IsGamepadAvailable(gpId)) {
+        float rightY = GetGamepadAxisMovement(gpId, GAMEPAD_AXIS_RIGHT_Y);
         const float zoomThr = 0.2f;
-        if (rightY < -zoomThr) {
-            // Arriba (negativo) → acercar cámara
-            cameraZoom += (-rightY) * dt;
-        }
-        else if (rightY > zoomThr) {
-            // Abajo (positivo) → alejar cámara
-            cameraZoom -= rightY * dt;
-        }
-        // Reset de cámara con el botón del stick derecho
-        if (IsGamepadButtonPressed(zoomPad, GAMEPAD_BUTTON_RIGHT_THUMB)) {
+        if (rightY < -zoomThr) cameraZoom += (-rightY) * dt;
+        else if (rightY > zoomThr) cameraZoom -= rightY * dt;
+        
+        // Reset zoom con click stick derecho
+        if (IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_RIGHT_THUMB)) {
             cameraZoom = 1.0f;
             camera.zoom = cameraZoom;
             camera.rotation = 0.0f;
@@ -568,45 +577,44 @@ void Game::handlePlayingInput(float dt) {
     camera.zoom = cameraZoom;
     clampCameraToMap();
 
-    // Reset SOLO de cámara
-    if (IsKeyPressed(KEY_C)) {
+    if (IsKeyPressed(KEY_C)) { // Reset cámara rápido teclado
         cameraZoom = 1.0f;
         camera.zoom = cameraZoom;
         camera.rotation = 0.0f;
         clampCameraToMap();
     }
 
-    // Movimiento del jugador + animación de sprites
-    int  dx = 0, dy = 0;
+    // INTERACCIÓN (Pickup)
+    bool interact = IsKeyPressed(KEY_E);
+    if (IsGamepadAvailable(gpId)) {
+        if (IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_RIGHT_FACE_DOWN)) { // Botón A
+            interact = true;
+        }
+    }
+    if (interact) {
+        tryManualPickup();
+    }
+
+    // MOVIMIENTO
+    int dx = 0, dy = 0;
     bool moved = false;
 
-    // ============================================
-    // Soporte de mando (gamepad) para movimiento y ataque
-    // Para permitir el uso de un mando junto al teclado, recogemos
-    // el estado del primer mando disponible. Se usan los botones
-    // del "D‑pad" (izquierdo) y el stick izquierdo para mover, y
-    // algunos botones frontales para atacar.  Si no hay mando
-    // conectado, estas variables se mantienen en cero y no
-    // interferirán con el control mediante teclado y ratón.
-        int  gpDx = 0, gpDy = 0;
+    // Variables mando
+    int gpDx = 0, gpDy = 0;
     bool gpAttackPressed = false;
-    bool gpDpadPressed   = false;
-    bool gpAnalogActive  = false;
-    const int gamepadId  = 0;
+    bool gpDpadPressed = false;
+    bool gpAnalogActive = false;
 
-    if (IsGamepadAvailable(gamepadId)) {
-        // Botón de ataque básico: cara derecha inferior (X / A según el mando)
-        // RB y RT ya NO cuentan como ataque básico.
-        if (IsGamepadButtonPressed(gamepadId, GAMEPAD_BUTTON_RIGHT_FACE_LEFT)) {
+    if (IsGamepadAvailable(gpId)) {
+        // Ataque básico (X / Cuadrado) - Si lo usas
+        if (IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_RIGHT_FACE_LEFT)) {
             gpAttackPressed = true;
         }
 
-        // Leer el stick analógico izquierdo (movimiento continuo)
-        float axisX = GetGamepadAxisMovement(gamepadId, GAMEPAD_AXIS_LEFT_X);
-        float axisY = GetGamepadAxisMovement(gamepadId, GAMEPAD_AXIS_LEFT_Y);
-        const float thr = 0.5f;
+        float axisX = GetGamepadAxisMovement(gpId, GAMEPAD_AXIS_LEFT_X);
+        float axisY = GetGamepadAxisMovement(gpId, GAMEPAD_AXIS_LEFT_Y);
+        const float thr = 0.5f; // Para moverse mantenemos 0.5 para que no "patine"
 
-        // Consideramos activo el modo analógico si alguna componente supera el umbral
         if (axisX < -thr || axisX > thr || axisY < -thr || axisY > thr) {
             gpAnalogActive = true;
             if (axisY < -thr) gpDy = -1;
@@ -615,21 +623,20 @@ void Game::handlePlayingInput(float dt) {
             else if (axisX > thr) gpDx = +1;
         }
 
-        // Leer la cruceta (D‑pad) como movimiento discreto (solo pulsaciones)
-        if (IsGamepadButtonPressed(gamepadId, GAMEPAD_BUTTON_LEFT_FACE_UP)) {
+        if (IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_LEFT_FACE_UP)) {
             gpDx = 0; gpDy = -1; gpDpadPressed = true;
         }
-        if (IsGamepadButtonPressed(gamepadId, GAMEPAD_BUTTON_LEFT_FACE_DOWN)) {
+        if (IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_LEFT_FACE_DOWN)) {
             gpDx = 0; gpDy = +1; gpDpadPressed = true;
         }
-        if (IsGamepadButtonPressed(gamepadId, GAMEPAD_BUTTON_LEFT_FACE_LEFT)) {
+        if (IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_LEFT_FACE_LEFT)) {
             gpDx = -1; gpDy = 0; gpDpadPressed = true;
         }
-        if (IsGamepadButtonPressed(gamepadId, GAMEPAD_BUTTON_LEFT_FACE_RIGHT)) {
+        if (IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_LEFT_FACE_RIGHT)) {
             gpDx = +1; gpDy = 0; gpDpadPressed = true;
         }
 
-        // Cambiar el modo de movimiento automáticamente según el input del mando
+        // Lógica de modo de movimiento
         if (gpAnalogActive) {
             moveMode = MovementMode::RepeatCooldown;
         } else if (gpDpadPressed) {
@@ -637,15 +644,13 @@ void Game::handlePlayingInput(float dt) {
         }
     }
 
+    // Lógica unificada de movimiento
     if (moveMode == MovementMode::StepByStep) {
-        // Un paso por pulsación
         if (IsKeyPressed(KEY_W) || IsKeyPressed(KEY_UP))    dy = -1;
         if (IsKeyPressed(KEY_S) || IsKeyPressed(KEY_DOWN))  dy = +1;
         if (IsKeyPressed(KEY_A) || IsKeyPressed(KEY_LEFT))  dx = -1;
         if (IsKeyPressed(KEY_D) || IsKeyPressed(KEY_RIGHT)) dx = +1;
 
-        // Complementar con eventos de mando (D‑pad) en modo paso a paso
-        // Si no hay input de teclado, asigna el desplazamiento del mando.
         if (dx == 0 && dy == 0 && (gpDx != 0 || gpDy != 0)) {
             dx = gpDx;
             dy = gpDy;
@@ -653,44 +658,34 @@ void Game::handlePlayingInput(float dt) {
 
         if (dx != 0 || dy != 0) {
             gAttack.lastDir = {dx, dy};
-            player.setDirectionFromDelta(dx, dy); // girar sin moverse
+            player.setDirectionFromDelta(dx, dy); 
 
             int oldx = px, oldy = py;
             tryMove(dx, dy);
             moved = (px != oldx || py != oldy);
 
-            if (moved) {
-                onSuccessfulStep(dx, dy);
-            }
+            if (moved) onSuccessfulStep(dx, dy);
         }
-
-        // Animación (idle si no te moviste)
         player.update(dt, moved);
     }
     else {
-        // Repetición con cooldown mientras mantienes tecla / mando
+        // RepeatCooldown logic
         moveCooldown -= dt;
 
-        // Detectar si hay una pulsación inicial de cualquier dirección
-        // (teclado o D-pad). El stick analógico NO cuenta como "pulsación
-        // nueva" para que respete el cooldown.
         bool pressedNow = IsKeyPressed(KEY_W) || IsKeyPressed(KEY_S) ||
                         IsKeyPressed(KEY_A) || IsKeyPressed(KEY_D) ||
                         IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_DOWN) ||
                         IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_RIGHT) ||
                         gpDpadPressed;
 
-        // Lectura continua de teclas
         if (IsKeyDown(KEY_W) || IsKeyDown(KEY_UP))    dy = -1;
         if (IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN))  dy = +1;
         if (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT))  dx = -1;
         if (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT)) dx = +1;
 
-        // Complementar con valores del mando
         if (dx == 0 && gpDx != 0) dx = gpDx;
         if (dy == 0 && gpDy != 0) dy = gpDy;
 
-        // permite girarte sin moverte
         if (dx != 0 || dy != 0) {
             gAttack.lastDir = {dx, dy};
             player.setDirectionFromDelta(dx, dy);
@@ -700,31 +695,21 @@ void Game::handlePlayingInput(float dt) {
             int oldx = px, oldy = py;
             tryMove(dx, dy);
             moved = (px != oldx || py != oldy);
-
-            if (moved) {
-                onSuccessfulStep(dx, dy);
-            }
-
+            if (moved) onSuccessfulStep(dx, dy);
             moveCooldown = MOVE_INTERVAL;
         }
         else if ((dx != 0 || dy != 0) && moveCooldown <= 0.0f) {
             int oldx = px, oldy = py;
             tryMove(dx, dy);
             moved = (px != oldx || py != oldy);
-
-            if (moved) {
-                onSuccessfulStep(dx, dy);
-            }
-
+            if (moved) onSuccessfulStep(dx, dy);
             moveCooldown = MOVE_INTERVAL;
         }
-
-        // Animación (idle si no hubo movimiento este frame)
         player.update(dt, moved);
     }
 
-    // Ataque Melee
-    gAttack.cdTimer    = std::max(0.f, gAttack.cdTimer - dt);
+    // ATAQUE / COOLDOWNS
+    gAttack.cdTimer = std::max(0.f, gAttack.cdTimer - dt);
     if (gAttack.swinging) {
         gAttack.swingTimer = std::max(0.f, gAttack.swingTimer - dt);
         if (gAttack.swingTimer <= 0.f) {
@@ -733,100 +718,75 @@ void Game::handlePlayingInput(float dt) {
         }
     }
 
-    // Rango base del puño
     gAttack.rangeTiles = RANGE_MELEE_HAND;
 
-    // Input de ataque: SPACE, click izquierdo o botones del gamepad
     const bool attackPressed = IsKeyPressed(KEY_SPACE) ||
                                IsMouseButtonPressed(MOUSE_LEFT_BUTTON) ||
                                gpAttackPressed;
 
     if (attackPressed && gAttack.cdTimer <= 0.f) {
-        // Calcula tiles válidos con oclusión ANTES de iniciar el gesto
+        // ... (Tu lógica de ataque melee original sigue aquí) ...
         IVec2 center{px, py};
         auto tiles = computeMeleeTilesOccluded(
             center, gAttack.lastDir, gAttack.rangeTiles, gAttack.frontOnly, map);
 
-        if (tiles.empty()) {
-            // Delante hay pared/obstáculo: NO swing, NO cooldown, NO flash
-            return;
-        }
+        if (!tiles.empty()) {
+            gAttack.swinging   = true;
+            gAttack.swingTimer = gAttack.swingTime;
+            gAttack.cdTimer    = gAttack.cooldown;
+            gAttack.lastTiles  = std::move(tiles);
 
-        // Inicia gesto/flash/cooldown
-        gAttack.swinging   = true;
-        gAttack.swingTimer = gAttack.swingTime;
-        gAttack.cdTimer    = gAttack.cooldown;
-        gAttack.lastTiles  = std::move(tiles);
+            std::vector<size_t> toRemove;
+            toRemove.reserve(enemies.size());
+            bool hitSomeone = false;
 
-        std::vector<size_t> toRemove;
-        toRemove.reserve(enemies.size());
+            for (size_t i = 0; i < enemies.size(); ++i) {
+                const int ex = enemies[i].getX();
+                const int ey = enemies[i].getY();
+                bool impacted = false;
+                for (const auto &t : gAttack.lastTiles) {
+                    if (t.x == ex && t.y == ey) { impacted = true; break; }
+                }
+                if (!impacted) continue;
 
-        bool hitSomeone = false;
-
-        for (size_t i = 0; i < enemies.size(); ++i) {
-            const int ex = enemies[i].getX();
-            const int ey = enemies[i].getY();
-
-            bool impacted = false;
-            for (const auto &t : gAttack.lastTiles) {
-                if (t.x == ex && t.y == ey) { impacted = true; break; }
+                if (enemyHP.size() != enemies.size()) {
+                    enemyHP.assign(enemies.size(), ENEMY_BASE_HP);
+                    enemyAtkCD.assign(enemies.size(), 0.0f);
+                }
+                hitSomeone = true;
+                int before = enemyHP[i];
+                enemyHP[i] = std::max(0, enemyHP[i] - PLAYER_MELEE_DMG);
+                std::cout << "[Melee] Hit! " << before << "-> " << enemyHP[i] << "\n";
+                if (enemyHP[i] <= 0) toRemove.push_back(i);
             }
-            if (!impacted) continue;
-
-            // Asegura tamaño de arrays paralelos
-            if (enemyHP.size() != enemies.size()) {
-                enemyHP.assign(enemies.size(), ENEMY_BASE_HP);
-                enemyAtkCD.assign(enemies.size(), 0.0f);
+            if (!toRemove.empty()) {
+                std::sort(toRemove.rbegin(), toRemove.rend());
+                for (size_t idx : toRemove) {
+                    enemies.erase(enemies.begin() + (long)idx);
+                    if (idx < enemyFacing.size()) enemyFacing.erase(enemyFacing.begin() + (long)idx);
+                    if (idx < enemyHP.size()) enemyHP.erase(enemyHP.begin() + (long)idx);
+                    if (idx < enemyAtkCD.size()) enemyAtkCD.erase(enemyAtkCD.begin() + (long)idx);
+                }
             }
-
-            hitSomeone = true;
-
-            int before  = enemyHP[i];
-            enemyHP[i]  = std::max(0, enemyHP[i] - PLAYER_MELEE_DMG);
-
-            std::cout << "[Melee] Player -> Enemy (" << ex << "," << ey
-                      << ") " << before << "% -> " << enemyHP[i] << "%\n";
-
-            if (enemyHP[i] <= 0) toRemove.push_back(i);
+            if (!hitSomeone) std::cout << "[Melee] Miss!\n";
+            enemyTryAttackFacing();
         }
-
-        if (!toRemove.empty()) {
-            std::sort(toRemove.rbegin(), toRemove.rend());
-            for (size_t idx : toRemove) {
-                enemies.erase(enemies.begin() + (long)idx);
-                if (idx < enemyFacing.size())
-                    enemyFacing.erase(enemyFacing.begin() + (long)idx);
-                if (idx < enemyHP.size())
-                    enemyHP.erase(enemyHP.begin() + (long)idx);
-                if (idx < enemyAtkCD.size())
-                    enemyAtkCD.erase(enemyAtkCD.begin() + (long)idx);
-            }
-        }
-
-        if (!hitSomeone)
-            std::cout << "[Melee] Swing (no target)\n";
-
-        // Posible contraataque del enemigo si está enfrente y mirando
-        enemyTryAttackFacing();
     }
 
-    // Debug/controles de vida
-    if (IsKeyPressed(KEY_H)) { hp = std::max(0, hp - 1); }      // perder vida
-    if (IsKeyPressed(KEY_J)) { hp = std::min(hpMax, hp + 1); }  // ganar vida
+    // Cheat keys de debug (H/J)
+    if (IsKeyPressed(KEY_H)) { hp = std::max(0, hp - 1); }      
+    if (IsKeyPressed(KEY_J)) { hp = std::min(hpMax, hp + 1); }  
 }
 
 void Game::clampCameraToMap() {
     const float worldW = map.width() * (float)tileSize;
     const float worldH = map.height() * (float)tileSize;
 
-    // tamaño del viewport en coordenadas de mundo (depende del zoom)
     const float viewW = screenW / camera.zoom;
     const float viewH = screenH / camera.zoom;
     const float halfW = viewW * 0.5f;
     const float halfH = viewH * 0.5f;
 
-    // Si el mundo es más pequeño que el viewport, centramos;
-    // si no, acotamos el target al rango [half, world-half]
     if (worldW <= viewW)
         camera.target.x = worldW * 0.5f;
     else
@@ -854,18 +814,17 @@ void Game::recomputeFovIfNeeded() {
 
 void Game::onSuccessfulStep(int dx, int dy) {
     if (dx != 0 || dy != 0) {
-        gAttack.lastDir = {dx, dy};           // mantiene facing del melee
-        player.setDirectionFromDelta(dx, dy); // gira el sprite
+        gAttack.lastDir = {dx, dy};           
+        player.setDirectionFromDelta(dx, dy); 
     }
 
-    player.setGridPos(px, py);                // estado del jugador
-    recomputeFovIfNeeded();                   // FOV si la niebla está activa
-    centerCameraOnPlayer();                   // cámara centrada en tile del player
-    updateEnemiesAfterPlayerMove(true);       // IA de enemigos tras moverte
+    player.setGridPos(px, py);                
+    recomputeFovIfNeeded();                   
+    centerCameraOnPlayer();                   
+    updateEnemiesAfterPlayerMove(true);       
 }
 
 int Game::defaultFovFromViewport() const {
-    // nº de tiles visibles en cada eje
     int tilesX = screenW / tileSize;
     int tilesY = screenH / tileSize;
     int r = static_cast<int>(std::floor(std::min(tilesX, tilesY) * 0.15f));
@@ -876,8 +835,29 @@ void Game::update() {
     if (state != GameState::Playing)
         return;
 
-    // recoger si estás encima de algo
-    tryPickupHere();
+    // NUEVO: Recogida automática solo para la Llave
+    tryAutoPickup();
+
+    // NUEVO: Gestión de temporizadores y batería
+    float dt = GetFrameTime();
+    
+    // Escudo
+    if (hasShield) {
+        shieldTimer -= dt;
+        if (shieldTimer <= 0.0f) {
+            hasShield = false;
+            std::cout << "[Shield] El escudo se ha agotado por tiempo.\n";
+        }
+    }
+
+    // Gafas
+    if (glassesTimer > 0.0f) {
+        glassesTimer -= dt;
+        if (glassesTimer <= 0.0f) {
+            std::cout << "[Gafas] El efecto ha terminado.\n";
+            recomputeFovIfNeeded(); 
+        }
+    }
 
     // ¿Has llegado a la salida?
     if (map.at(px, py) == EXIT) {
@@ -885,24 +865,30 @@ void Game::update() {
             onExitReached();
     }
 
-    // helper local
     auto Lerp = [](float a, float b, float t) { 
         return a + (b - a) * t; 
     };
 
-    // cada frame, en vez de asignar directo:
     Vector2 desired = {px * (float)tileSize + tileSize / 2.0f,
                        py * (float)tileSize + tileSize / 2.0f};
-    float smooth = 10.0f * GetFrameTime(); // 0.0–1.0 (ajusta a gusto)
+    float smooth = 10.0f * GetFrameTime(); 
     camera.target.x = Lerp(camera.target.x, desired.x, smooth);
     camera.target.y = Lerp(camera.target.y, desired.y, smooth);
     clampCameraToMap();
 
-    // Transición a Game Over si la vida llega a 0
+    // NUEVO: Lógica de muerte y batería
     if (hp <= 0) {
-        state = GameState::GameOver;
-        gAttack.swinging = false; // por si había flash de melee activo
-        gAttack.lastTiles.clear();
+        if (hasBattery) {
+            hasBattery = false;
+            hp = hpMax / 2; // Recupera 50%
+            if (hp < 1) hp = 1;
+            std::cout << "[Bateria] ¡Has resucitado! Batería consumida.\n";
+            damageCooldown = 2.0f; 
+        } else {
+            state = GameState::GameOver;
+            gAttack.swinging = false; 
+            gAttack.lastTiles.clear();
+        }
         return;
     }
 
@@ -913,7 +899,7 @@ void Game::update() {
 void Game::onExitReached() {
     if (currentLevel < maxLevels) {
         currentLevel++;
-        newLevel(currentLevel); // ← cada nivel usa levelSeed diferente
+        newLevel(currentLevel); 
     }
     else {
         state = GameState::Victory;
@@ -930,23 +916,15 @@ void Game::render() {
     BeginDrawing();
     ClearBackground(BLACK);
 
-    // --- Cámara: el mapa y el jugador se dibujan dentro del mundo ---
     BeginMode2D(camera);
 
-    // Mapa (mundo)
     map.draw(tileSize);
-
-    // Enemigos
     drawEnemies();
-
-    // Jugador (en coordenadas del mundo)
     player.draw(tileSize, px, py);
-
-    // Ítems del nivel (placeholder en colores)
     drawItems();
-    // Requiere que exista gAttack (AttackRuntime) y que lo actualices en processInput()
+
     if (gAttack.swinging && !gAttack.lastTiles.empty()) {
-        Color fill = {255, 230, 50, 120}; // amarillo translúcido
+        Color fill = {255, 230, 50, 120}; 
         for (const auto &t : gAttack.lastTiles) {
             int xpx = t.x * tileSize;
             int ypx = t.y * tileSize;
@@ -956,9 +934,7 @@ void Game::render() {
     }
 
     EndMode2D();
-    // --- Fin de cámara ---
 
-    // --- HUD --- (no afectado por cámara ni zoom)
     if (state == GameState::Playing) {
         hud.drawPlaying(*this);
     }
@@ -977,11 +953,11 @@ void Game::updateEnemiesAfterPlayerMove(bool moved) {
         return;
 
     struct Intent {
-        int fromx, fromy; // origen
-        int tox, toy;     // destino propuesto
-        bool wants;       // quiere moverse
-        int score;        // menor = mejor (distancia al jugador tras moverse)
-        size_t idx;       // índice del enemigo (para desempates estables)
+        int fromx, fromy; 
+        int tox, toy;     
+        bool wants;       
+        int score;        
+        size_t idx;       
     };
 
     auto inRangePx = [&](int ex, int ey) -> bool {
@@ -1021,10 +997,9 @@ void Game::updateEnemiesAfterPlayerMove(bool moved) {
             if (can(nx, ny))
                 return {nx, ny};
         }
-        return {ex, ey}; // bloqueado
+        return {ex, ey}; 
     };
 
-    // Construir intenciones
     std::vector<Intent> intents;
     intents.reserve(enemies.size());
     for (size_t i = 0; i < enemies.size(); ++i) {
@@ -1039,12 +1014,11 @@ void Game::updateEnemiesAfterPlayerMove(bool moved) {
             it.score = std::abs(px - nx) + std::abs(py - ny);
         }
         else {
-            it.score = std::abs(px - e.getX()) + std::abs(py - e.getY()); // fuera de rango: no se mueve
+            it.score = std::abs(px - e.getX()) + std::abs(py - e.getY()); 
         }
         intents.push_back(it);
     }
 
-    // Resolver conflictos de MISMO destino: gana menor score; si empatan, menor idx
     for (size_t i = 0; i < intents.size(); ++i) {
         if (!intents[i].wants)
             continue;
@@ -1070,7 +1044,6 @@ void Game::updateEnemiesAfterPlayerMove(bool moved) {
         }
     }
 
-    // No invadir la casilla de un enemigo que se queda quieto
     for (size_t i = 0; i < intents.size(); ++i) {
         if (!intents[i].wants)
             continue;
@@ -1090,7 +1063,6 @@ void Game::updateEnemiesAfterPlayerMove(bool moved) {
         }
     }
 
-    // Evitar "swap" cabeza-con-cabeza (A<->B). Gana mejor score; si empatan, menor idx
     for (size_t i = 0; i < intents.size(); ++i) {
         if (!intents[i].wants)
             continue;
@@ -1119,12 +1091,10 @@ void Game::updateEnemiesAfterPlayerMove(bool moved) {
         }
     }
 
-    // Calcular facing por delta y aplicar movimientos
     for (size_t i = 0; i < enemies.size(); ++i) {
         int ox = intents[i].fromx, oy = intents[i].fromy;
         int tx = intents[i].tox, ty = intents[i].toy;
 
-        // Facing por DELTA INTENTADO (aunque luego no se mueva)
         int dxTry = tx - ox, dyTry = ty - oy;
         if (dxTry != 0 || dyTry != 0) {
             if (std::abs(dxTry) >= std::abs(dyTry))
@@ -1133,7 +1103,6 @@ void Game::updateEnemiesAfterPlayerMove(bool moved) {
                 enemyFacing[i] = (dyTry > 0) ? EnemyFacing::Down : EnemyFacing::Up;
         }
 
-        // No permitir que un enemigo se meta en la casilla del jugador
         int nx = tx, ny = ty;
         if (nx == px && ny == py) {
             nx = ox;
@@ -1146,7 +1115,15 @@ void Game::updateEnemiesAfterPlayerMove(bool moved) {
     enemyTryAttackFacing();
 }
 
+// NUEVO: El Escudo bloquea daño
 void Game::takeDamage(int amount) {
+    if (hasShield) {
+        hasShield = false;
+        shieldTimer = 0.0f;
+        std::cout << "[Shield] ¡Golpe bloqueado! El escudo se ha roto.\n";
+        return;
+    }
+
     int old = hp;
     hp = std::max(0, hp - amount);
     int oldPct = (int)std::lround(100.0 * old / std::max(1, hpMax));
@@ -1154,12 +1131,7 @@ void Game::takeDamage(int amount) {
     std::cout << "[HP] -" << amount << " (" << old << "→" << hp << ") " << oldPct
               << "%→" << newPct << "%\n";
 
-    if (hp == 0 && state == GameState::Playing) {
-        state = GameState::GameOver;
-        gAttack.swinging = false;
-        gAttack.lastTiles.clear();
-        std::cout << "[GameOver] Has sido destruido.\n";
-    }
+    // El GameOver ahora se maneja en update() para chequear la batería primero
 }
 
 Rectangle Game::uiCenterRect(float w, float h) const {
