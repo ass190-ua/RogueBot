@@ -70,18 +70,21 @@ static void DrawCenteredOverlay(const Game &g, const char *title,
   DrawText(tip, tipX, tipY, tipSz, RAYWHITE);
 }
 
+// --- ARCHIVO: src/systems/HUD.cpp ---
+
+// --- ARCHIVO: src/systems/HUD.cpp ---
+
 void HUD::drawPlaying(const Game &game) const {
   // 1. TEXTO AYUDA
-  DrawText("WASD mover | I/O Zoom | E/(A) Recoger", 10, 10, 20, RAYWHITE);
-  DrawText("1/(RB) Espada | 2/(RT) Plasma", 10, 35, 20, RAYWHITE);
+  DrawText("WASD mover | I/O Zoom | E/(A) Recoger | T Toggle mode", 10, 10, 20, RAYWHITE);
+  DrawText("1/(RB) Espada | 2/(RT) Plasma | SHIFT/(LB/LT) Dash", 10, 35, 20, RAYWHITE);
   DrawText(TextFormat("Level: %d/%d", game.getCurrentLevel(), game.getMaxLevels()),
            10, 60, 20, GRAY);
 
-  // 2. CORAZONES (HP)
+  // 2. CORAZONES (HP) - ARRIBA DERECHA
   const int hpMax = game.getHPMax(); 
   const int hpCurrent = std::clamp(game.getHP(), 0, hpMax);
 
-  // FX Animación HP
   if (prevHp < 0) prevHp = hpCurrent;
   if (hpCurrent != prevHp) {
     if (hpCurrent < prevHp)
@@ -123,7 +126,6 @@ void HUD::drawPlaying(const Game &game) const {
     }
   }
 
-  // FX Corazones
   for (const auto &e : hpFx) {
     int heartIdx = e.index / 2;
     const int x = barX + heartIdx * (kSlotSize + kSlotGap);
@@ -139,91 +141,94 @@ void HUD::drawPlaying(const Game &game) const {
   }
   hpFx.erase(std::remove_if(hpFx.begin(), hpFx.end(), [](const HpFx &a) { return a.t >= 1.0f; }), hpFx.end());
 
-  // 3. MINIMAPA TÁCTICO (IZQUIERDA - CORREGIDO)
+  // 3. MINIMAPA TÁCTICO (IZQUIERDA)
   const Map &m = game.getMap();
-  
-  // Posición del Widget
   const float mapX = 10.0f;
   const float mapY = 90.0f;
   const float scale = 4.0f; 
   const float mapW = m.width() * scale;
   const float mapH = m.height() * scale;
 
-  // Fondo
   DrawRectangle((int)mapX - 2, (int)mapY - 2, (int)mapW + 4, (int)mapH + 4, Fade(BLACK, 0.7f));
   DrawRectangleLines((int)mapX - 2, (int)mapY - 2, (int)mapW + 4, (int)mapH + 4, GRAY);
 
-  // IMPORTANTE: Como ahora usamos una escala fija (4.0) y posicion fija (10,90),
-  // el offset es simplemente mapX/mapY. No hace falta centrarlo dinámicamente
-  // si la caja se adapta al tamaño del mapa.
-  // 
-  // Usamos estas coordenadas base para TODO:
   float baseX = mapX;
   float baseY = mapY;
 
-  // A) TERRENO
+  // Dibujo del mapa (Terreno, Items, Enemies, Player) - IDÉNTICO AL ANTERIOR
   for (int y = 0; y < m.height(); ++y) {
     for (int x = 0; x < m.width(); ++x) {
       if (!m.isDiscovered(x, y)) continue;
-
       Color c = BLANK; 
-      if (m.at(x, y) == WALL) {
-          c = Color{80, 80, 80, 255}; 
-      } else if (m.at(x, y) == EXIT) {
-          c = LIME; // Salida Verde
-      } else {
+      if (m.at(x, y) == WALL) c = Color{80, 80, 80, 255}; 
+      else if (m.at(x, y) == EXIT) c = LIME; 
+      else {
           if (m.isVisible(x, y)) c = Color{200, 200, 200, 50}; 
           else c = Color{100, 100, 100, 30}; 
       }
-      
-      if (c.a > 0)
-        DrawRectangle((int)(baseX + x * scale), (int)(baseY + y * scale), (int)scale, (int)scale, c);
+      if (c.a > 0) DrawRectangle((int)(baseX + x * scale), (int)(baseY + y * scale), (int)scale, (int)scale, c);
     }
   }
-
-  // B) ITEMS (Puntos Cian)
-  // ¡CORREGIDO! Ahora usa baseX/baseY igual que el terreno
   for (const auto& it : game.getItems()) {
       if (m.isDiscovered(it.tile.x, it.tile.y)) {
-          DrawRectangle((int)(baseX + it.tile.x * scale), 
-                        (int)(baseY + it.tile.y * scale), 
-                        (int)scale, (int)scale, SKYBLUE);
+          DrawRectangle((int)(baseX + it.tile.x * scale), (int)(baseY + it.tile.y * scale), (int)scale, (int)scale, SKYBLUE);
       }
   }
-
-  // C) ENEMIGOS (Puntos Rojos)
-  // ¡CORREGIDO! Ahora usa baseX/baseY
   for (const auto& e : game.getEnemies()) {
-      // Solo mostramos enemigos si son visibles (o si tienes un radar especial)
       if (m.isVisible(e.getX(), e.getY())) {
-          DrawRectangle((int)(baseX + e.getX() * scale), 
-                        (int)(baseY + e.getY() * scale), 
-                        (int)scale, (int)scale, RED);
+          DrawRectangle((int)(baseX + e.getX() * scale), (int)(baseY + e.getY() * scale), (int)scale, (int)scale, RED);
       }
   }
+  DrawRectangle((int)(baseX + game.getPlayerX() * scale), (int)(baseY + game.getPlayerY() * scale), (int)scale, (int)scale, YELLOW);
 
-  // D) JUGADOR (Amarillo)
-  DrawRectangle((int)(baseX + game.getPlayerX() * scale), 
-                (int)(baseY + game.getPlayerY() * scale), 
-                (int)scale, (int)scale, YELLOW);
-
-  // 4. ESTADOS
-  int statusX = (int)mapX;
-  int statusY = (int)(mapY + mapH + 15);
+  // -----------------------------------------------------------------------
+  // 4. ESTADOS (STACK VERTICAL - TOP DOWN) - BAJO EL MINIMAPA
+  // -----------------------------------------------------------------------
   
+  // Empezamos justo debajo del mapa con un margen de 20 píxeles
+  int statusX = 10;
+  int statusY = (int)(mapY + mapH + 20); 
+  const int statusGap = 40; // Espacio entre cada barra
+
+  // A) DASH (Siempre el primero)
+  // -----------------------------------------------------------
+  // (Si tienes el getter getDashCooldown(), descomenta el bloque)
+  {
+      float cd = game.getDashCooldown();
+      if (cd > 0.0f) {
+          DrawText("DASH", statusX, statusY, 10, GRAY);
+          DrawRectangleLines(statusX, statusY + 12, 60, 6, GRAY);
+          float pct = 1.0f - (cd / 2.0f); 
+          DrawRectangle(statusX + 1, statusY + 13, (int)(58 * pct), 4, ORANGE);
+      } else {
+          DrawText("DASH LISTO", statusX, statusY + 5, 10, YELLOW);
+          DrawRectangleLines(statusX, statusY + 16, 60, 2, YELLOW);
+      }
+      // Bajamos el cursor
+      statusY += statusGap;
+  }
+
+  // B) ESCUDO (Debajo del Dash)
+  // -----------------------------------------------------------
   if (game.isShieldActive()) {
       DrawText("ESCUDO", statusX, statusY, 10, SKYBLUE);
       DrawRectangleLines(statusX, statusY + 12, 60, 6, GRAY);
       float pct = std::clamp(game.getShieldTime() / 60.0f, 0.0f, 1.0f);
       DrawRectangle(statusX + 1, statusY + 13, (int)(58 * pct), 4, SKYBLUE);
-      statusY += 25;
+      
+      // Bajamos el cursor
+      statusY += statusGap;
   }
   
+  // C) GAFAS (Debajo del Escudo o del Dash)
+  // -----------------------------------------------------------
   if (game.getGlassesTime() > 0.0f) {
       DrawText("GAFAS 3D", statusX, statusY, 10, PURPLE);
       DrawRectangleLines(statusX, statusY + 12, 60, 6, GRAY);
       float pct = std::clamp(game.getGlassesTime() / 20.0f, 0.0f, 1.0f);
       DrawRectangle(statusX + 1, statusY + 13, (int)(58 * pct), 4, PURPLE);
+      
+      statusY += statusGap;
   }
 }
 

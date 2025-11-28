@@ -99,20 +99,24 @@ void Game::drawItemSprite(const ItemSpawn &it) const {
 
 // ITEMS: pickup
 void Game::onPickup(const ItemSpawn &it) {
+    bool isPowerUp = false;
+
     switch (it.type) {
         case ItemType::LlaveMaestra:
             hasKey = true;
+            isPowerUp = true; // ¡La llave suena épica!
             std::cout << "[Pickup] Llave maestra obtenida.\n";
             break;
 
         case ItemType::Escudo:
             hasShield = true;
-            shieldTimer = 60.0f; // Reinicia a 60s siempre
+            shieldTimer = 60.0f; 
             std::cout << "[Pickup] Escudo activado (60s).\n";
             break;
 
         case ItemType::BateriaVidaExtra:
             hasBattery = true;
+            isPowerUp = true; // La batería también es muy importante
             std::cout << "[Pickup] Bateria vida extra guardada.\n";
             break;
 
@@ -120,6 +124,7 @@ void Game::onPickup(const ItemSpawn &it) {
             int real = std::min(it.tierSugerido, swordTier + 1);
             if (real > swordTier) swordTier = real;
             runCtx.espadaMejorasObtenidas = swordTier;
+            isPowerUp = true; // ¡Mejora de arma!
             std::cout << "[Pickup] Espada nivel " << swordTier << ".\n";
             break;
         }
@@ -128,13 +133,14 @@ void Game::onPickup(const ItemSpawn &it) {
             int real = std::min(it.tierSugerido, plasmaTier + 1);
             if (real > plasmaTier) plasmaTier = real;
             runCtx.plasmaMejorasObtenidas = plasmaTier;
+            isPowerUp = true; // ¡Mejora de arma!
             std::cout << "[Pickup] Plasma nivel " << plasmaTier << ".\n";
             break;
         }
 
         case ItemType::PilaBuena:
             if (hp < hpMax) {
-                hp = std::min(hpMax, hp + 2); // +2 = Recupera 1 Corazón entero
+                hp = std::min(hpMax, hp + 2); 
                 std::cout << "[Pickup] Pila Buena (+1 Corazón).\n";
             } else {
                 std::cout << "[Pickup] Vida llena.\n";
@@ -142,22 +148,29 @@ void Game::onPickup(const ItemSpawn &it) {
             break;
             
         case ItemType::PilaMala:
-            hp = std::max(0, hp - 2); // -2 = Quita 1 Corazón entero
+            hp = std::max(0, hp - 2); 
             std::cout << "[Pickup] Pila Mala (-1 Corazón).\n";
             break;
 
         case ItemType::Gafas3DBuenas:
             glassesTimer = 20.0f;
-            glassesFovMod = 5; // Aumenta FOV considerablemente
+            glassesFovMod = 5; 
             recomputeFovIfNeeded();
             std::cout << "[Pickup] Gafas 3D Buenas (+FOV 20s).\n";
             break;
 
         case ItemType::Gafas3DMalas:
             glassesTimer = 20.0f;
-            glassesFovMod = -4; // Reduce FOV (miope)
+            glassesFovMod = -4; 
             recomputeFovIfNeeded();
             std::cout << "[Pickup] Gafas 3D Malas (-FOV 20s).\n";
             break;
+    }
+
+    // 2. REPRODUCIR SONIDO (Al final, común para todos)
+    if (isPowerUp) {
+        PlaySound(sfxPowerUp);
+    } else {
+        PlaySound(sfxPickup); 
     }
 }

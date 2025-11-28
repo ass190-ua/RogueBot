@@ -84,10 +84,213 @@ void ItemSprites::unload() {
     loaded = false;
 }
 
+// Tipos de sonido para el generador
+enum SoundType { 
+    SND_HIT, SND_EXPLOSION, SND_PICKUP, SND_POWERUP, 
+    SND_HURT, SND_WIN, SND_LOOSE, SND_AMBIENT, SND_DASH
+};
+
+// Generador de ondas procedurales (Sintetizador)
+Sound Game::generateSound(int type) {
+    const int sampleRate = 44100;
+    
+    // CAMBIO: 60 segundos exactos.
+    const int durationFrames = (type == SND_AMBIENT) ? 44100 * 60 : 
+                               (type == SND_WIN || type == SND_LOOSE) ? 44100 * 4 : 
+                               44100 / 2;
+    
+    Wave wave;
+    wave.frameCount = durationFrames;
+    wave.sampleRate = sampleRate;
+    wave.sampleSize = 16;
+    wave.channels = 1;
+    wave.data = malloc(wave.frameCount * wave.sampleSize / 8);
+    
+    short *data = (short *)wave.data;
+    
+    for (int i = 0; i < wave.frameCount; i++) {
+        float t = (float)i / sampleRate; // Tiempo en segundos
+        float val = 0.0f;
+        
+        switch (type) {
+            case SND_HIT: // Ruido blanco corto + Onda cuadrada baja
+                if (t < 0.1f) val = ((float)GetRandomValue(-100, 100) / 100.0f) * (1.0f - t/0.1f);
+                else val = (sinf(2 * PI * 100 * t) > 0 ? 0.5f : -0.5f) * (1.0f - t);
+                break;
+                
+            case SND_EXPLOSION: // Ruido puro con decay largo
+                val = ((float)GetRandomValue(-100, 100) / 100.0f);
+                val *= (1.0f - (float)i / wave.frameCount); // Fade out lineal
+                break;
+                
+            case SND_PICKUP: // Onda cuadrada aguda (Coin)
+                // Frecuencia sube de 800 a 1200
+                {
+                    float freq = 800.0f + (t * 4000.0f); 
+                    val = (sinf(2 * PI * freq * t) > 0 ? 0.3f : -0.3f);
+                    val *= (1.0f - t*4.0f); // Muy corto
+                }
+                break;
+                
+            case SND_POWERUP: // Onda triangular subiendo (Powerup)
+                {
+                    float freq = 300.0f + (t * 1000.0f);
+                    val = asinf(sinf(2 * PI * freq * t)) * 0.5f; 
+                }
+                break;
+                
+            case SND_HURT: // Sierra descendente (Auch)
+                {
+                    float freq = 200.0f - (t * 400.0f);
+                    if (freq < 50) freq = 50;
+                    val = (float)(fmod(t * freq, 1.0) * 2.0 - 1.0) * 0.5f;
+                }
+                break;
+
+            case SND_AMBIENT: 
+                {
+                    // --- TEMA: "CYBER COMBAT LOOP" (60s Acción Pura) ---
+                    // Sin intro suave. Directo al grano.
+                    
+                    float bpm = 120.0f;
+                    float beatLen = 60.0f / bpm; // 0.5 segundos exactos
+                    
+                    // Variables de tiempo
+                    float measurePos = t / (beatLen * 4.0f); 
+                    int measure = (int)measurePos;           
+                    float beatPos = fmod(t, beatLen);        
+                    float subBeat = fmod(t, beatLen / 4.0f); 
+                    
+                    // --- 1. KICK (EL MOTOR) ---
+                    // Suena DESDE EL PRINCIPIO. Golpe seco y potente.
+                    float kick = 0.0f;
+                    if (beatPos < 0.2f) {
+                        // Frecuencia estable para que pegue fuerte
+                        float kFreq = 100.0f - (beatPos * 400.0f);
+                        if (kFreq < 40.0f) kFreq = 40.0f;
+                        kick = sinf(2 * PI * kFreq * t);
+                        kick *= expf(-15.0f * beatPos); 
+                        kick *= 0.9f; // Volumen alto
+                    }
+
+                    // --- 2. BASSLINE (LA ENERGÍA) ---
+                    // Bajo "Rolling" constante desde el segundo 0.
+                    float bassFreq = 55.0f; // La (A1)
+                    
+                    // Pequeña variación de nota cada 8 compases (16s) para no aburrir
+                    if ((measure / 8) % 2 == 1) bassFreq = 43.65f; // Fa (F1)
+
+                    // Onda de Sierra filtrada (agresiva pero controlada)
+                    float saw = (fmod(t * bassFreq, 1.0f) * 2.0f) - 1.0f;
+                    float bass = (saw * 0.4f) + (sinf(2 * PI * bassFreq * t) * 0.6f);
+                    
+                    // SIDECHAIN: El bajo se "agacha" cuando pega el Kick
+                    float sidechain = fmod(t, beatLen) / beatLen; 
+                    sidechain = powf(sidechain, 0.5f); // Curva rápida
+                    bass *= sidechain * 0.6f;
+
+                    // --- 3. HI-HATS (VELOCIDAD) ---
+                    // Ritmo de semicorcheas constante "tik-tik-tik-tik"
+                    float noise = ((float)GetRandomValue(-100, 100) / 100.0f);
+                    // Filtro High-Pass simulado (solo frecuencias altas)
+                    noise *= sinf(2 * PI * 6000.0f * t);
+                    
+                    float hat = noise * expf(-80.0f * subBeat) * 0.15f;
+                    // Acento en el "off-beat" (el "y" del 1 y 2...)
+                    if (fmod(t, beatLen) > beatLen/2.0f) hat *= 1.8f; 
+
+                    // --- 4. ARPEGIO (LA MELODÍA) ---
+                    // Entra y sale para dar variedad, pero el ritmo de fondo sigue.
+                    float arp = 0.0f;
+                    
+                    // La melodía suena en los segundos 0-15 y 30-45. 
+                    // Deja huecos de "solo ritmo" en 15-30 y 45-60.
+                    bool playArp = ((int)(t / 16.0f) % 2 == 0); 
+                    
+                    if (playArp) {
+                        int noteIdx = (int)(t * 8.0f); // 8 notas/segundo
+                        // Patrón simple y pegadizo
+                        float scale[] = { 1.0f, 1.0f, 1.5f, 1.2f, 2.0f, 1.5f, 1.2f, 1.5f };
+                        int idx = noteIdx % 8;
+                        float arpFreq = bassFreq * 4.0f * scale[idx];
+                        
+                        // Onda "Cristal"
+                        arp = sinf(2 * PI * arpFreq * t);
+                        // Delay
+                        arp += sinf(2 * PI * arpFreq * (t - 0.25f)) * 0.4f;
+                        
+                        float env = fmod(t, 0.125f) / 0.125f;
+                        arp *= (1.0f - env) * 0.15f; // Volumen sutil
+                    }
+
+                    // --- MEZCLA FINAL ---
+                    val = kick + bass + hat + arp;
+                    
+                    // Compresor/Limitador
+                    if (val > 0.9f) val = 0.9f;
+                    if (val < -0.9f) val = -0.9f;
+                    
+                    // Fade micro-rápido en los bordes del bucle (0.05s) para evitar "clicks"
+                    if (t < 0.05f) val *= (t / 0.05f);
+                    if (t > 59.95f) val *= (60.0f - t) / 0.05f;
+                }
+                break;
+            case SND_DASH: // Ruido rosa/aire rápido
+                {
+                    // Ruido aleatorio suave
+                    float noise = ((float)GetRandomValue(-100, 100) / 100.0f);
+                    // Volumen baja muy rápido (0.2 segundos)
+                    val = noise * 0.4f * (1.0f - t/0.2f); 
+                    if (val < 0) val = 0;
+                }
+                break;
+
+            case SND_WIN: // Acorde mayor arpegiado
+                {
+                    float note = 440.0f; // La
+                    if (t > 0.2) note = 554.37f; // Do#
+                    if (t > 0.4) note = 659.25f; // Mi
+                    if (t > 0.6) note = 880.0f;  // La (8va)
+                    val = sinf(2 * PI * note * t) * 0.5f;
+                    val *= (1.0f - t/2.0f);
+                }
+                break;
+
+            case SND_LOOSE: // Tono descendente triste
+                {
+                    float freq = 300.0f * (1.0f - t/2.0f);
+                    val = (sinf(2 * PI * freq * t) > 0 ? 0.4f : -0.4f);
+                }
+                break;
+        }
+        
+        data[i] = (short)(val * 32000.0f);
+    }
+    
+    Sound sound = LoadSoundFromWave(wave);
+    UnloadWave(wave);
+    return sound;
+}
+
 Game::Game(unsigned seed) : fixedSeed(seed) {
     SetConfigFlags(FLAG_FULLSCREEN_MODE);
-    InitWindow(0, 0, "RogueBot Alpha"); 
+    InitWindow(0, 0, "RogueBot"); 
     SetExitKey(KEY_NULL);
+
+    // 1. INICIAR AUDIO (¡Vital!)
+    InitAudioDevice();
+    SetMasterVolume(0.2f); // Volumen general al 20%
+
+    // 2. GENERAR SONIDOS
+    sfxHit       = generateSound(SND_HIT);
+    sfxExplosion = generateSound(SND_EXPLOSION);
+    sfxPickup    = generateSound(SND_PICKUP);
+    sfxPowerUp   = generateSound(SND_POWERUP);
+    sfxHurt      = generateSound(SND_HURT);
+    sfxWin       = generateSound(SND_WIN);
+    sfxLoose     = generateSound(SND_LOOSE);
+    sfxAmbient   = generateSound(SND_AMBIENT);
+    sfxDash      = generateSound(SND_DASH);
 
     player.load("assets/sprites/player");
     itemSprites.load();
@@ -241,7 +444,35 @@ void Game::run() {
         processInput();
         update();
         render();
+
+        // --- GESTIÓN DE MÚSICA AMBIENTE ---
+        // Solo suena si estamos jugando. Si salimos al menú, se calla.
+        if (state == GameState::Playing) {
+            // Si no está sonando, dale al play
+            if (!IsSoundPlaying(sfxAmbient)) {
+                PlaySound(sfxAmbient);
+            }
+            // Opcional: Ajustar volumen si quieres que sea sutil
+            // SetSoundVolume(sfxAmbient, 0.6f); 
+        } else {
+            // Si estamos en menú/gameover y suena, la paramos
+            if (IsSoundPlaying(sfxAmbient)) {
+                StopSound(sfxAmbient);
+            }
+        }
     }
+
+    // DESCARGAR SONIDOS
+    UnloadSound(sfxHit);
+    UnloadSound(sfxExplosion);
+    UnloadSound(sfxPickup);
+    UnloadSound(sfxPowerUp);
+    UnloadSound(sfxHurt);
+    UnloadSound(sfxWin);
+    UnloadSound(sfxLoose);
+    UnloadSound(sfxAmbient);
+    UnloadSound(sfxDash);
+
     player.unload();
     itemSprites.unload();
     CloseWindow();
@@ -481,52 +712,48 @@ void Game::handleMenuInput() {
 // INPUT JUEGO (COMBATE Y MOVIMIENTO)
 // ----------------------------------------------------------------------------------
 void Game::handlePlayingInput(float dt) {
-    // 1. DETECCIÓN DE DISPOSITIVO (Input Device Detection)
+    // --------------------------------------------------------
+    // 1. DETECCIÓN DE DISPOSITIVO
+    // --------------------------------------------------------
     if (IsKeyDown(KEY_W) || IsKeyDown(KEY_A) || IsKeyDown(KEY_S) || IsKeyDown(KEY_D) ||
         IsKeyDown(KEY_UP) || IsKeyDown(KEY_DOWN) || IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_RIGHT) ||
         IsKeyDown(KEY_E) || IsKeyDown(KEY_I) || IsKeyDown(KEY_O) || 
-        IsKeyDown(KEY_SPACE) || IsKeyDown(KEY_ONE) || IsKeyDown(KEY_TWO)) {
+        IsKeyDown(KEY_SPACE) || IsKeyDown(KEY_ONE) || IsKeyDown(KEY_TWO) || 
+        IsKeyDown(KEY_LEFT_SHIFT)) { // Añadido Shift
         lastInput = InputDevice::Keyboard;
     }
 
     const int gpId = 0;
     if (IsGamepadAvailable(gpId)) {
         bool gpActive = false;
+        // Check botones
         for (int b = GAMEPAD_BUTTON_UNKNOWN + 1; b <= GAMEPAD_BUTTON_RIGHT_THUMB; b++) {
-            if (IsGamepadButtonDown(gpId, b)) {
-                gpActive = true;
-                break;
-            }
+            if (IsGamepadButtonDown(gpId, b)) { gpActive = true; break; }
         }
+        // Check ejes
         if (!gpActive) {
             float lx = GetGamepadAxisMovement(gpId, GAMEPAD_AXIS_LEFT_X);
             float ly = GetGamepadAxisMovement(gpId, GAMEPAD_AXIS_LEFT_Y);
-            float rx = GetGamepadAxisMovement(gpId, GAMEPAD_AXIS_RIGHT_X);
-            float ry = GetGamepadAxisMovement(gpId, GAMEPAD_AXIS_RIGHT_Y);
-            if (std::abs(lx) > 0.25f || std::abs(ly) > 0.25f || 
-                std::abs(rx) > 0.25f || std::abs(ry) > 0.25f) {
-                gpActive = true;
-            }
+            if (std::abs(lx) > 0.25f || std::abs(ly) > 0.25f) gpActive = true;
         }
+        // Check gatillos
         if (!gpActive) {
              float rt = GetGamepadAxisMovement(gpId, GAMEPAD_AXIS_RIGHT_TRIGGER);
              float lt = GetGamepadAxisMovement(gpId, GAMEPAD_AXIS_LEFT_TRIGGER);
              if (rt > 0.1f || lt > 0.1f) gpActive = true;
         }
 
-        if (gpActive) {
-            lastInput = InputDevice::Gamepad;
-        }
+        if (gpActive) lastInput = InputDevice::Gamepad;
     }
 
+    // --------------------------------------------------------
     // 2. LÓGICA DE JUEGO (Zoom, Interacción)
+    // --------------------------------------------------------
     if (IsKeyDown(KEY_I)) cameraZoom += 1.0f * dt;
     if (IsKeyDown(KEY_O)) cameraZoom -= 1.0f * dt;
 
     float wheel = GetMouseWheelMove();
-    if (wheel != 0.0f) {
-        cameraZoom = expf(logf(cameraZoom) + wheel * 0.1f);
-    }
+    if (wheel != 0.0f) cameraZoom = expf(logf(cameraZoom) + wheel * 0.1f);
 
     if (IsGamepadAvailable(gpId)) {
         float rightY = GetGamepadAxisMovement(gpId, GAMEPAD_AXIS_RIGHT_Y);
@@ -556,15 +783,77 @@ void Game::handlePlayingInput(float dt) {
     // Interacción (Pickup)
     bool interact = IsKeyPressed(KEY_E);
     if (IsGamepadAvailable(gpId)) {
-        if (IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_RIGHT_FACE_DOWN)) { // A / Cruz
-            interact = true;
+        if (IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_RIGHT_FACE_DOWN)) interact = true;
+    }
+    if (interact) tryManualPickup();
+
+    // --------------------------------------------------------
+    // 3. DASH (ESQUIVA) - NUEVO BLOQUE
+    // --------------------------------------------------------
+    bool dashPressed = IsKeyPressed(KEY_LEFT_SHIFT) || IsKeyPressed(KEY_RIGHT_SHIFT);
+    if (IsGamepadAvailable(gpId)) {
+        if (IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_LEFT_TRIGGER_1) || 
+            IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_LEFT_TRIGGER_2)) {
+            dashPressed = true;
         }
     }
-    if (interact) {
-        tryManualPickup();
+
+    if (dashPressed && !isDashing && dashCooldownTimer <= 0.0f) {
+        int ddx = 0, ddy = 0;
+        // Prioridad: Dirección pulsada ahora
+        if (IsKeyDown(KEY_W) || IsKeyDown(KEY_UP))    ddy = -1;
+        if (IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN))  ddy = 1;
+        if (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT))  ddx = -1;
+        if (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT)) ddx = 1;
+        
+        // Si no, última dirección
+        if (ddx == 0 && ddy == 0) {
+            ddx = gAttack.lastDir.x;
+            ddy = gAttack.lastDir.y;
+        }
+
+        if (ddx != 0 || ddy != 0) {
+            int targetX = px;
+            int targetY = py;
+            
+            // Calcular destino (hasta DASH_DISTANCE)
+            for (int i = 1; i <= DASH_DISTANCE; i++) {
+                int nextX = px + ddx * i;
+                int nextY = py + ddy * i;
+                if (!map.isWalkable(nextX, nextY)) break; // Pared
+                
+                bool enemyBlock = false;
+                for(const auto& e : enemies) if(e.getX() == nextX && e.getY() == nextY) enemyBlock = true;
+                if (enemyBlock) break; // Enemigo
+
+                targetX = nextX;
+                targetY = nextY;
+            }
+
+            if (targetX != px || targetY != py) {
+                // Configurar estado Dash
+                isDashing = true;
+                dashTimer = DASH_DURATION;
+                dashCooldownTimer = DASH_COOLDOWN;
+                
+                dashStartPos = { px * (float)tileSize, py * (float)tileSize };
+                dashEndPos = { targetX * (float)tileSize, targetY * (float)tileSize };
+                
+                px = targetX;
+                py = targetY;
+                player.setGridPos(px, py);
+                
+                PlaySound(sfxDash);
+                
+                onSuccessfulStep(0,0); 
+                return; 
+            }
+        }
     }
 
-    // 3. MOVIMIENTO
+    // --------------------------------------------------------
+    // 4. MOVIMIENTO NORMAL
+    // --------------------------------------------------------
     int dx = 0, dy = 0;
     bool moved = false;
 
@@ -579,30 +868,17 @@ void Game::handlePlayingInput(float dt) {
 
         if (axisX < -thr || axisX > thr || axisY < -thr || axisY > thr) {
             gpAnalogActive = true;
-            if (axisY < -thr) gpDy = -1;
-            else if (axisY > thr) gpDy = +1;
-            if (axisX < -thr) gpDx = -1;
-            else if (axisX > thr) gpDx = +1;
+            if (axisY < -thr) gpDy = -1; else if (axisY > thr) gpDy = +1;
+            if (axisX < -thr) gpDx = -1; else if (axisX > thr) gpDx = +1;
         }
 
-        if (IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_LEFT_FACE_UP)) {
-            gpDx = 0; gpDy = -1; gpDpadPressed = true;
-        }
-        if (IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_LEFT_FACE_DOWN)) {
-            gpDx = 0; gpDy = +1; gpDpadPressed = true;
-        }
-        if (IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_LEFT_FACE_LEFT)) {
-            gpDx = -1; gpDy = 0; gpDpadPressed = true;
-        }
-        if (IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_LEFT_FACE_RIGHT)) {
-            gpDx = +1; gpDy = 0; gpDpadPressed = true;
-        }
+        if (IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_LEFT_FACE_UP)) { gpDx = 0; gpDy = -1; gpDpadPressed = true; }
+        if (IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_LEFT_FACE_DOWN)) { gpDx = 0; gpDy = +1; gpDpadPressed = true; }
+        if (IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_LEFT_FACE_LEFT)) { gpDx = -1; gpDy = 0; gpDpadPressed = true; }
+        if (IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_LEFT_FACE_RIGHT)) { gpDx = +1; gpDy = 0; gpDpadPressed = true; }
 
-        if (gpAnalogActive) {
-            moveMode = MovementMode::RepeatCooldown;
-        } else if (gpDpadPressed) {
-            moveMode = MovementMode::StepByStep;
-        }
+        if (gpAnalogActive) moveMode = MovementMode::RepeatCooldown;
+        else if (gpDpadPressed) moveMode = MovementMode::StepByStep;
     }
 
     if (moveMode == MovementMode::StepByStep) {
@@ -611,10 +887,8 @@ void Game::handlePlayingInput(float dt) {
         if (IsKeyPressed(KEY_A) || IsKeyPressed(KEY_LEFT))  dx = -1;
         if (IsKeyPressed(KEY_D) || IsKeyPressed(KEY_RIGHT)) dx = +1;
 
-        if (dx == 0 && dy == 0 && (gpDx != 0 || gpDy != 0)) {
-            dx = gpDx;
-            dy = gpDy;
-        }
+        if (dx == 0 && dy == 0 && (gpDx != 0 || gpDy != 0)) { dx = gpDx; dy = gpDy; }
+        
         if (dx != 0 || dy != 0) {
             gAttack.lastDir = {dx, dy};
             player.setDirectionFromDelta(dx, dy); 
@@ -663,7 +937,9 @@ void Game::handlePlayingInput(float dt) {
         player.update(dt, moved);
     }
 
-    // 4. SISTEMA DE COMBATE (INPUT)
+    // --------------------------------------------------------
+    // 5. SISTEMA DE COMBATE (INPUT)
+    // --------------------------------------------------------
     gAttack.cdTimer = std::max(0.f, gAttack.cdTimer - dt);
     plasmaCooldown  = std::max(0.f, plasmaCooldown - dt);
 
@@ -675,29 +951,25 @@ void Game::handlePlayingInput(float dt) {
         }
     }
 
-    // A) MANOS / GOLPE BÁSICO (Espacio / X)
+    // A) MANOS
     bool attackHands = IsKeyPressed(KEY_SPACE);
-    if (IsGamepadAvailable(gpId) && IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_RIGHT_FACE_LEFT)) {
-        attackHands = true;
-    }
-    if (attackHands && gAttack.cdTimer <= 0.f) {
-        performMeleeAttack();
-    }
+    if (IsGamepadAvailable(gpId) && IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_RIGHT_FACE_LEFT)) attackHands = true;
+    
+    if (attackHands && gAttack.cdTimer <= 0.f) performMeleeAttack();
 
-    // B) ESPADA (1 / RB)
+    // B) ESPADA
     bool attackSword = IsKeyPressed(KEY_ONE); 
-    if (IsGamepadAvailable(gpId) && IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_RIGHT_TRIGGER_1)) {
-        attackSword = true;
-    }
+    if (IsGamepadAvailable(gpId) && IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_RIGHT_TRIGGER_1)) attackSword = true;
+    
     if (attackSword) {
         if (swordTier > 0) {
             if (gAttack.cdTimer <= 0.f) performSwordAttack();
         } else {
-            // Feedback opcional visual o sonoro
+            // std::cout << "No tienes espada\n";
         }
     }
 
-    // C) PLASMA (2 / RT)
+    // C) PLASMA
     bool attackPlasma = IsKeyPressed(KEY_TWO);
     if (IsGamepadAvailable(gpId)) {
         if (IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_RIGHT_TRIGGER_2)) attackPlasma = true;
@@ -706,10 +978,11 @@ void Game::handlePlayingInput(float dt) {
         if (plasmaTier > 0) {
             if (plasmaCooldown <= 0.f) performPlasmaAttack();
         } else {
-            // Feedback opcional
+            // std::cout << "No tienes plasma\n";
         }
     }
 
+    // Cheats
     if (IsKeyPressed(KEY_H)) { hp = std::max(0, hp - 2); }      
     if (IsKeyPressed(KEY_J)) { hp = std::min(hpMax, hp + 2); }  
 }
@@ -764,8 +1037,49 @@ int Game::defaultFovFromViewport() const {
 void Game::update() {
     if (state != GameState::Playing) return;
 
-    tryAutoPickup();
     float dt = GetFrameTime();
+
+    // --- LÓGICA DE DASH ---
+    if (isDashing) {
+        dashTimer -= dt;
+        
+        // Efecto visual: rastro de partículas
+        if (GetRandomValue(0, 10) < 8) { // 80% chance por frame
+             // Generar partícula azulada en la posición actual (interpolada)
+             // Puedes usar una función spawnParticle simple o reutilizar spawnExplosion con 1 sola partícula
+             Vector2 currentPos = camera.target; // Aprox
+             // Si quieres ser preciso, calcula la posición interpolada:
+             float t = 1.0f - (dashTimer / DASH_DURATION);
+             Vector2 lerpPos = {
+                 dashStartPos.x + (dashEndPos.x - dashStartPos.x) * t,
+                 dashStartPos.y + (dashEndPos.y - dashStartPos.y) * t
+             };
+             // spawnExplosion(lerpPos, 1, SKYBLUE); // Opcional: rastro
+        }
+
+        if (dashTimer <= 0.0f) {
+            isDashing = false;
+            // Al terminar, aseguramos posición final exacta en grid
+            // (La posición lógica px, py ya se actualizó al iniciar el dash, 
+            //  aquí solo termina la animación visual si hicieras algo especial)
+        }
+        
+        // Durante el dash, saltamos el resto del update normal (movimiento standard)
+        // Pero SÍ actualizamos cámara para seguir la acción rápida
+        Vector2 desired = {px * (float)tileSize + tileSize / 2.0f,
+                           py * (float)tileSize + tileSize / 2.0f};
+        // Cámara MUY rápida durante el dash
+        camera.target.x = desired.x; 
+        camera.target.y = desired.y;
+        clampCameraToMap();
+        
+        return; // <--- IMPORTANTE: No hacemos nada más mientras dashea
+    }
+
+    // Gestionar Cooldown del Dash
+    dashCooldownTimer = std::max(0.0f, dashCooldownTimer - dt);
+
+    tryAutoPickup();
     
     // Temporizadores
     if (hasShield) {
@@ -780,6 +1094,7 @@ void Game::update() {
 
     updateProjectiles(dt);
     updateFloatingTexts(dt);
+    updateParticles(dt);
 
     if (map.at(px, py) == EXIT) {
         if (hasKey) onExitReached();
@@ -813,10 +1128,12 @@ void Game::update() {
             std::cout << "[Bateria] Resucitado.\n";
             damageCooldown = 2.0f; 
             shakeTimer = 0.5f; 
+            PlaySound(sfxPowerUp);
         } else {
             state = GameState::GameOver;
             gAttack.swinging = false; 
             gAttack.lastTiles.clear();
+            PlaySound(sfxLoose);
         }
         return;
     }
@@ -832,6 +1149,7 @@ void Game::onExitReached() {
     }
     else {
         state = GameState::Victory;
+        PlaySound(sfxWin);
         std::cout << "[Victory] Fin!\n";
     }
 }
@@ -855,6 +1173,7 @@ void Game::render() {
     // PROYECTILES (NUEVO)
     drawProjectiles();
     drawFloatingTexts();
+    drawParticles();
 
     if (gAttack.swinging && !gAttack.lastTiles.empty()) {
         Color fill = {255, 230, 50, 120}; 
@@ -1012,7 +1331,8 @@ void Game::updateEnemiesAfterPlayerMove(bool moved) {
 }
 
 void Game::takeDamage(int amount) {
-    // Si tiene escudi
+    if (isDashing) return;
+    // Si tiene escudo
     if (hasShield) {
         hasShield = false;    // Romper el escudo
         shieldTimer = 0.0f;   // Resetear tiempo visual
@@ -1027,6 +1347,7 @@ void Game::takeDamage(int amount) {
 
     // 2. Si no tiene escudo (Daño normal)
     hp = std::max(0, hp - amount);
+    PlaySound(sfxHurt);
 
     shakeTimer = 0.3f;
     
@@ -1069,9 +1390,12 @@ void Game::performMeleeAttack() {
         
         if (impacted) {
             hit = true;
+            
+            // SONIDO GOLPE
+            PlaySound(sfxHit); 
+
             if (enemyHP.size() != enemies.size()) enemyHP.assign(enemies.size(), ENEMY_BASE_HP);
             
-            // 1. Daño
             enemyHP[i] -= DMG_HANDS;
 
             Vector2 ePos = { (float)enemies[i].getX() * tileSize + 8, 
@@ -1082,29 +1406,33 @@ void Game::performMeleeAttack() {
 
             std::cout << "[Melee] Puñetazo! -" << DMG_HANDS << "\n";
             
-            // 2. PROVOCACIÓN INSTANTÁNEA
-            // Reseteamos su cooldown a 0: ¡Está listo para atacar YA!
+            // PROVOCACIÓN (IA Agresiva)
             if (i < enemyAtkCD.size()) enemyAtkCD[i] = 0.0f;
-            
-            // Le obligamos a mirarte a la cara
             int dx = px - enemies[i].getX();
             int dy = py - enemies[i].getY();
             if (i < enemyFacing.size()) {
-                if (std::abs(dx) >= std::abs(dy)) 
-                    enemyFacing[i] = (dx > 0) ? EnemyFacing::Right : EnemyFacing::Left;
-                else 
-                    enemyFacing[i] = (dy > 0) ? EnemyFacing::Down : EnemyFacing::Up;
+                if (std::abs(dx) >= std::abs(dy)) enemyFacing[i] = (dx > 0) ? EnemyFacing::Right : EnemyFacing::Left;
+                else enemyFacing[i] = (dy > 0) ? EnemyFacing::Down : EnemyFacing::Up;
             }
         }
     }
     
-    // Limpieza de muertos
+    // Limpieza de muertos + EXPLOSIONES + SONIDO MUERTE
     if (hit) {
          std::vector<size_t> toRemove;
          for(size_t i=0; i<enemyHP.size(); ++i) if(enemyHP[i] <= 0) toRemove.push_back(i);
          if (!toRemove.empty()) {
             std::sort(toRemove.rbegin(), toRemove.rend());
             for (size_t idx : toRemove) {
+                // EXPLOSIÓN VISUAL
+                float ex = enemies[idx].getX() * tileSize + tileSize / 2.0f;
+                float ey = enemies[idx].getY() * tileSize + tileSize / 2.0f;
+                spawnExplosion({ex, ey}, 15, DARKGRAY);
+                spawnExplosion({ex, ey}, 5, RED); 
+                
+                // SONIDO EXPLOSIÓN
+                PlaySound(sfxExplosion);
+
                 enemies.erase(enemies.begin() + idx);
                 if (idx < enemyFacing.size()) enemyFacing.erase(enemyFacing.begin() + idx);
                 if (idx < enemyHP.size()) enemyHP.erase(enemyHP.begin() + idx);
@@ -1141,14 +1469,16 @@ void Game::performSwordAttack() {
         for (const auto& t : gAttack.lastTiles) {
             if (t.x == epos.x && t.y == epos.y) {
                 hit = true;
+                
+                // SONIDO GOLPE
+                PlaySound(sfxHit);
+
                 if (enemyHP.size() != enemies.size()) enemyHP.assign(enemies.size(), ENEMY_BASE_HP);
                 
-                // 1. Daño
                 enemyHP[i] -= dmg;
 
                 Vector2 ePos = { (float)enemies[i].getX() * tileSize + 8, 
                                  (float)enemies[i].getY() * tileSize - 10 };
-                // Si es critico (Tier 3) lo ponemos Amarillo, si no Blanco
                 Color c = (swordTier >= 3) ? YELLOW : RAYWHITE;
                 spawnFloatingText(ePos, dmg, c);
 
@@ -1156,30 +1486,35 @@ void Game::performSwordAttack() {
 
                 std::cout << "[Sword] Slash! -" << dmg << "\n";
 
-                // 2. PROVOCACIÓN
-                if (i < enemyAtkCD.size()) enemyAtkCD[i] = 0.0f; // Reset CD
-                
-                // Forzar encare hacia el jugador
+                // PROVOCACIÓN
+                if (i < enemyAtkCD.size()) enemyAtkCD[i] = 0.0f; 
                 int dx = px - enemies[i].getX();
                 int dy = py - enemies[i].getY();
                 if (i < enemyFacing.size()) {
-                    if (std::abs(dx) >= std::abs(dy)) 
-                        enemyFacing[i] = (dx > 0) ? EnemyFacing::Right : EnemyFacing::Left;
-                    else 
-                        enemyFacing[i] = (dy > 0) ? EnemyFacing::Down : EnemyFacing::Up;
+                    if (std::abs(dx) >= std::abs(dy)) enemyFacing[i] = (dx > 0) ? EnemyFacing::Right : EnemyFacing::Left;
+                    else enemyFacing[i] = (dy > 0) ? EnemyFacing::Down : EnemyFacing::Up;
                 }
                 break;
             }
         }
     }
     
-    // Limpieza de muertos
+    // Limpieza de muertos + EXPLOSIONES + SONIDO
      if (hit) {
          std::vector<size_t> toRemove;
          for(size_t i=0; i<enemyHP.size(); ++i) if(enemyHP[i] <= 0) toRemove.push_back(i);
          if (!toRemove.empty()) {
             std::sort(toRemove.rbegin(), toRemove.rend());
             for (size_t idx : toRemove) {
+                // EXPLOSIÓN VISUAL
+                float ex = enemies[idx].getX() * tileSize + tileSize / 2.0f;
+                float ey = enemies[idx].getY() * tileSize + tileSize / 2.0f;
+                spawnExplosion({ex, ey}, 15, DARKGRAY);
+                spawnExplosion({ex, ey}, 5, RED); 
+                
+                // SONIDO EXPLOSIÓN
+                PlaySound(sfxExplosion);
+
                 enemies.erase(enemies.begin() + idx);
                 if (idx < enemyFacing.size()) enemyFacing.erase(enemyFacing.begin() + idx);
                 if (idx < enemyHP.size()) enemyHP.erase(enemyHP.begin() + idx);
@@ -1268,12 +1603,16 @@ void Game::updateProjectiles(float dt) {
 
             if (dx*dx + dy*dy < rad*rad) {
                 p.active = false;
+                
+                // SONIDO IMPACTO
+                PlaySound(sfxHit);
+
                 if (enemyHP.size() != enemies.size()) enemyHP.assign(enemies.size(), 100);
                 enemyHP[i] -= p.damage;
 
-                Vector2 ePos = { (float)enemies[i].getX() * tileSize + 8, 
-                                 (float)enemies[i].getY() * tileSize - 10 };
-                spawnFloatingText(ePos, p.damage, SKYBLUE); // Azul para el plasma
+                Vector2 ePosFloat = { (float)enemies[i].getX() * tileSize + 8, 
+                                      (float)enemies[i].getY() * tileSize - 10 };
+                spawnFloatingText(ePosFloat, p.damage, SKYBLUE); 
 
                 if (i < enemyFlashTimer.size()) enemyFlashTimer[i] = 0.15f;
     
@@ -1289,6 +1628,7 @@ void Game::updateProjectiles(float dt) {
         projectiles.end()
     );
 
+    // 3. Limpieza de muertos + EXPLOSIONES + SONIDO
     std::vector<size_t> toRemove;
     for(size_t i=0; i<enemyHP.size(); ++i) {
         if (enemyHP[i] <= 0) toRemove.push_back(i);
@@ -1296,6 +1636,15 @@ void Game::updateProjectiles(float dt) {
     if (!toRemove.empty()) {
         std::sort(toRemove.rbegin(), toRemove.rend());
         for (size_t idx : toRemove) {
+            // EXPLOSIÓN VISUAL
+            float ex = enemies[idx].getX() * tileSize + tileSize / 2.0f;
+            float ey = enemies[idx].getY() * tileSize + tileSize / 2.0f;
+            spawnExplosion({ex, ey}, 15, DARKGRAY);
+            spawnExplosion({ex, ey}, 5, RED); 
+            
+            // SONIDO EXPLOSIÓN
+            PlaySound(sfxExplosion);
+
             enemies.erase(enemies.begin() + idx);
             if (idx < enemyFacing.size()) enemyFacing.erase(enemyFacing.begin() + idx);
             if (idx < enemyHP.size()) enemyHP.erase(enemyHP.begin() + idx);
@@ -1352,5 +1701,62 @@ void Game::drawFloatingTexts() const {
         const char* txt = TextFormat("%d", ft.value);
         DrawText(txt, (int)ft.pos.x + 1, (int)ft.pos.y + 1, 10, Fade(BLACK, alpha)); // Sombra
         DrawText(txt, (int)ft.pos.x, (int)ft.pos.y, 10, c); // Texto
+    }
+}
+
+// --- SISTEMA DE PARTÍCULAS (Al final de Game.cpp) ---
+
+void Game::spawnExplosion(Vector2 pos, int count, Color color) {
+    for (int i = 0; i < count; ++i) {
+        Particle p;
+        p.pos = pos;
+        
+        // Velocidad aleatoria en 360 grados
+        float angle = (float)GetRandomValue(0, 360) * DEG2RAD;
+        float speed = (float)GetRandomValue(50, 150); // Rapidez variable
+        
+        p.vel = { cosf(angle) * speed, sinf(angle) * speed };
+        
+        p.maxLife = (float)GetRandomValue(5, 10) / 10.0f; // Entre 0.5s y 1.0s
+        p.life = p.maxLife;
+        
+        p.size = (float)GetRandomValue(2, 5); // Tamaños variados
+        p.color = color;
+        
+        particles.push_back(p);
+    }
+}
+
+void Game::updateParticles(float dt) {
+    for (auto &p : particles) {
+        p.life -= dt;
+        
+        // Movimiento
+        p.pos.x += p.vel.x * dt;
+        p.pos.y += p.vel.y * dt;
+        
+        // Fricción (las partículas se frenan un poco)
+        p.vel.x *= 0.95f;
+        p.vel.y *= 0.95f;
+        
+        // Opcional: Hacerlas más pequeñas al morir
+        if (p.life < 0.5f) p.size *= 0.98f;
+    }
+
+    // Borrar partículas muertas
+    particles.erase(
+        std::remove_if(particles.begin(), particles.end(), 
+            [](const Particle& p){ return p.life <= 0.0f; }),
+        particles.end()
+    );
+}
+
+void Game::drawParticles() const {
+    for (const auto& p : particles) {
+        // Fade out (se vuelven transparentes al final)
+        float alpha = p.life / p.maxLife;
+        Color c = Fade(p.color, alpha);
+        
+        DrawRectangleV(p.pos, {p.size, p.size}, c);
     }
 }

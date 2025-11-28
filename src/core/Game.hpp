@@ -28,6 +28,15 @@ struct FloatingText {
     Color color;      // Blanco para daño al enemigo, Rojo para daño al jugador
 };
 
+struct Particle {
+    Vector2 pos;      // Posición en píxeles
+    Vector2 vel;      // Velocidad (Dirección + Rapidez)
+    float life;       // Vida actual
+    float maxLife;    // Vida total (para calcular transparencia)
+    float size;       // Tamaño del cuadradito
+    Color color;      // Color de la partícula
+};
+
 enum class MovementMode {
     StepByStep,
     RepeatCooldown
@@ -95,6 +104,7 @@ public:
     bool isShieldActive() const { return hasShield; }
     float getShieldTime() const { return shieldTimer; }
     float getGlassesTime() const { return glassesTimer; }
+    float getDashCooldown() const { return dashCooldownTimer; }
 
     enum class EnemyFacing { Down, Up, Left, Right };
 
@@ -233,6 +243,44 @@ private:
     void spawnFloatingText(Vector2 pos, int value, Color color);
     void updateFloatingTexts(float dt);
     void drawFloatingTexts() const;
+
+    // --- SISTEMA DE PARTÍCULAS ---
+    std::vector<Particle> particles;
+    
+    // Función para crear una explosión en un punto (x,y)
+    void spawnExplosion(Vector2 pos, int count, Color color);
+    
+    void updateParticles(float dt);
+    void drawParticles() const;
+
+    // SONIDOS
+    Sound sfxHit{};       // Golpe seco
+    Sound sfxExplosion{}; // Muerte enemigo
+    Sound sfxPickup{};    // Objeto normal (Pila/Escudo)
+    Sound sfxPowerUp{};   // Objeto nivel (Espada/Plasma)
+    Sound sfxHurt{};      // Daño al jugador
+    Sound sfxWin{};       // Victoria
+    Sound sfxLoose{};     // Game Over
+    Sound sfxDash{};      // Sonido de esquiva
+    
+    // AMBIENTE
+    Sound sfxAmbient{};   // Zumbido de fondo (Drone)
+    
+    // Función auxiliar para generarlos sin archivos
+    Sound generateSound(int type);
+
+    // --- DASH (ESQUIVA) ---
+    bool isDashing = false;       // ¿Está ocurriendo ahora mismo?
+    float dashTimer = 0.0f;       // Duración del dash (muy corta, ej: 0.15s)
+    float dashCooldownTimer = 0.0f; // Tiempo para volver a usarlo
+    
+    // Configuración (puedes ajustarlo luego)
+    const float DASH_DURATION = 0.15f; 
+    const float DASH_COOLDOWN = 2.0f;  
+    const int DASH_DISTANCE = 3;       // Cuantas casillas avanza
+    
+    Vector2 dashStartPos{}; // Para interpolación visual suave
+    Vector2 dashEndPos{};
 };
 
 #endif
