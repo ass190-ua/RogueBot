@@ -53,8 +53,6 @@ Ultimo recurso para sobrevivir al nivel final.
 ----------------------------------------------
 
 NOTAS ADICIONALES
-- Algunos objetos visuales aun no estan implementados. (Actualmente solo esta la llave maestra).
 - Los objetos recogidos se pierden al reiniciar una partida.
-- Las duraciones pueden variar segun futuras versiones.
 
 ----------------------------------------------
