@@ -11,6 +11,32 @@
 #include "raylib.h"
 #include "ItemSpawner.hpp"
 
+struct Projectile {
+    Vector2 pos;
+    Vector2 vel;
+    float   distanceTraveled = 0.0f;
+    float   maxDistance = 0.0f;
+    int     damage = 0;
+    bool    active = true;
+};
+
+struct FloatingText {
+    Vector2 pos;      // Posición en píxeles
+    int value;        // El número a mostrar
+    float timer;      // Tiempo de vida (ej: 1.0s)
+    float lifeTime;   // Duración total (para calcular transparencia)
+    Color color;      // Blanco para daño al enemigo, Rojo para daño al jugador
+};
+
+struct Particle {
+    Vector2 pos;      // Posición en píxeles
+    Vector2 vel;      // Velocidad (Dirección + Rapidez)
+    float life;       // Vida actual
+    float maxLife;    // Vida total (para calcular transparencia)
+    float size;       // Tamaño del cuadradito
+    Color color;      // Color de la partícula
+};
+
 enum class MovementMode {
     StepByStep,
     RepeatCooldown
@@ -21,6 +47,11 @@ enum class GameState {
     Playing,
     Victory,
     GameOver
+};
+
+enum class InputDevice {
+    Keyboard,
+    Gamepad
 };
 
 struct ItemSprites {
@@ -50,7 +81,10 @@ public:
     explicit Game(unsigned seed = 0);
     void run();
 
-    // Getters usados por HUD
+    const std::vector<Enemy>& getEnemies() const { return enemies; }
+    const std::vector<ItemSpawn>& getItems() const { return items; }
+
+    // Getters HUD
     int getScreenW() const { return screenW; }
     int getScreenH() const { return screenH; }
     unsigned getRunSeed() const { return runSeed; }
@@ -62,85 +96,72 @@ public:
     int getPlayerX() const { return px; }
     int getPlayerY() const { return py; }
 
-    // radio FOV
-    int getFovRadius() const { return fovTiles; }
+    int getFovRadius() const;
 
-    // HUD: Getters de vida
     int getHP() const { return hp; }
     int getHPMax() const { return hpMax; }
+    
+    bool isShieldActive() const { return hasShield; }
+    float getShieldTime() const { return shieldTimer; }
+    float getGlassesTime() const { return glassesTimer; }
+    float getDashCooldown() const { return dashCooldownTimer; }
 
-    enum class EnemyFacing {
-        Down,
-        Up,
-        Left,
-        Right
-    };
+    enum class EnemyFacing { Down, Up, Left, Right };
 
 private:
-    // Jugador
     Player player;
-
-    // Pantalla / tiles
     int screenW;
     int screenH;
     int tileSize = 32;
 
-    // Mundo y jugador
     Map map;
     int px = 0, py = 0;
-    int hp = 5;
-    int hpMax = 5;
-    float damageCooldown = 0.0f;        // invulnerabilidad breve tras recibir daño
-    const float DAMAGE_COOLDOWN = 0.6f; // ~0.6s
+    int hp = 10;
+    int hpMax = 10;
+    float damageCooldown = 0.0f;
+    const float DAMAGE_COOLDOWN = 0.2f;
 
-    // Semillas
     unsigned fixedSeed = 0;
     unsigned runSeed = 0;
     unsigned levelSeed = 0;
 
-    // RNG y contexto de run (para spawns)
     std::mt19937 rng;
     RunContext runCtx;
     std::vector<ItemSpawn> items;
 
-    std::vector<int>   enemyHP;     // 0..100 por cada enemigo
-    std::vector<float> enemyAtkCD;  // cooldown de ataque (s) por enemigo
-
-    // Enemigos
+    std::vector<int>   enemyHP;
+    std::vector<float> enemyAtkCD;
+    std::vector<float> enemyFlashTimer;
     std::vector<Enemy> enemies;
-    int ENEMY_DETECT_RADIUS_PX = 32 * 6; // ~6 tiles si tileSize=32
+    int ENEMY_DETECT_RADIUS_PX = 32 * 6;
 
-    std::vector<EnemyFacing> enemyFacing; // mismo tamaño que enemies
+    std::vector<EnemyFacing> enemyFacing;
     void enemyTryAttackFacing();
 
-    // Cantidad por nivel (ajústalo si quieres)
-    int enemiesPerLevel(int lvl) const { return (lvl == 1) ? 3 : (lvl == 2) ? 4
-                                                                            : 5; }
+    int enemiesPerLevel(int lvl) const { return (lvl == 1) ? 5 : (lvl == 2) ? 8 : 12;}
 
-    // Helpers de enemigos
-    void spawnEnemiesForLevel();                   // crear enemigos al iniciar nivel
-    void updateEnemiesAfterPlayerMove(bool moved); // IA y colisión básica (placeholder)
+    InputDevice lastInput = InputDevice::Keyboard; // Por defecto teclado
+
+    void spawnEnemiesForLevel();
+    void updateEnemiesAfterPlayerMove(bool moved);
     void drawEnemies() const;
     void takeDamage(int amount);
 
-    // Movimiento
     MovementMode moveMode = MovementMode::StepByStep;
     float moveCooldown = 0.0f;
     const float MOVE_INTERVAL = 0.12f;
 
-    // Estados y niveles
     GameState state = GameState::MainMenu;
     int currentLevel = 1;
     const int maxLevels = 3;
 
-    // HUD
     HUD hud;
 
-    // Ciclo
     void newRun();
     void newLevel(int level);
     unsigned nextRunSeed() const;
     unsigned seedForLevel(unsigned base, int level) const;
+    
     void processInput();
     void update();
     void render();
@@ -149,55 +170,117 @@ private:
     Rectangle uiCenterRect(float w, float h) const;
     void clampCameraToMap();
 
-    // Utilidades
     void tryMove(int dx, int dy);
     void onExitReached();
 
-    // niebla activada o no
     bool fogEnabled = true;
-
-    int fovTiles = 8;
+    int fovTiles = 8; // Base FOV
     int defaultFovFromViewport() const;
 
-    // Cámara (útil si quieres zoom o scroll)
     Camera2D camera{};
-    float cameraZoom = 1.0f; // control de zoom
+    float cameraZoom = 1.0f;
+    float shakeTimer = 0.0f;
 
-    // Dibujo de ítems (placeholder de colores hasta tener sprites)
     void drawItems() const;
     void drawItemSprite(const ItemSpawn &it) const;
 
-    // inventario mínimo
+    // Inventario
     bool hasKey = false;
-    bool hasShield = false;
-    bool hasBattery = false;
-    int swordTier = 0;  // 0=sin espada, 1..3
-    int plasmaTier = 0; // 0=sin pistola, 1..2
+    
+    // Escudo
+    bool hasShield = false; 
+    float shieldTimer = 0.0f;
 
-    // helpers de recogida
-    void tryPickupHere();               // busca item en (px,py) y lo recoge
-    void onPickup(const ItemSpawn &it); // aplica lógica de inventario
+    // Batería (Resurrección)
+    bool hasBattery = false; 
 
-    // Sprites de ítems
+    // Gafas 3D
+    float glassesTimer = 0.0f;
+    int glassesFovMod = 0;
+
+    int swordTier = 0;
+    int plasmaTier = 0;
+
+    void tryAutoPickup();
+    void tryManualPickup();
+    void onPickup(const ItemSpawn &it);
+
     ItemSprites itemSprites;
 
-    // Menú v2: visor “Leer antes de jugar”
-    bool showHelp = false; // si está abierto el visor
-    int helpScroll = 0;    // desplazamiento vertical del texto
+    bool showHelp = false;
+    int helpScroll = 0;
     std::string helpText;
-    Rectangle btnPlay{0, 0, 0, 0};
-    Rectangle btnRead{0, 0, 0, 0};
-    Rectangle btnBack{0, 0, 0, 0}; // botón "Volver" del panel de ayuda
-
-    // Menú principal: 0 = JUGAR, 1 = LEER, 2 = SALIR
+    
+    // Menú
     int mainMenuSelection = 0;
 
-    void handleMenuInput();               // input cuando state == MainMenu
-    void handlePlayingInput(float dt);    // cámara, movimiento, ataque, etc.
+    void handleMenuInput();
+    void handlePlayingInput(float dt);
     void centerCameraOnPlayer();
     void recomputeFovIfNeeded();
     void onSuccessfulStep(int dx, int dy);
 
+    // --- SISTEMA DE COMBATE Y PROYECTILES (NUEVO) ---
+    std::vector<Projectile> projectiles; 
+    
+    float plasmaCooldown = 0.0f;
+    int burstShotsLeft = 0;
+    float burstTimer = 0.0f;
+
+    // Funciones de ataque
+    void performMeleeAttack();  // Manos
+    void performSwordAttack();  // Espada
+    void performPlasmaAttack(); // Plasma
+    
+    // Auxiliares proyectiles
+    void spawnProjectile(int dmg);
+    void updateProjectiles(float dt);
+    void drawProjectiles() const;
+
+    // --- TEXTOS FLOTANTES ---
+    std::vector<FloatingText> floatingTexts;
+    
+    void spawnFloatingText(Vector2 pos, int value, Color color);
+    void updateFloatingTexts(float dt);
+    void drawFloatingTexts() const;
+
+    // --- SISTEMA DE PARTÍCULAS ---
+    std::vector<Particle> particles;
+    
+    // Función para crear una explosión en un punto (x,y)
+    void spawnExplosion(Vector2 pos, int count, Color color);
+    
+    void updateParticles(float dt);
+    void drawParticles() const;
+
+    // SONIDOS
+    Sound sfxHit{};       // Golpe seco
+    Sound sfxExplosion{}; // Muerte enemigo
+    Sound sfxPickup{};    // Objeto normal (Pila/Escudo)
+    Sound sfxPowerUp{};   // Objeto nivel (Espada/Plasma)
+    Sound sfxHurt{};      // Daño al jugador
+    Sound sfxWin{};       // Victoria
+    Sound sfxLoose{};     // Game Over
+    Sound sfxDash{};      // Sonido de esquiva
+    
+    // AMBIENTE
+    Sound sfxAmbient{};   // Zumbido de fondo (Drone)
+    
+    // Función auxiliar para generarlos sin archivos
+    Sound generateSound(int type);
+
+    // --- DASH (ESQUIVA) ---
+    bool isDashing = false;       // ¿Está ocurriendo ahora mismo?
+    float dashTimer = 0.0f;       // Duración del dash (muy corta, ej: 0.15s)
+    float dashCooldownTimer = 0.0f; // Tiempo para volver a usarlo
+    
+    // Configuración (puedes ajustarlo luego)
+    const float DASH_DURATION = 0.15f; 
+    const float DASH_COOLDOWN = 2.0f;  
+    const int DASH_DISTANCE = 3;       // Cuantas casillas avanza
+    
+    Vector2 dashStartPos{}; // Para interpolación visual suave
+    Vector2 dashEndPos{};
 };
 
 #endif

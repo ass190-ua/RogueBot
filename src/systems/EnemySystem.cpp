@@ -29,6 +29,7 @@ void Game::drawEnemies() const {
         const float xpx = (float)(e.getX() * tileSize);
         const float ypx = (float)(e.getY() * tileSize);
 
+        // 1. DIBUJAR SPRITE
         if (tex && tex->id != 0) {
             Rectangle src{0,0,(float)tex->width,(float)tex->height};
             Rectangle dst{xpx, ypx, (float)tileSize, (float)tileSize};
@@ -46,7 +47,14 @@ void Game::drawEnemies() const {
             e.draw(tileSize);
         }
 
-        // barra de vida
+        // 2. NUEVO: EFECTO FLASH BLANCO (HIT)
+        // Se dibuja ENCIMA del sprite, pero DEBAJO de la barra de vida
+        if (i < enemyFlashTimer.size() && enemyFlashTimer[i] > 0.0f) {
+            // Cuadrado blanco semi-transparente (0.7f de opacidad)
+            DrawRectangle((int)xpx, (int)ypx, tileSize, tileSize, Fade(WHITE, 0.7f));
+        }
+
+        // 3. BARRA DE VIDA
         if (i < enemyHP.size()) {
             const int w = tileSize, h = 4;
             const int x = (int)(e.getX() * tileSize);
@@ -55,45 +63,50 @@ void Game::drawEnemies() const {
             int hpw = (int)std::lround(w * (enemyHP[i] / 100.0));
             hpw = std::clamp(hpw, 0, w);
 
-            DrawRectangle(x, y, w, h, Color{60, 60, 60, 200});
+            DrawRectangle(x, y, w, h, Color{60, 60, 60, 200}); // Fondo barra
+            
+            // Color dinámico (Verde -> Rojo) que ya tenías
             float pct = std::clamp(static_cast<float>(enemyHP[i]) / 100.0f, 0.0f, 1.0f);
             unsigned char r = (unsigned char)std::lround(255 * (1.0f - pct));
             unsigned char g = (unsigned char)std::lround(255 * pct);
             Color lifeCol = {r, g, 0, 230};
-            DrawRectangle(x, y, hpw, h, lifeCol);
-            DrawRectangleLines(x, y, w, h, BLACK);
+            
+            DrawRectangle(x, y, hpw, h, lifeCol); // Vida actual
+            DrawRectangleLines(x, y, w, h, BLACK); // Borde
         }
     }
 }
 
-// Ataque enemigo (cara a cara)
+// Ataque enemigo
 void Game::enemyTryAttackFacing() {
     for (size_t i = 0; i < enemies.size(); ++i) {
         const int ex = enemies[i].getX();
         const int ey = enemies[i].getY();
 
+        // 1. Debe estar pegado al jugador
         if (!isAdjacent4(ex, ey, px, py)) continue;
 
-        // ¿El enemigo mira al jugador?
+        // 2. El enemigo debe estar mirando al jugador
         IVec2 edir = facingToDir(i < enemyFacing.size() ? enemyFacing[i] : EnemyFacing::Down);
-        int sdx = (px > ex) - (px < ex);
+        int sdx = (px > ex) - (px < ex); // Dirección hacia el jugador (-1, 0, 1)
         int sdy = (py > ey) - (py < ey);
+        
+        // Si el enemigo NO está mirando al jugador, no ataca (da oportunidad de huir)
         if (edir.x != sdx || edir.y != sdy) continue;
 
-        // ¿El jugador mira al enemigo?
-        IVec2 pdir = dominantAxis((gAttack.lastDir.x == 0 && gAttack.lastDir.y == 0)
-                                  ? IVec2{0, 1} : gAttack.lastDir);
-        int psx = (ex > px) - (ex < px);
-        int psy = (ey > py) - (ey < py);
-        bool playerFacingEnemy = (pdir.x == psx && pdir.y == psy);
-        if (!playerFacingEnemy) continue;
+        // 3. (ELIMINADO) Ya no comprobamos si el jugador mira al enemigo.
+        // Ahora si te dan la espalda, te apuñalan igual.
 
+        // 4. Comprobación de Cooldown
         if (i < enemyAtkCD.size() && enemyAtkCD[i] <= 0.0f && damageCooldown <= 0.0f) {
+            // Golpe exitoso
             takeDamage(ENEMY_CONTACT_DMG);
+            
+            // Reiniciar cooldowns
             enemyAtkCD[i] = ENEMY_ATTACK_COOLDOWN;
-            damageCooldown = DAMAGE_COOLDOWN;
-            std::cout << "[EnemyAtk] (" << ex << "," << ey
-                      << ") facing player and player facing enemy.\n";
+            damageCooldown = DAMAGE_COOLDOWN; // Breve invulnerabilidad para el jugador
+            
+            std::cout << "[EnemyAtk] Enemy at (" << ex << "," << ey << ") hit Player!\n";
         }
     }
 }
@@ -141,7 +154,15 @@ void Game::spawnEnemiesForLevel() {
             }
         }
     }
+    
+    // Cálculo: Base + 25 de vida extra por cada nivel adicional
+    // Nivel 1: 100 HP
+    // Nivel 2: 125 HP
+    // Nivel 3: 150 HP
+    int hpForLevel = ENEMY_BASE_HP + (currentLevel - 1) * 25;
+
     enemyFacing.assign(enemies.size(), EnemyFacing::Down);
-    enemyHP.assign(enemies.size(), ENEMY_BASE_HP);
+    enemyHP.assign(enemies.size(), hpForLevel); // Usamos la variable calculada
     enemyAtkCD.assign(enemies.size(), 0.0f);
+    enemyFlashTimer.assign(enemies.size(), 0.0f);
 }

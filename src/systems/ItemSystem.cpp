@@ -11,18 +11,46 @@ void Game::drawItems() const {
         return true;
     };
 
+    // CAMBIO: Ahora miramos el ÚLTIMO dispositivo usado, no si está conectado
+    const char* promptText = (lastInput == InputDevice::Gamepad) ? "(A)" : "E";
+
     for (const auto &it : items) {
         if (!isVisible(it.tile.x, it.tile.y)) continue;
         drawItemSprite(it);
+        
+        // Dibujar el indicador si el jugador está encima y NO es la llave
+        if (it.tile.x == px && it.tile.y == py && it.type != ItemType::LlaveMaestra) {
+            int txtW = MeasureText(promptText, 10);
+            int txtX = it.tile.x * tileSize + (tileSize - txtW) / 2;
+            int txtY = it.tile.y * tileSize - 12;
+
+            DrawText(promptText, txtX + 1, txtY + 1, 10, BLACK); 
+            DrawText(promptText, txtX, txtY, 10, YELLOW);
+        }
     }
 }
 
-void Game::tryPickupHere() {
+void Game::tryAutoPickup() {
     for (size_t i = 0; i < items.size(); ++i) {
         if (items[i].tile.x == px && items[i].tile.y == py) {
-            onPickup(items[i]);
-            items.erase(items.begin() + i);
-            break;
+            if (items[i].type == ItemType::LlaveMaestra) {
+                onPickup(items[i]);
+                items.erase(items.begin() + i);
+                return; // Solo una por frame
+            }
+        }
+    }
+}
+
+void Game::tryManualPickup() {
+    for (size_t i = 0; i < items.size(); ++i) {
+        if (items[i].tile.x == px && items[i].tile.y == py) {
+            // La llave se ignora aquí porque es automática
+            if (items[i].type != ItemType::LlaveMaestra) {
+                onPickup(items[i]);
+                items.erase(items.begin() + i);
+                return;
+            }
         }
     }
 }
@@ -71,26 +99,32 @@ void Game::drawItemSprite(const ItemSpawn &it) const {
 
 // ITEMS: pickup
 void Game::onPickup(const ItemSpawn &it) {
+    bool isPowerUp = false;
+
     switch (it.type) {
         case ItemType::LlaveMaestra:
             hasKey = true;
+            isPowerUp = true; // ¡La llave suena épica!
             std::cout << "[Pickup] Llave maestra obtenida.\n";
             break;
 
         case ItemType::Escudo:
             hasShield = true;
-            std::cout << "[Pickup] Escudo preparado.\n";
+            shieldTimer = 60.0f; 
+            std::cout << "[Pickup] Escudo activado (60s).\n";
             break;
 
         case ItemType::BateriaVidaExtra:
             hasBattery = true;
-            std::cout << "[Pickup] Batería extra lista.\n";
+            isPowerUp = true; // La batería también es muy importante
+            std::cout << "[Pickup] Bateria vida extra guardada.\n";
             break;
 
         case ItemType::EspadaPickup: {
             int real = std::min(it.tierSugerido, swordTier + 1);
             if (real > swordTier) swordTier = real;
             runCtx.espadaMejorasObtenidas = swordTier;
+            isPowerUp = true; // ¡Mejora de arma!
             std::cout << "[Pickup] Espada nivel " << swordTier << ".\n";
             break;
         }
@@ -99,21 +133,44 @@ void Game::onPickup(const ItemSpawn &it) {
             int real = std::min(it.tierSugerido, plasmaTier + 1);
             if (real > plasmaTier) plasmaTier = real;
             runCtx.plasmaMejorasObtenidas = plasmaTier;
+            isPowerUp = true; // ¡Mejora de arma!
             std::cout << "[Pickup] Plasma nivel " << plasmaTier << ".\n";
             break;
         }
 
         case ItemType::PilaBuena:
-            std::cout << "[Pickup] Pila buena (sin efecto por ahora).\n";
+            if (hp < hpMax) {
+                hp = std::min(hpMax, hp + 2); 
+                std::cout << "[Pickup] Pila Buena (+1 Corazón).\n";
+            } else {
+                std::cout << "[Pickup] Vida llena.\n";
+            }
             break;
+            
         case ItemType::PilaMala:
-            std::cout << "[Pickup] Pila mala (sin efecto por ahora).\n";
+            hp = std::max(0, hp - 2); 
+            std::cout << "[Pickup] Pila Mala (-1 Corazón).\n";
             break;
+
         case ItemType::Gafas3DBuenas:
-            std::cout << "[Pickup] Gafas 3D buenas (20s, sin aplicar aún).\n";
+            glassesTimer = 20.0f;
+            glassesFovMod = 5; 
+            recomputeFovIfNeeded();
+            std::cout << "[Pickup] Gafas 3D Buenas (+FOV 20s).\n";
             break;
+
         case ItemType::Gafas3DMalas:
-            std::cout << "[Pickup] Gafas 3D malas (20s, sin aplicar aún).\n";
+            glassesTimer = 20.0f;
+            glassesFovMod = -4; 
+            recomputeFovIfNeeded();
+            std::cout << "[Pickup] Gafas 3D Malas (-FOV 20s).\n";
             break;
+    }
+
+    // 2. REPRODUCIR SONIDO (Al final, común para todos)
+    if (isPowerUp) {
+        PlaySound(sfxPowerUp);
+    } else {
+        PlaySound(sfxPickup); 
     }
 }

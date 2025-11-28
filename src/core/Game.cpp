@@ -45,8 +45,7 @@ static bool loadTextAsset(const char *relPath, std::string &outText) {
 }
 
 void ItemSprites::load() {
-    if (loaded)
-        return;
+    if (loaded) return;
     keycard = loadTex("assets/sprites/items/item_keycard.png");
     shield = loadTex("assets/sprites/items/item_shield.png");
     pila = loadTex("assets/sprites/items/item_healthbattery.png");
@@ -66,8 +65,7 @@ void ItemSprites::load() {
 }
 
 void ItemSprites::unload() {
-    if (!loaded)
-        return;
+    if (!loaded) return;
     UnloadTexture(keycard);
     UnloadTexture(shield);
     UnloadTexture(pila);
@@ -86,11 +84,213 @@ void ItemSprites::unload() {
     loaded = false;
 }
 
+// Tipos de sonido para el generador
+enum SoundType { 
+    SND_HIT, SND_EXPLOSION, SND_PICKUP, SND_POWERUP, 
+    SND_HURT, SND_WIN, SND_LOOSE, SND_AMBIENT, SND_DASH
+};
+
+// Generador de ondas procedurales (Sintetizador)
+Sound Game::generateSound(int type) {
+    const int sampleRate = 44100;
+    
+    // CAMBIO: 60 segundos exactos.
+    const int durationFrames = (type == SND_AMBIENT) ? 44100 * 60 : 
+                               (type == SND_WIN || type == SND_LOOSE) ? 44100 * 4 : 
+                               44100 / 2;
+    
+    Wave wave;
+    wave.frameCount = durationFrames;
+    wave.sampleRate = sampleRate;
+    wave.sampleSize = 16;
+    wave.channels = 1;
+    wave.data = malloc(wave.frameCount * wave.sampleSize / 8);
+    
+    short *data = (short *)wave.data;
+    
+    for (int i = 0; i < wave.frameCount; i++) {
+        float t = (float)i / sampleRate; // Tiempo en segundos
+        float val = 0.0f;
+        
+        switch (type) {
+            case SND_HIT: // Ruido blanco corto + Onda cuadrada baja
+                if (t < 0.1f) val = ((float)GetRandomValue(-100, 100) / 100.0f) * (1.0f - t/0.1f);
+                else val = (sinf(2 * PI * 100 * t) > 0 ? 0.5f : -0.5f) * (1.0f - t);
+                break;
+                
+            case SND_EXPLOSION: // Ruido puro con decay largo
+                val = ((float)GetRandomValue(-100, 100) / 100.0f);
+                val *= (1.0f - (float)i / wave.frameCount); // Fade out lineal
+                break;
+                
+            case SND_PICKUP: // Onda cuadrada aguda (Coin)
+                // Frecuencia sube de 800 a 1200
+                {
+                    float freq = 800.0f + (t * 4000.0f); 
+                    val = (sinf(2 * PI * freq * t) > 0 ? 0.3f : -0.3f);
+                    val *= (1.0f - t*4.0f); // Muy corto
+                }
+                break;
+                
+            case SND_POWERUP: // Onda triangular subiendo (Powerup)
+                {
+                    float freq = 300.0f + (t * 1000.0f);
+                    val = asinf(sinf(2 * PI * freq * t)) * 0.5f; 
+                }
+                break;
+                
+            case SND_HURT: // Sierra descendente (Auch)
+                {
+                    float freq = 200.0f - (t * 400.0f);
+                    if (freq < 50) freq = 50;
+                    val = (float)(fmod(t * freq, 1.0) * 2.0 - 1.0) * 0.5f;
+                }
+                break;
+
+            case SND_AMBIENT: 
+                {
+                    // --- TEMA: "CYBER COMBAT LOOP" (60s Acción Pura) ---
+                    // Sin intro suave. Directo al grano.
+                    
+                    float bpm = 120.0f;
+                    float beatLen = 60.0f / bpm; // 0.5 segundos exactos
+                    
+                    // Variables de tiempo
+                    float measurePos = t / (beatLen * 4.0f); 
+                    int measure = (int)measurePos;           
+                    float beatPos = fmod(t, beatLen);        
+                    float subBeat = fmod(t, beatLen / 4.0f); 
+                    
+                    // --- 1. KICK (EL MOTOR) ---
+                    // Suena DESDE EL PRINCIPIO. Golpe seco y potente.
+                    float kick = 0.0f;
+                    if (beatPos < 0.2f) {
+                        // Frecuencia estable para que pegue fuerte
+                        float kFreq = 100.0f - (beatPos * 400.0f);
+                        if (kFreq < 40.0f) kFreq = 40.0f;
+                        kick = sinf(2 * PI * kFreq * t);
+                        kick *= expf(-15.0f * beatPos); 
+                        kick *= 0.9f; // Volumen alto
+                    }
+
+                    // --- 2. BASSLINE (LA ENERGÍA) ---
+                    // Bajo "Rolling" constante desde el segundo 0.
+                    float bassFreq = 55.0f; // La (A1)
+                    
+                    // Pequeña variación de nota cada 8 compases (16s) para no aburrir
+                    if ((measure / 8) % 2 == 1) bassFreq = 43.65f; // Fa (F1)
+
+                    // Onda de Sierra filtrada (agresiva pero controlada)
+                    float saw = (fmod(t * bassFreq, 1.0f) * 2.0f) - 1.0f;
+                    float bass = (saw * 0.4f) + (sinf(2 * PI * bassFreq * t) * 0.6f);
+                    
+                    // SIDECHAIN: El bajo se "agacha" cuando pega el Kick
+                    float sidechain = fmod(t, beatLen) / beatLen; 
+                    sidechain = powf(sidechain, 0.5f); // Curva rápida
+                    bass *= sidechain * 0.6f;
+
+                    // --- 3. HI-HATS (VELOCIDAD) ---
+                    // Ritmo de semicorcheas constante "tik-tik-tik-tik"
+                    float noise = ((float)GetRandomValue(-100, 100) / 100.0f);
+                    // Filtro High-Pass simulado (solo frecuencias altas)
+                    noise *= sinf(2 * PI * 6000.0f * t);
+                    
+                    float hat = noise * expf(-80.0f * subBeat) * 0.15f;
+                    // Acento en el "off-beat" (el "y" del 1 y 2...)
+                    if (fmod(t, beatLen) > beatLen/2.0f) hat *= 1.8f; 
+
+                    // --- 4. ARPEGIO (LA MELODÍA) ---
+                    // Entra y sale para dar variedad, pero el ritmo de fondo sigue.
+                    float arp = 0.0f;
+                    
+                    // La melodía suena en los segundos 0-15 y 30-45. 
+                    // Deja huecos de "solo ritmo" en 15-30 y 45-60.
+                    bool playArp = ((int)(t / 16.0f) % 2 == 0); 
+                    
+                    if (playArp) {
+                        int noteIdx = (int)(t * 8.0f); // 8 notas/segundo
+                        // Patrón simple y pegadizo
+                        float scale[] = { 1.0f, 1.0f, 1.5f, 1.2f, 2.0f, 1.5f, 1.2f, 1.5f };
+                        int idx = noteIdx % 8;
+                        float arpFreq = bassFreq * 4.0f * scale[idx];
+                        
+                        // Onda "Cristal"
+                        arp = sinf(2 * PI * arpFreq * t);
+                        // Delay
+                        arp += sinf(2 * PI * arpFreq * (t - 0.25f)) * 0.4f;
+                        
+                        float env = fmod(t, 0.125f) / 0.125f;
+                        arp *= (1.0f - env) * 0.15f; // Volumen sutil
+                    }
+
+                    // --- MEZCLA FINAL ---
+                    val = kick + bass + hat + arp;
+                    
+                    // Compresor/Limitador
+                    if (val > 0.9f) val = 0.9f;
+                    if (val < -0.9f) val = -0.9f;
+                    
+                    // Fade micro-rápido en los bordes del bucle (0.05s) para evitar "clicks"
+                    if (t < 0.05f) val *= (t / 0.05f);
+                    if (t > 59.95f) val *= (60.0f - t) / 0.05f;
+                }
+                break;
+            case SND_DASH: // Ruido rosa/aire rápido
+                {
+                    // Ruido aleatorio suave
+                    float noise = ((float)GetRandomValue(-100, 100) / 100.0f);
+                    // Volumen baja muy rápido (0.2 segundos)
+                    val = noise * 0.4f * (1.0f - t/0.2f); 
+                    if (val < 0) val = 0;
+                }
+                break;
+
+            case SND_WIN: // Acorde mayor arpegiado
+                {
+                    float note = 440.0f; // La
+                    if (t > 0.2) note = 554.37f; // Do#
+                    if (t > 0.4) note = 659.25f; // Mi
+                    if (t > 0.6) note = 880.0f;  // La (8va)
+                    val = sinf(2 * PI * note * t) * 0.5f;
+                    val *= (1.0f - t/2.0f);
+                }
+                break;
+
+            case SND_LOOSE: // Tono descendente triste
+                {
+                    float freq = 300.0f * (1.0f - t/2.0f);
+                    val = (sinf(2 * PI * freq * t) > 0 ? 0.4f : -0.4f);
+                }
+                break;
+        }
+        
+        data[i] = (short)(val * 32000.0f);
+    }
+    
+    Sound sound = LoadSoundFromWave(wave);
+    UnloadWave(wave);
+    return sound;
+}
+
 Game::Game(unsigned seed) : fixedSeed(seed) {
-    // Configurar ventana en fullscreen
     SetConfigFlags(FLAG_FULLSCREEN_MODE);
-    InitWindow(0, 0, "RogueBot Alpha"); // tamaño se ajusta por el flag
-    SetExitKey(KEY_NULL); // Desactiva el cierre por ESC; lo gestionamos nosotros
+    InitWindow(0, 0, "RogueBot"); 
+    SetExitKey(KEY_NULL);
+
+    // 1. INICIAR AUDIO (¡Vital!)
+    InitAudioDevice();
+    SetMasterVolume(0.2f); // Volumen general al 20%
+
+    // 2. GENERAR SONIDOS
+    sfxHit       = generateSound(SND_HIT);
+    sfxExplosion = generateSound(SND_EXPLOSION);
+    sfxPickup    = generateSound(SND_PICKUP);
+    sfxPowerUp   = generateSound(SND_POWERUP);
+    sfxHurt      = generateSound(SND_HURT);
+    sfxWin       = generateSound(SND_WIN);
+    sfxLoose     = generateSound(SND_LOOSE);
+    sfxAmbient   = generateSound(SND_AMBIENT);
+    sfxDash      = generateSound(SND_DASH);
 
     player.load("assets/sprites/player");
     itemSprites.load();
@@ -98,39 +298,34 @@ Game::Game(unsigned seed) : fixedSeed(seed) {
     screenW = GetScreenWidth();
     screenH = GetScreenHeight();
 
-    camera.target = {0.0f, 0.0f}; // lo actualizamos tras posicionar al jugador
+    camera.target = {0.0f, 0.0f}; 
     camera.offset = {(float)screenW / 2, (float)screenH / 2};
     camera.rotation = 0.0f;
-    camera.zoom = cameraZoom; // 1.0f por defecto
+    camera.zoom = cameraZoom; 
 
     SetTargetFPS(60);
 
-    // newRun(); // primera partida (empieza en Level 1)
     state = GameState::MainMenu;
     mainMenuSelection = 0;
 }
 
-// Devuelve la seed del RUN (si hay fija, esa; si no, aleatoria en cada R)
 unsigned Game::nextRunSeed() const {
     return fixedSeed > 0 ? fixedSeed : now_seed();
 }
 
-// Mezcla para derivar una seed distinta por nivel del mismo run
 unsigned Game::seedForLevel(unsigned base, int level) const {
-    // Mezcla simple tipo "golden ratio" para variar por nivel
-    const unsigned MIX = 0x9E3779B9u; // 2654435769
+    const unsigned MIX = 0x9E3779B9u; 
     return base ^ (MIX * static_cast<unsigned>(level));
 }
 
 void Game::newRun() {
-    // runSeed: fijo si hay CLI, aleatorio si no
     runSeed = nextRunSeed();
     std::cout << "[Run] Seed base del run: " << runSeed << "\n";
 
     currentLevel = 1;
     state = GameState::Playing;
     moveCooldown = 0.0f;
-    hp = 5;
+    hp = 10;
 
     hasKey = false;
     hasShield = false;
@@ -138,12 +333,14 @@ void Game::newRun() {
     swordTier = 0;
     plasmaTier = 0;
 
-    // reinicia progreso persistente del run
     runCtx.espadaMejorasObtenidas = 0;
     runCtx.plasmaMejorasObtenidas = 0;
-    // reset ataque
+    
     gAttack = AttackRuntime{};
     gAttack.frontOnly = true;
+
+    // Limpiar proyectiles al iniciar run
+    projectiles.clear();
 
     newLevel(currentLevel);
 }
@@ -153,7 +350,6 @@ void Game::newLevel(int level) {
     int tilesX = (int)std::ceil((screenW / (float)tileSize) * WORLD_SCALE);
     int tilesY = (int)std::ceil((screenH / (float)tileSize) * WORLD_SCALE);
 
-    // Deriva una seed distinta por nivel, determinista dentro del mismo run
     levelSeed = seedForLevel(runSeed, level);
     std::cout << "[Level] " << level << "/" << maxLevels
               << " (seed nivel: " << levelSeed << ")\n";
@@ -173,54 +369,51 @@ void Game::newLevel(int level) {
 
     player.setGridPos(px, py);
 
-    // Recalcular FOV según viewport/tileSize actual
     fovTiles = defaultFovFromViewport();
     map.computeVisibility(px, py, getFovRadius());
 
-    // centrar cámara en jugador (mundo -> píxeles)
     Vector2 playerCenterPx = {px * (float)tileSize + tileSize / 2.0f,
                               py * (float)tileSize + tileSize / 2.0f};
     camera.target = playerCenterPx;
     clampCameraToMap();
 
-    hasKey = false; // hay una llave por nivel
+    hasKey = false; 
+    projectiles.clear(); // Limpiar balas al cambiar de nivel
 
-    // ==== Spawner de ítems ====
-    // RNG determinista por nivel
     rng = std::mt19937(levelSeed);
 
-    // --- Enemigos del nivel ---
     spawnEnemiesForLevel();
 
-    // (de momento no tienes enemigos: lista vacía.
     std::vector<IVec2> enemyTiles;
     enemyTiles.reserve(enemies.size());
     for (const auto &e : enemies) {
         enemyTiles.push_back({e.getX(), e.getY()});
     }
 
-    // Walkable: todo lo que no sea WALL, con bounds check
     auto isWalkable = [&](int x, int y) { 
         return map.isWalkable(x, y); 
     };
 
-    // Spawn = posición actual del jugador
     IVec2 spawnTile{px, py};
-
-    // Exit = pedimos al mapa su posición
     auto [exitX, exitY] = map.findExitTile();
     IVec2 exitTile{exitX, exitY};
 
-    // Generar ítems de este nivel (solo colocación; sin lógica aún)
     items = ItemSpawner::generate(map.width(), map.height(), isWalkable,
                                   spawnTile, exitTile, enemyTiles,
-                                  level, // 1..3
+                                  level, 
                                   rng, runCtx);
 }
 
+int Game::getFovRadius() const {
+    int r = fovTiles;
+    if (glassesTimer > 0.0f) {
+        r += glassesFovMod;
+    }
+    return std::clamp(r, 2, 30);
+}
+
 void Game::tryMove(int dx, int dy) {
-    if (dx == 0 && dy == 0)
-        return;
+    if (dx == 0 && dy == 0) return;
 
     int nx = px + dx, ny = py + dy;
 
@@ -238,7 +431,6 @@ void Game::tryMove(int dx, int dy) {
             px = nx;
             py = ny;
         }
-        // (si está ocupada, simplemente no te mueves)
     }
 }
 
@@ -252,21 +444,45 @@ void Game::run() {
         processInput();
         update();
         render();
+
+        // --- GESTIÓN DE MÚSICA AMBIENTE ---
+        // Solo suena si estamos jugando. Si salimos al menú, se calla.
+        if (state == GameState::Playing) {
+            // Si no está sonando, dale al play
+            if (!IsSoundPlaying(sfxAmbient)) {
+                PlaySound(sfxAmbient);
+            }
+            // Opcional: Ajustar volumen si quieres que sea sutil
+            // SetSoundVolume(sfxAmbient, 0.6f); 
+        } else {
+            // Si estamos en menú/gameover y suena, la paramos
+            if (IsSoundPlaying(sfxAmbient)) {
+                StopSound(sfxAmbient);
+            }
+        }
     }
+
+    // DESCARGAR SONIDOS
+    UnloadSound(sfxHit);
+    UnloadSound(sfxExplosion);
+    UnloadSound(sfxPickup);
+    UnloadSound(sfxPowerUp);
+    UnloadSound(sfxHurt);
+    UnloadSound(sfxWin);
+    UnloadSound(sfxLoose);
+    UnloadSound(sfxAmbient);
+    UnloadSound(sfxDash);
+
     player.unload();
     itemSprites.unload();
     CloseWindow();
 }
 
 void Game::processInput() {
-    // ESC desde cualquier sitio distinto al menú -> volver al menú
-    // También permitimos usar un botón del mando (por ejemplo, B o Start)
     if (state != GameState::MainMenu) {
         bool escPressed = IsKeyPressed(KEY_ESCAPE);
-        // Comprobar botón de mando que actúe como ESC
         const int gp0 = 0;
         if (IsGamepadAvailable(gp0)) {
-            // Usamos el botón derecho de la cara (B) o el botón central
             escPressed = escPressed ||
                          IsGamepadButtonPressed(gp0, GAMEPAD_BUTTON_RIGHT_FACE_RIGHT) ||
                          IsGamepadButtonPressed(gp0, GAMEPAD_BUTTON_MIDDLE_RIGHT) ||
@@ -277,26 +493,21 @@ void Game::processInput() {
             gAttack.swinging = false;
             gAttack.lastTiles.clear();
             state = GameState::MainMenu;
-            mainMenuSelection = 0;   // volver con JUGAR seleccionado
+            mainMenuSelection = 0;   
             return;
         }
     }
 
-    // Helper para reiniciar el run (R o botón Y)
     auto restartRun = [&]() {
-        if (fixedSeed == 0) 
-            runSeed = nextRunSeed();
+        if (fixedSeed == 0) runSeed = nextRunSeed();
         newRun();
     };
 
-    // Reiniciar run completo con teclado (R)
     if (IsKeyPressed(KEY_R)) {
         restartRun();
         return;
     }
 
-    // Reiniciar run con mando: botón Y (cara arriba).
-    // Sólo fuera del menú principal para no romper la ayuda del menú.
     const int gpRestart = 0;
     if (state != GameState::MainMenu &&
         IsGamepadAvailable(gpRestart) &&
@@ -305,7 +516,6 @@ void Game::processInput() {
         return;
     }
 
-    // Toggle modo de movimiento
     if (IsKeyPressed(KEY_T)) {
         moveMode = (moveMode == MovementMode::StepByStep)
                    ? MovementMode::RepeatCooldown
@@ -313,14 +523,12 @@ void Game::processInput() {
         moveCooldown = 0.0f;
     }
 
-    // Toggle niebla
     if (IsKeyPressed(KEY_F2)) {
         fogEnabled = !fogEnabled;
         map.setFogEnabled(fogEnabled);
         if (fogEnabled) map.computeVisibility(px, py, getFovRadius());
     }
 
-    // Ajuste manual del FOV
     if (IsKeyPressed(KEY_LEFT_BRACKET)) {
         fovTiles = std::max(2, fovTiles - 1);
         if (map.fogEnabled()) map.computeVisibility(px, py, getFovRadius());
@@ -330,7 +538,6 @@ void Game::processInput() {
         if (map.fogEnabled()) map.computeVisibility(px, py, getFovRadius());
     }
 
-    // Derivar por estado
     const float dt = GetFrameTime();
     if (state == GameState::MainMenu) {
         handleMenuInput();
@@ -341,15 +548,14 @@ void Game::processInput() {
         return;
     }
 
-    // Estados no jugables (victoria/game over): solo actualizar animación idle
-    player.update(dt, /*isMoving=*/false);
+    player.update(dt, false);
 }
 
 void Game::handleMenuInput() {
     const int menuGamepad = 0;
 
-    // --- Si el visor de ayuda está abierto, sólo gestionamos scroll y "volver" ---
     if (showHelp) {
+        // ... (Tu código de menú de ayuda, igual que antes) ...
         int panelW = (int)std::round(screenW * 0.86f);
         int panelH = (int)std::round(screenH * 0.76f);
         if (panelW > 1500) panelW = 1500;
@@ -357,25 +563,22 @@ void Game::handleMenuInput() {
         int pxl = (screenW - panelW) / 2;
         int pyl = (screenH - panelH) / 2;
 
-        // Scroll con la rueda del ratón
         float wheel = GetMouseWheelMove();
         if (wheel != 0.0f) {
             helpScroll -= (int)(wheel * 40);
             if (helpScroll < 0) helpScroll = 0;
         }
 
-        // Scroll con joystick izquierdo
         if (IsGamepadAvailable(menuGamepad)) {
             float ay = GetGamepadAxisMovement(menuGamepad, GAMEPAD_AXIS_LEFT_Y);
             const float dead = 0.25f;
             if (std::fabs(ay) > dead) {
-                const float speed = 400.0f; // ajusta si va muy rápido/lento
+                const float speed = 400.0f; 
                 helpScroll += (int)(ay * speed * GetFrameTime());
                 if (helpScroll < 0) helpScroll = 0;
             }
         }
 
-        // Calcular límites del scroll
         int margin    = 24;
         int titleSize = (int)std::round(panelH * 0.06f);
         int top       = pyl + margin + titleSize + 16;
@@ -386,12 +589,10 @@ void Game::handleMenuInput() {
         if (fontSize < 16) fontSize = 16;
         int lineH = (int)std::round(fontSize * 1.25f);
         int lines = 1;
-        for (char c : helpText)
-            if (c == '\n') ++lines;
+        for (char c : helpText) if (c == '\n') ++lines;
         int maxScroll = std::max(0, lines * lineH - viewportH);
         if (helpScroll > maxScroll) helpScroll = maxScroll;
 
-        // --- Enlace “VOLVER” ---
         const char *backTxt = "VOLVER";
         int tw = MeasureText(backTxt, backFs);
         int tx = pxl + panelW - tw - 16;
@@ -405,18 +606,17 @@ void Game::handleMenuInput() {
         bool gpBack    = false;
 
         if (IsGamepadAvailable(menuGamepad)) {
-            gpBack = IsGamepadButtonPressed(menuGamepad, GAMEPAD_BUTTON_RIGHT_FACE_RIGHT) || // B
-                     IsGamepadButtonPressed(menuGamepad, GAMEPAD_BUTTON_LEFT_FACE_RIGHT)  || // cruceta derecha
-                     IsGamepadButtonPressed(menuGamepad, GAMEPAD_BUTTON_RIGHT_FACE_DOWN);    // A
+            gpBack = IsGamepadButtonPressed(menuGamepad, GAMEPAD_BUTTON_RIGHT_FACE_RIGHT) || 
+                     IsGamepadButtonPressed(menuGamepad, GAMEPAD_BUTTON_LEFT_FACE_RIGHT)  || 
+                     IsGamepadButtonPressed(menuGamepad, GAMEPAD_BUTTON_RIGHT_FACE_DOWN);    
         }
 
         if (clickBack || escBack || gpBack) {
             showHelp = false;
         }
-        return; // No procesar nada más mientras se muestra ayuda
+        return; 
     }
 
-    // --- Geometría de botones principales (para ratón y selección lógica) ---
     int bw = (int)std::round(screenW * 0.35f);
     bw = std::clamp(bw, 320, 560);
     int bh = (int)std::round(screenH * 0.12f);
@@ -431,43 +631,34 @@ void Game::handleMenuInput() {
     Rectangle quitBtn = { (float)((screenW - bw) / 2),
                           (float)(startY + (bh + gap) * 2), (float)bw, (float)bh };
 
-    // --- Ratón: clic directo sobre botones ---
     if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
         Vector2 mp = GetMousePosition();
-
         if (CheckCollisionPointRec(mp, playBtn)) {
             newRun();
             return;
         }
-
         if (CheckCollisionPointRec(mp, readBtn)) {
-            if (helpText.empty()) {
-                loadTextAsset("assets/docs/objetos.txt", helpText);
-            }
+            if (helpText.empty()) loadTextAsset("assets/docs/objetos.txt", helpText);
             showHelp  = true;
             helpScroll = 0;
             return;
         }
-
         if (CheckCollisionPointRec(mp, quitBtn)) {
             gQuitRequested = true;
             return;
         }
     }
 
-    // --- Teclado: flechas / WASD para moverse y Enter/Espacio para confirmar ---
     auto activateSelection = [&]() {
         if (mainMenuSelection == 0) {
             newRun();
         }
         else if (mainMenuSelection == 1) {
-            if (helpText.empty()) {
-                loadTextAsset("assets/docs/objetos.txt", helpText);
-            }
+            if (helpText.empty()) loadTextAsset("assets/docs/objetos.txt", helpText);
             showHelp  = true;
             helpScroll = 0;
         }
-        else { // 2 = SALIR
+        else { 
             gQuitRequested = true;
         }
     };
@@ -483,9 +674,7 @@ void Game::handleMenuInput() {
         return;
     }
 
-    // --- Mando: cruceta + joystick izquierdo + botón A ---
     if (IsGamepadAvailable(menuGamepad)) {
-        // Cruceta
         if (IsGamepadButtonPressed(menuGamepad, GAMEPAD_BUTTON_LEFT_FACE_UP)) {
             mainMenuSelection = (mainMenuSelection + 3 - 1) % 3;
         }
@@ -493,7 +682,6 @@ void Game::handleMenuInput() {
             mainMenuSelection = (mainMenuSelection + 1) % 3;
         }
 
-        // Joystick izquierdo (un paso por "empujón")
         static bool stickNeutral = true;
         float ay = GetGamepadAxisMovement(menuGamepad, GAMEPAD_AXIS_LEFT_Y);
         const float dead = 0.35f;
@@ -502,29 +690,17 @@ void Game::handleMenuInput() {
             stickNeutral = true;
         }
         else if (stickNeutral) {
-            if (ay < 0.0f) {
-                // Arriba
-                mainMenuSelection = (mainMenuSelection + 3 - 1) % 3;
-            }
-            else {
-                // Abajo
-                mainMenuSelection = (mainMenuSelection + 1) % 3;
-            }
+            if (ay < 0.0f) mainMenuSelection = (mainMenuSelection + 3 - 1) % 3;
+            else mainMenuSelection = (mainMenuSelection + 1) % 3;
             stickNeutral = false;
         }
 
-        // Confirmar con A
         if (IsGamepadButtonPressed(menuGamepad, GAMEPAD_BUTTON_RIGHT_FACE_DOWN)) {
             activateSelection();
             return;
         }
-
-        // Atajos antiguos que ya tenías (opcional mantenerlos)
-        // Y/X (botón arriba) = abrir ayuda directo
         if (IsGamepadButtonPressed(menuGamepad, GAMEPAD_BUTTON_RIGHT_FACE_UP)) {
-            if (helpText.empty()) {
-                loadTextAsset("assets/docs/objetos.txt", helpText);
-            }
+            if (helpText.empty()) loadTextAsset("assets/docs/objetos.txt", helpText);
             showHelp  = true;
             helpScroll = 0;
             return;
@@ -532,31 +708,60 @@ void Game::handleMenuInput() {
     }
 }
 
+// ----------------------------------------------------------------------------------
+// INPUT JUEGO (COMBATE Y MOVIMIENTO)
+// ----------------------------------------------------------------------------------
 void Game::handlePlayingInput(float dt) {
-    // Zoom / cámara
-    if (IsKeyDown(KEY_Q)) cameraZoom += 1.0f * dt;   // acercar
-    if (IsKeyDown(KEY_E)) cameraZoom -= 1.0f * dt;   // alejar
-
-    float wheel = GetMouseWheelMove();               // rueda (escala log)
-    if (wheel != 0.0f) {
-        cameraZoom = expf(logf(cameraZoom) + wheel * 0.1f);
+    // --------------------------------------------------------
+    // 1. DETECCIÓN DE DISPOSITIVO
+    // --------------------------------------------------------
+    if (IsKeyDown(KEY_W) || IsKeyDown(KEY_A) || IsKeyDown(KEY_S) || IsKeyDown(KEY_D) ||
+        IsKeyDown(KEY_UP) || IsKeyDown(KEY_DOWN) || IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_RIGHT) ||
+        IsKeyDown(KEY_E) || IsKeyDown(KEY_I) || IsKeyDown(KEY_O) || 
+        IsKeyDown(KEY_SPACE) || IsKeyDown(KEY_ONE) || IsKeyDown(KEY_TWO) || 
+        IsKeyDown(KEY_LEFT_SHIFT)) { // Añadido Shift
+        lastInput = InputDevice::Keyboard;
     }
 
-    // Zoom con el stick derecho del mando
-    const int zoomPad = 0;
-    if (IsGamepadAvailable(zoomPad)) {
-        float rightY = GetGamepadAxisMovement(zoomPad, GAMEPAD_AXIS_RIGHT_Y);
+    const int gpId = 0;
+    if (IsGamepadAvailable(gpId)) {
+        bool gpActive = false;
+        // Check botones
+        for (int b = GAMEPAD_BUTTON_UNKNOWN + 1; b <= GAMEPAD_BUTTON_RIGHT_THUMB; b++) {
+            if (IsGamepadButtonDown(gpId, b)) { gpActive = true; break; }
+        }
+        // Check ejes
+        if (!gpActive) {
+            float lx = GetGamepadAxisMovement(gpId, GAMEPAD_AXIS_LEFT_X);
+            float ly = GetGamepadAxisMovement(gpId, GAMEPAD_AXIS_LEFT_Y);
+            if (std::abs(lx) > 0.25f || std::abs(ly) > 0.25f) gpActive = true;
+        }
+        // Check gatillos
+        if (!gpActive) {
+             float rt = GetGamepadAxisMovement(gpId, GAMEPAD_AXIS_RIGHT_TRIGGER);
+             float lt = GetGamepadAxisMovement(gpId, GAMEPAD_AXIS_LEFT_TRIGGER);
+             if (rt > 0.1f || lt > 0.1f) gpActive = true;
+        }
+
+        if (gpActive) lastInput = InputDevice::Gamepad;
+    }
+
+    // --------------------------------------------------------
+    // 2. LÓGICA DE JUEGO (Zoom, Interacción)
+    // --------------------------------------------------------
+    if (IsKeyDown(KEY_I)) cameraZoom += 1.0f * dt;
+    if (IsKeyDown(KEY_O)) cameraZoom -= 1.0f * dt;
+
+    float wheel = GetMouseWheelMove();
+    if (wheel != 0.0f) cameraZoom = expf(logf(cameraZoom) + wheel * 0.1f);
+
+    if (IsGamepadAvailable(gpId)) {
+        float rightY = GetGamepadAxisMovement(gpId, GAMEPAD_AXIS_RIGHT_Y);
         const float zoomThr = 0.2f;
-        if (rightY < -zoomThr) {
-            // Arriba (negativo) → acercar cámara
-            cameraZoom += (-rightY) * dt;
-        }
-        else if (rightY > zoomThr) {
-            // Abajo (positivo) → alejar cámara
-            cameraZoom -= rightY * dt;
-        }
-        // Reset de cámara con el botón del stick derecho
-        if (IsGamepadButtonPressed(zoomPad, GAMEPAD_BUTTON_RIGHT_THUMB)) {
+        if (rightY < -zoomThr) cameraZoom += (-rightY) * dt;
+        else if (rightY > zoomThr) cameraZoom -= rightY * dt;
+        
+        if (IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_RIGHT_THUMB)) {
             cameraZoom = 1.0f;
             camera.zoom = cameraZoom;
             camera.rotation = 0.0f;
@@ -568,7 +773,6 @@ void Game::handlePlayingInput(float dt) {
     camera.zoom = cameraZoom;
     clampCameraToMap();
 
-    // Reset SOLO de cámara
     if (IsKeyPressed(KEY_C)) {
         cameraZoom = 1.0f;
         camera.zoom = cameraZoom;
@@ -576,121 +780,141 @@ void Game::handlePlayingInput(float dt) {
         clampCameraToMap();
     }
 
-    // Movimiento del jugador + animación de sprites
-    int  dx = 0, dy = 0;
-    bool moved = false;
+    // Interacción (Pickup)
+    bool interact = IsKeyPressed(KEY_E);
+    if (IsGamepadAvailable(gpId)) {
+        if (IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_RIGHT_FACE_DOWN)) interact = true;
+    }
+    if (interact) tryManualPickup();
 
-    // ============================================
-    // Soporte de mando (gamepad) para movimiento y ataque
-    // Para permitir el uso de un mando junto al teclado, recogemos
-    // el estado del primer mando disponible. Se usan los botones
-    // del "D‑pad" (izquierdo) y el stick izquierdo para mover, y
-    // algunos botones frontales para atacar.  Si no hay mando
-    // conectado, estas variables se mantienen en cero y no
-    // interferirán con el control mediante teclado y ratón.
-        int  gpDx = 0, gpDy = 0;
-    bool gpAttackPressed = false;
-    bool gpDpadPressed   = false;
-    bool gpAnalogActive  = false;
-    const int gamepadId  = 0;
-
-    if (IsGamepadAvailable(gamepadId)) {
-        // Botón de ataque básico: cara derecha inferior (X / A según el mando)
-        // RB y RT ya NO cuentan como ataque básico.
-        if (IsGamepadButtonPressed(gamepadId, GAMEPAD_BUTTON_RIGHT_FACE_LEFT)) {
-            gpAttackPressed = true;
-        }
-
-        // Leer el stick analógico izquierdo (movimiento continuo)
-        float axisX = GetGamepadAxisMovement(gamepadId, GAMEPAD_AXIS_LEFT_X);
-        float axisY = GetGamepadAxisMovement(gamepadId, GAMEPAD_AXIS_LEFT_Y);
-        const float thr = 0.5f;
-
-        // Consideramos activo el modo analógico si alguna componente supera el umbral
-        if (axisX < -thr || axisX > thr || axisY < -thr || axisY > thr) {
-            gpAnalogActive = true;
-            if (axisY < -thr) gpDy = -1;
-            else if (axisY > thr) gpDy = +1;
-            if (axisX < -thr) gpDx = -1;
-            else if (axisX > thr) gpDx = +1;
-        }
-
-        // Leer la cruceta (D‑pad) como movimiento discreto (solo pulsaciones)
-        if (IsGamepadButtonPressed(gamepadId, GAMEPAD_BUTTON_LEFT_FACE_UP)) {
-            gpDx = 0; gpDy = -1; gpDpadPressed = true;
-        }
-        if (IsGamepadButtonPressed(gamepadId, GAMEPAD_BUTTON_LEFT_FACE_DOWN)) {
-            gpDx = 0; gpDy = +1; gpDpadPressed = true;
-        }
-        if (IsGamepadButtonPressed(gamepadId, GAMEPAD_BUTTON_LEFT_FACE_LEFT)) {
-            gpDx = -1; gpDy = 0; gpDpadPressed = true;
-        }
-        if (IsGamepadButtonPressed(gamepadId, GAMEPAD_BUTTON_LEFT_FACE_RIGHT)) {
-            gpDx = +1; gpDy = 0; gpDpadPressed = true;
-        }
-
-        // Cambiar el modo de movimiento automáticamente según el input del mando
-        if (gpAnalogActive) {
-            moveMode = MovementMode::RepeatCooldown;
-        } else if (gpDpadPressed) {
-            moveMode = MovementMode::StepByStep;
+    // --------------------------------------------------------
+    // 3. DASH (ESQUIVA) - NUEVO BLOQUE
+    // --------------------------------------------------------
+    bool dashPressed = IsKeyPressed(KEY_LEFT_SHIFT) || IsKeyPressed(KEY_RIGHT_SHIFT);
+    if (IsGamepadAvailable(gpId)) {
+        if (IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_LEFT_TRIGGER_1) || 
+            IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_LEFT_TRIGGER_2)) {
+            dashPressed = true;
         }
     }
 
+    if (dashPressed && !isDashing && dashCooldownTimer <= 0.0f) {
+        int ddx = 0, ddy = 0;
+        // Prioridad: Dirección pulsada ahora
+        if (IsKeyDown(KEY_W) || IsKeyDown(KEY_UP))    ddy = -1;
+        if (IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN))  ddy = 1;
+        if (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT))  ddx = -1;
+        if (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT)) ddx = 1;
+        
+        // Si no, última dirección
+        if (ddx == 0 && ddy == 0) {
+            ddx = gAttack.lastDir.x;
+            ddy = gAttack.lastDir.y;
+        }
+
+        if (ddx != 0 || ddy != 0) {
+            int targetX = px;
+            int targetY = py;
+            
+            // Calcular destino (hasta DASH_DISTANCE)
+            for (int i = 1; i <= DASH_DISTANCE; i++) {
+                int nextX = px + ddx * i;
+                int nextY = py + ddy * i;
+                if (!map.isWalkable(nextX, nextY)) break; // Pared
+                
+                bool enemyBlock = false;
+                for(const auto& e : enemies) if(e.getX() == nextX && e.getY() == nextY) enemyBlock = true;
+                if (enemyBlock) break; // Enemigo
+
+                targetX = nextX;
+                targetY = nextY;
+            }
+
+            if (targetX != px || targetY != py) {
+                // Configurar estado Dash
+                isDashing = true;
+                dashTimer = DASH_DURATION;
+                dashCooldownTimer = DASH_COOLDOWN;
+                
+                dashStartPos = { px * (float)tileSize, py * (float)tileSize };
+                dashEndPos = { targetX * (float)tileSize, targetY * (float)tileSize };
+                
+                px = targetX;
+                py = targetY;
+                player.setGridPos(px, py);
+                
+                PlaySound(sfxDash);
+                
+                onSuccessfulStep(0,0); 
+                return; 
+            }
+        }
+    }
+
+    // --------------------------------------------------------
+    // 4. MOVIMIENTO NORMAL
+    // --------------------------------------------------------
+    int dx = 0, dy = 0;
+    bool moved = false;
+
+    int gpDx = 0, gpDy = 0;
+    bool gpDpadPressed = false;
+    bool gpAnalogActive = false;
+
+    if (IsGamepadAvailable(gpId)) {
+        float axisX = GetGamepadAxisMovement(gpId, GAMEPAD_AXIS_LEFT_X);
+        float axisY = GetGamepadAxisMovement(gpId, GAMEPAD_AXIS_LEFT_Y);
+        const float thr = 0.5f;
+
+        if (axisX < -thr || axisX > thr || axisY < -thr || axisY > thr) {
+            gpAnalogActive = true;
+            if (axisY < -thr) gpDy = -1; else if (axisY > thr) gpDy = +1;
+            if (axisX < -thr) gpDx = -1; else if (axisX > thr) gpDx = +1;
+        }
+
+        if (IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_LEFT_FACE_UP)) { gpDx = 0; gpDy = -1; gpDpadPressed = true; }
+        if (IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_LEFT_FACE_DOWN)) { gpDx = 0; gpDy = +1; gpDpadPressed = true; }
+        if (IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_LEFT_FACE_LEFT)) { gpDx = -1; gpDy = 0; gpDpadPressed = true; }
+        if (IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_LEFT_FACE_RIGHT)) { gpDx = +1; gpDy = 0; gpDpadPressed = true; }
+
+        if (gpAnalogActive) moveMode = MovementMode::RepeatCooldown;
+        else if (gpDpadPressed) moveMode = MovementMode::StepByStep;
+    }
+
     if (moveMode == MovementMode::StepByStep) {
-        // Un paso por pulsación
         if (IsKeyPressed(KEY_W) || IsKeyPressed(KEY_UP))    dy = -1;
         if (IsKeyPressed(KEY_S) || IsKeyPressed(KEY_DOWN))  dy = +1;
         if (IsKeyPressed(KEY_A) || IsKeyPressed(KEY_LEFT))  dx = -1;
         if (IsKeyPressed(KEY_D) || IsKeyPressed(KEY_RIGHT)) dx = +1;
 
-        // Complementar con eventos de mando (D‑pad) en modo paso a paso
-        // Si no hay input de teclado, asigna el desplazamiento del mando.
-        if (dx == 0 && dy == 0 && (gpDx != 0 || gpDy != 0)) {
-            dx = gpDx;
-            dy = gpDy;
-        }
-
+        if (dx == 0 && dy == 0 && (gpDx != 0 || gpDy != 0)) { dx = gpDx; dy = gpDy; }
+        
         if (dx != 0 || dy != 0) {
             gAttack.lastDir = {dx, dy};
-            player.setDirectionFromDelta(dx, dy); // girar sin moverse
-
+            player.setDirectionFromDelta(dx, dy); 
             int oldx = px, oldy = py;
             tryMove(dx, dy);
             moved = (px != oldx || py != oldy);
-
-            if (moved) {
-                onSuccessfulStep(dx, dy);
-            }
+            if (moved) onSuccessfulStep(dx, dy);
         }
-
-        // Animación (idle si no te moviste)
         player.update(dt, moved);
     }
     else {
-        // Repetición con cooldown mientras mantienes tecla / mando
         moveCooldown -= dt;
-
-        // Detectar si hay una pulsación inicial de cualquier dirección
-        // (teclado o D-pad). El stick analógico NO cuenta como "pulsación
-        // nueva" para que respete el cooldown.
         bool pressedNow = IsKeyPressed(KEY_W) || IsKeyPressed(KEY_S) ||
                         IsKeyPressed(KEY_A) || IsKeyPressed(KEY_D) ||
                         IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_DOWN) ||
                         IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_RIGHT) ||
                         gpDpadPressed;
 
-        // Lectura continua de teclas
         if (IsKeyDown(KEY_W) || IsKeyDown(KEY_UP))    dy = -1;
         if (IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN))  dy = +1;
         if (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT))  dx = -1;
         if (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT)) dx = +1;
 
-        // Complementar con valores del mando
         if (dx == 0 && gpDx != 0) dx = gpDx;
         if (dy == 0 && gpDy != 0) dy = gpDy;
 
-        // permite girarte sin moverte
         if (dx != 0 || dy != 0) {
             gAttack.lastDir = {dx, dy};
             player.setDirectionFromDelta(dx, dy);
@@ -700,31 +924,25 @@ void Game::handlePlayingInput(float dt) {
             int oldx = px, oldy = py;
             tryMove(dx, dy);
             moved = (px != oldx || py != oldy);
-
-            if (moved) {
-                onSuccessfulStep(dx, dy);
-            }
-
+            if (moved) onSuccessfulStep(dx, dy);
             moveCooldown = MOVE_INTERVAL;
         }
         else if ((dx != 0 || dy != 0) && moveCooldown <= 0.0f) {
             int oldx = px, oldy = py;
             tryMove(dx, dy);
             moved = (px != oldx || py != oldy);
-
-            if (moved) {
-                onSuccessfulStep(dx, dy);
-            }
-
+            if (moved) onSuccessfulStep(dx, dy);
             moveCooldown = MOVE_INTERVAL;
         }
-
-        // Animación (idle si no hubo movimiento este frame)
         player.update(dt, moved);
     }
 
-    // Ataque Melee
-    gAttack.cdTimer    = std::max(0.f, gAttack.cdTimer - dt);
+    // --------------------------------------------------------
+    // 5. SISTEMA DE COMBATE (INPUT)
+    // --------------------------------------------------------
+    gAttack.cdTimer = std::max(0.f, gAttack.cdTimer - dt);
+    plasmaCooldown  = std::max(0.f, plasmaCooldown - dt);
+
     if (gAttack.swinging) {
         gAttack.swingTimer = std::max(0.f, gAttack.swingTimer - dt);
         if (gAttack.swingTimer <= 0.f) {
@@ -733,116 +951,60 @@ void Game::handlePlayingInput(float dt) {
         }
     }
 
-    // Rango base del puño
-    gAttack.rangeTiles = RANGE_MELEE_HAND;
+    // A) MANOS
+    bool attackHands = IsKeyPressed(KEY_SPACE);
+    if (IsGamepadAvailable(gpId) && IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_RIGHT_FACE_LEFT)) attackHands = true;
+    
+    if (attackHands && gAttack.cdTimer <= 0.f) performMeleeAttack();
 
-    // Input de ataque: SPACE, click izquierdo o botones del gamepad
-    const bool attackPressed = IsKeyPressed(KEY_SPACE) ||
-                               IsMouseButtonPressed(MOUSE_LEFT_BUTTON) ||
-                               gpAttackPressed;
-
-    if (attackPressed && gAttack.cdTimer <= 0.f) {
-        // Calcula tiles válidos con oclusión ANTES de iniciar el gesto
-        IVec2 center{px, py};
-        auto tiles = computeMeleeTilesOccluded(
-            center, gAttack.lastDir, gAttack.rangeTiles, gAttack.frontOnly, map);
-
-        if (tiles.empty()) {
-            // Delante hay pared/obstáculo: NO swing, NO cooldown, NO flash
-            return;
+    // B) ESPADA
+    bool attackSword = IsKeyPressed(KEY_ONE); 
+    if (IsGamepadAvailable(gpId) && IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_RIGHT_TRIGGER_1)) attackSword = true;
+    
+    if (attackSword) {
+        if (swordTier > 0) {
+            if (gAttack.cdTimer <= 0.f) performSwordAttack();
+        } else {
+            // std::cout << "No tienes espada\n";
         }
-
-        // Inicia gesto/flash/cooldown
-        gAttack.swinging   = true;
-        gAttack.swingTimer = gAttack.swingTime;
-        gAttack.cdTimer    = gAttack.cooldown;
-        gAttack.lastTiles  = std::move(tiles);
-
-        std::vector<size_t> toRemove;
-        toRemove.reserve(enemies.size());
-
-        bool hitSomeone = false;
-
-        for (size_t i = 0; i < enemies.size(); ++i) {
-            const int ex = enemies[i].getX();
-            const int ey = enemies[i].getY();
-
-            bool impacted = false;
-            for (const auto &t : gAttack.lastTiles) {
-                if (t.x == ex && t.y == ey) { impacted = true; break; }
-            }
-            if (!impacted) continue;
-
-            // Asegura tamaño de arrays paralelos
-            if (enemyHP.size() != enemies.size()) {
-                enemyHP.assign(enemies.size(), ENEMY_BASE_HP);
-                enemyAtkCD.assign(enemies.size(), 0.0f);
-            }
-
-            hitSomeone = true;
-
-            int before  = enemyHP[i];
-            enemyHP[i]  = std::max(0, enemyHP[i] - PLAYER_MELEE_DMG);
-
-            std::cout << "[Melee] Player -> Enemy (" << ex << "," << ey
-                      << ") " << before << "% -> " << enemyHP[i] << "%\n";
-
-            if (enemyHP[i] <= 0) toRemove.push_back(i);
-        }
-
-        if (!toRemove.empty()) {
-            std::sort(toRemove.rbegin(), toRemove.rend());
-            for (size_t idx : toRemove) {
-                enemies.erase(enemies.begin() + (long)idx);
-                if (idx < enemyFacing.size())
-                    enemyFacing.erase(enemyFacing.begin() + (long)idx);
-                if (idx < enemyHP.size())
-                    enemyHP.erase(enemyHP.begin() + (long)idx);
-                if (idx < enemyAtkCD.size())
-                    enemyAtkCD.erase(enemyAtkCD.begin() + (long)idx);
-            }
-        }
-
-        if (!hitSomeone)
-            std::cout << "[Melee] Swing (no target)\n";
-
-        // Posible contraataque del enemigo si está enfrente y mirando
-        enemyTryAttackFacing();
     }
 
-    // Debug/controles de vida
-    if (IsKeyPressed(KEY_H)) { hp = std::max(0, hp - 1); }      // perder vida
-    if (IsKeyPressed(KEY_J)) { hp = std::min(hpMax, hp + 1); }  // ganar vida
+    // C) PLASMA
+    bool attackPlasma = IsKeyPressed(KEY_TWO);
+    if (IsGamepadAvailable(gpId)) {
+        if (IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_RIGHT_TRIGGER_2)) attackPlasma = true;
+    }
+    if (attackPlasma) {
+        if (plasmaTier > 0) {
+            if (plasmaCooldown <= 0.f) performPlasmaAttack();
+        } else {
+            // std::cout << "No tienes plasma\n";
+        }
+    }
+
+    // Cheats
+    if (IsKeyPressed(KEY_H)) { hp = std::max(0, hp - 2); }      
+    if (IsKeyPressed(KEY_J)) { hp = std::min(hpMax, hp + 2); }  
 }
 
 void Game::clampCameraToMap() {
     const float worldW = map.width() * (float)tileSize;
     const float worldH = map.height() * (float)tileSize;
-
-    // tamaño del viewport en coordenadas de mundo (depende del zoom)
     const float viewW = screenW / camera.zoom;
     const float viewH = screenH / camera.zoom;
     const float halfW = viewW * 0.5f;
     const float halfH = viewH * 0.5f;
 
-    // Si el mundo es más pequeño que el viewport, centramos;
-    // si no, acotamos el target al rango [half, world-half]
-    if (worldW <= viewW)
-        camera.target.x = worldW * 0.5f;
-    else
-        camera.target.x = std::clamp(camera.target.x, halfW, worldW - halfW);
+    if (worldW <= viewW) camera.target.x = worldW * 0.5f;
+    else camera.target.x = std::clamp(camera.target.x, halfW, worldW - halfW);
 
-    if (worldH <= viewH)
-        camera.target.y = worldH * 0.5f;
-    else
-        camera.target.y = std::clamp(camera.target.y, halfH, worldH - halfH);
+    if (worldH <= viewH) camera.target.y = worldH * 0.5f;
+    else camera.target.y = std::clamp(camera.target.y, halfH, worldH - halfH);
 }
 
 void Game::centerCameraOnPlayer() {
-    camera.target = {
-        px * (float)tileSize + tileSize / 2.0f,
-        py * (float)tileSize + tileSize / 2.0f
-    };
+    camera.target = { px * (float)tileSize + tileSize / 2.0f,
+                      py * (float)tileSize + tileSize / 2.0f };
     clampCameraToMap();
 }
 
@@ -854,70 +1016,141 @@ void Game::recomputeFovIfNeeded() {
 
 void Game::onSuccessfulStep(int dx, int dy) {
     if (dx != 0 || dy != 0) {
-        gAttack.lastDir = {dx, dy};           // mantiene facing del melee
-        player.setDirectionFromDelta(dx, dy); // gira el sprite
+        gAttack.lastDir = {dx, dy};           
+        player.setDirectionFromDelta(dx, dy); 
     }
-
-    player.setGridPos(px, py);                // estado del jugador
-    recomputeFovIfNeeded();                   // FOV si la niebla está activa
-    centerCameraOnPlayer();                   // cámara centrada en tile del player
-    updateEnemiesAfterPlayerMove(true);       // IA de enemigos tras moverte
+    player.setGridPos(px, py);                
+    recomputeFovIfNeeded();                   
+    centerCameraOnPlayer();                   
+    updateEnemiesAfterPlayerMove(true);       
 }
 
 int Game::defaultFovFromViewport() const {
-    // nº de tiles visibles en cada eje
     int tilesX = screenW / tileSize;
     int tilesY = screenH / tileSize;
     int r = static_cast<int>(std::floor(std::min(tilesX, tilesY) * 0.15f));
     return std::clamp(r, 3, 20);
 }
 
+// --- ARCHIVO: src/core/Game.cpp ---
+
 void Game::update() {
-    if (state != GameState::Playing)
-        return;
+    if (state != GameState::Playing) return;
 
-    // recoger si estás encima de algo
-    tryPickupHere();
+    float dt = GetFrameTime();
 
-    // ¿Has llegado a la salida?
-    if (map.at(px, py) == EXIT) {
-        if (hasKey)
-            onExitReached();
+    // --- LÓGICA DE DASH ---
+    if (isDashing) {
+        dashTimer -= dt;
+        
+        // Efecto visual: rastro de partículas
+        if (GetRandomValue(0, 10) < 8) { // 80% chance por frame
+             // Generar partícula azulada en la posición actual (interpolada)
+             // Puedes usar una función spawnParticle simple o reutilizar spawnExplosion con 1 sola partícula
+             Vector2 currentPos = camera.target; // Aprox
+             // Si quieres ser preciso, calcula la posición interpolada:
+             float t = 1.0f - (dashTimer / DASH_DURATION);
+             Vector2 lerpPos = {
+                 dashStartPos.x + (dashEndPos.x - dashStartPos.x) * t,
+                 dashStartPos.y + (dashEndPos.y - dashStartPos.y) * t
+             };
+             // spawnExplosion(lerpPos, 1, SKYBLUE); // Opcional: rastro
+        }
+
+        if (dashTimer <= 0.0f) {
+            isDashing = false;
+            // Al terminar, aseguramos posición final exacta en grid
+            // (La posición lógica px, py ya se actualizó al iniciar el dash, 
+            //  aquí solo termina la animación visual si hicieras algo especial)
+        }
+        
+        // Durante el dash, saltamos el resto del update normal (movimiento standard)
+        // Pero SÍ actualizamos cámara para seguir la acción rápida
+        Vector2 desired = {px * (float)tileSize + tileSize / 2.0f,
+                           py * (float)tileSize + tileSize / 2.0f};
+        // Cámara MUY rápida durante el dash
+        camera.target.x = desired.x; 
+        camera.target.y = desired.y;
+        clampCameraToMap();
+        
+        return; // <--- IMPORTANTE: No hacemos nada más mientras dashea
     }
 
-    // helper local
-    auto Lerp = [](float a, float b, float t) { 
-        return a + (b - a) * t; 
-    };
+    // Gestionar Cooldown del Dash
+    dashCooldownTimer = std::max(0.0f, dashCooldownTimer - dt);
 
-    // cada frame, en vez de asignar directo:
+    tryAutoPickup();
+    
+    // Temporizadores
+    if (hasShield) {
+        shieldTimer -= dt;
+        if (shieldTimer <= 0.0f) hasShield = false;
+    }
+    if (glassesTimer > 0.0f) {
+        glassesTimer -= dt;
+        if (glassesTimer <= 0.0f) recomputeFovIfNeeded(); 
+    }
+    for (auto &t : enemyFlashTimer) t = std::max(0.0f, t - dt);
+
+    updateProjectiles(dt);
+    updateFloatingTexts(dt);
+    updateParticles(dt);
+
+    if (map.at(px, py) == EXIT) {
+        if (hasKey) onExitReached();
+    }
+
+    // Cámara Suave
+    auto Lerp = [](float a, float b, float t) { return a + (b - a) * t; };
     Vector2 desired = {px * (float)tileSize + tileSize / 2.0f,
                        py * (float)tileSize + tileSize / 2.0f};
-    float smooth = 10.0f * GetFrameTime(); // 0.0–1.0 (ajusta a gusto)
+    float smooth = 10.0f * dt; 
     camera.target.x = Lerp(camera.target.x, desired.x, smooth);
     camera.target.y = Lerp(camera.target.y, desired.y, smooth);
-    clampCameraToMap();
 
-    // Transición a Game Over si la vida llega a 0
+    // 1. PRIMERO ASEGURAMOS QUE LA CÁMARA ESTÁ DENTRO
+    clampCameraToMap(); 
+
+    // 2. DESPUÉS APLICAMOS EL TERREMOTO
+    if (shakeTimer > 0.0f) {
+        shakeTimer -= dt;
+        float intensity = 5.0f;
+        camera.target.x += (float)GetRandomValue(-100, 100) / 100.0f * intensity;
+        camera.target.y += (float)GetRandomValue(-100, 100) / 100.0f * intensity;
+    }
+
+    // Muerte
     if (hp <= 0) {
-        state = GameState::GameOver;
-        gAttack.swinging = false; // por si había flash de melee activo
-        gAttack.lastTiles.clear();
+        if (hasBattery) {
+            hasBattery = false;
+            hp = hpMax / 2;
+            if (hp < 1) hp = 1;
+            std::cout << "[Bateria] Resucitado.\n";
+            damageCooldown = 2.0f; 
+            shakeTimer = 0.5f; 
+            PlaySound(sfxPowerUp);
+        } else {
+            state = GameState::GameOver;
+            gAttack.swinging = false; 
+            gAttack.lastTiles.clear();
+            PlaySound(sfxLoose);
+        }
         return;
     }
 
     damageCooldown = std::max(0.0f, damageCooldown - GetFrameTime());
-    for (auto &cd : enemyAtkCD) cd = std::max(0.0f, cd - GetFrameTime());
+    for (auto &cd : enemyAtkCD) cd = std::max(0.0f, cd - dt);
 }
 
 void Game::onExitReached() {
     if (currentLevel < maxLevels) {
         currentLevel++;
-        newLevel(currentLevel); // ← cada nivel usa levelSeed diferente
+        newLevel(currentLevel); 
     }
     else {
         state = GameState::Victory;
-        std::cout << "[Victory] ¡Has completado los 3 niveles!\n";
+        PlaySound(sfxWin);
+        std::cout << "[Victory] Fin!\n";
     }
 }
 
@@ -930,23 +1163,20 @@ void Game::render() {
     BeginDrawing();
     ClearBackground(BLACK);
 
-    // --- Cámara: el mapa y el jugador se dibujan dentro del mundo ---
     BeginMode2D(camera);
 
-    // Mapa (mundo)
     map.draw(tileSize);
-
-    // Enemigos
     drawEnemies();
-
-    // Jugador (en coordenadas del mundo)
     player.draw(tileSize, px, py);
-
-    // Ítems del nivel (placeholder en colores)
     drawItems();
-    // Requiere que exista gAttack (AttackRuntime) y que lo actualices en processInput()
+    
+    // PROYECTILES (NUEVO)
+    drawProjectiles();
+    drawFloatingTexts();
+    drawParticles();
+
     if (gAttack.swinging && !gAttack.lastTiles.empty()) {
-        Color fill = {255, 230, 50, 120}; // amarillo translúcido
+        Color fill = {255, 230, 50, 120}; 
         for (const auto &t : gAttack.lastTiles) {
             int xpx = t.x * tileSize;
             int ypx = t.y * tileSize;
@@ -956,32 +1186,23 @@ void Game::render() {
     }
 
     EndMode2D();
-    // --- Fin de cámara ---
 
-    // --- HUD --- (no afectado por cámara ni zoom)
-    if (state == GameState::Playing) {
-        hud.drawPlaying(*this);
-    }
-    else if (state == GameState::Victory) {
-        hud.drawVictory(*this);
-    }
-    else if (state == GameState::GameOver) {
-        hud.drawGameOver(*this);
-    }
+    if (state == GameState::Playing) hud.drawPlaying(*this);
+    else if (state == GameState::Victory) hud.drawVictory(*this);
+    else if (state == GameState::GameOver) hud.drawGameOver(*this);
 
     EndDrawing();
 }
 
 void Game::updateEnemiesAfterPlayerMove(bool moved) {
-    if (!moved)
-        return;
+    if (!moved) return;
 
     struct Intent {
-        int fromx, fromy; // origen
-        int tox, toy;     // destino propuesto
-        bool wants;       // quiere moverse
-        int score;        // menor = mejor (distancia al jugador tras moverse)
-        size_t idx;       // índice del enemigo (para desempates estables)
+        int fromx, fromy; 
+        int tox, toy;     
+        bool wants;       
+        int score;        
+        size_t idx;       
     };
 
     auto inRangePx = [&](int ex, int ey) -> bool {
@@ -991,177 +1212,551 @@ void Game::updateEnemiesAfterPlayerMove(bool moved) {
     };
 
     auto can = [&](int nx, int ny) -> bool {
+        // CORRECCIÓN SOLAPAMIENTO: 
+        // El enemigo nunca puede considerar "caminable" la casilla del jugador.
+        if (nx == px && ny == py) return false; 
+
         return nx >= 0 && ny >= 0 && nx < map.width() && ny < map.height() &&
                map.isWalkable(nx, ny);
     };
 
-    auto sgn = [](int v) { 
-        return (v > 0) - (v < 0); 
-    };
+    auto sgn = [](int v) { return (v > 0) - (v < 0); };
 
+    // Lógica Greedy mejorada
     auto greedyNext = [&](int ex, int ey) -> std::pair<int, int> {
         int dx = px - ex, dy = py - ey;
-        if (dx == 0 && dy == 0)
-            return {ex, ey};
+        
+        // Si ya está encima (bug extremo), no moverse
+        if (dx == 0 && dy == 0) return {ex, ey};
+
+        // Intentar eje mayor primero
         if (std::abs(dx) >= std::abs(dy)) {
             int nx = ex + sgn(dx), ny = ey;
-            if (can(nx, ny))
-                return {nx, ny};
-            nx = ex;
-            ny = ey + sgn(dy);
-            if (can(nx, ny))
-                return {nx, ny};
+            if (can(nx, ny)) return {nx, ny};
+            // Si falla, probar eje menor
+            nx = ex; ny = ey + sgn(dy);
+            if (can(nx, ny)) return {nx, ny};
         }
         else {
             int nx = ex, ny = ey + sgn(dy);
-            if (can(nx, ny))
-                return {nx, ny};
-            nx = ex + sgn(dx);
-            ny = ey;
-            if (can(nx, ny))
-                return {nx, ny};
+            if (can(nx, ny)) return {nx, ny};
+            // Si falla, probar eje mayor
+            nx = ex + sgn(dx); ny = ey;
+            if (can(nx, ny)) return {nx, ny};
         }
-        return {ex, ey}; // bloqueado
+        
+        // Si está bloqueado o el siguiente paso es el jugador (can devuelve false),
+        // devolvemos la posición actual pero intentaremos rotarlo después.
+        return {ex, ey}; 
     };
 
-    // Construir intenciones
     std::vector<Intent> intents;
     intents.reserve(enemies.size());
+
     for (size_t i = 0; i < enemies.size(); ++i) {
         const auto &e = enemies[i];
         Intent it{e.getX(), e.getY(), e.getX(), e.getY(), false, 1'000'000, i};
 
         if (inRangePx(e.getX(), e.getY())) {
             auto [nx, ny] = greedyNext(e.getX(), e.getY());
-            it.tox = nx;
+            
+            // Si la función greedy dice "quédate aquí" (porque hay pared o jugador),
+            // marcamos wants=false, pero luego calcularemos el facing manualmente.
+            it.tox = nx; 
             it.toy = ny;
             it.wants = (nx != e.getX() || ny != e.getY());
             it.score = std::abs(px - nx) + std::abs(py - ny);
         }
         else {
-            it.score = std::abs(px - e.getX()) + std::abs(py - e.getY()); // fuera de rango: no se mueve
+            it.score = std::abs(px - e.getX()) + std::abs(py - e.getY()); 
         }
         intents.push_back(it);
     }
 
-    // Resolver conflictos de MISMO destino: gana menor score; si empatan, menor idx
+    // Resolución de conflictos entre enemigos (Evitar que se fusionen)
     for (size_t i = 0; i < intents.size(); ++i) {
-        if (!intents[i].wants)
-            continue;
+        if (!intents[i].wants) continue;
         for (size_t j = i + 1; j < intents.size(); ++j) {
-            if (!intents[j].wants)
-                continue;
-            if (intents[i].tox == intents[j].tox &&
-                intents[i].toy == intents[j].toy) {
-                bool jWins = (intents[j].score < intents[i].score) ||
-                             (intents[j].score == intents[i].score &&
-                              intents[j].idx < intents[i].idx);
-                if (jWins) {
-                    intents[i].tox = intents[i].fromx;
-                    intents[i].toy = intents[i].fromy;
-                    intents[i].wants = false;
-                }
-                else {
-                    intents[j].tox = intents[j].fromx;
-                    intents[j].toy = intents[j].fromy;
-                    intents[j].wants = false;
-                }
+            if (!intents[j].wants) continue;
+            
+            // Dos enemigos quieren ir a la misma casilla
+            if (intents[i].tox == intents[j].tox && intents[i].toy == intents[j].toy) {
+                // Gana el que esté más cerca del jugador (menor score)
+                if (intents[j].score < intents[i].score) intents[i].wants = false;
+                else intents[j].wants = false;
+            }
+            // Intercambio directo (Head-on swap) - Evitar atravesarse
+            if (intents[i].tox == intents[j].fromx && intents[i].toy == intents[j].fromy &&
+                intents[j].tox == intents[i].fromx && intents[j].toy == intents[i].fromy) {
+                 intents[i].wants = false;
+                 intents[j].wants = false;
             }
         }
     }
 
-    // No invadir la casilla de un enemigo que se queda quieto
-    for (size_t i = 0; i < intents.size(); ++i) {
-        if (!intents[i].wants)
-            continue;
-        for (size_t j = 0; j < intents.size(); ++j) {
-            if (i == j)
-                continue;
-            bool otherStays =
-                !intents[j].wants || (intents[j].tox == intents[j].fromx &&
-                                      intents[j].toy == intents[j].fromy);
-            if (otherStays && intents[i].tox == intents[j].fromx &&
-                intents[i].toy == intents[j].fromy) {
-                intents[i].tox = intents[i].fromx;
-                intents[i].toy = intents[i].fromy;
-                intents[i].wants = false;
-                break;
-            }
-        }
-    }
-
-    // Evitar "swap" cabeza-con-cabeza (A<->B). Gana mejor score; si empatan, menor idx
-    for (size_t i = 0; i < intents.size(); ++i) {
-        if (!intents[i].wants)
-            continue;
-        for (size_t j = i + 1; j < intents.size(); ++j) {
-            if (!intents[j].wants)
-                continue;
-            bool headOnSwap = intents[i].tox == intents[j].fromx &&
-                              intents[i].toy == intents[j].fromy &&
-                              intents[j].tox == intents[i].fromx &&
-                              intents[j].toy == intents[i].fromy;
-            if (headOnSwap) {
-                bool jWins = (intents[j].score < intents[i].score) ||
-                             (intents[j].score == intents[i].score &&
-                              intents[j].idx < intents[i].idx);
-                if (jWins) {
-                    intents[i].tox = intents[i].fromx;
-                    intents[i].toy = intents[i].fromy;
-                    intents[i].wants = false;
-                }
-                else {
-                    intents[j].tox = intents[j].fromx;
-                    intents[j].toy = intents[j].fromy;
-                    intents[j].wants = false;
-                }
-            }
-        }
-    }
-
-    // Calcular facing por delta y aplicar movimientos
+    // APLICAR MOVIMIENTO Y ROTACIÓN (Facing)
     for (size_t i = 0; i < enemies.size(); ++i) {
         int ox = intents[i].fromx, oy = intents[i].fromy;
-        int tx = intents[i].tox, ty = intents[i].toy;
-
-        // Facing por DELTA INTENTADO (aunque luego no se mueva)
-        int dxTry = tx - ox, dyTry = ty - oy;
-        if (dxTry != 0 || dyTry != 0) {
-            if (std::abs(dxTry) >= std::abs(dyTry))
-                enemyFacing[i] = (dxTry > 0) ? EnemyFacing::Right : EnemyFacing::Left;
-            else
-                enemyFacing[i] = (dyTry > 0) ? EnemyFacing::Down : EnemyFacing::Up;
+        
+        if (intents[i].wants) {
+            // MOVERSE
+            enemies[i].setPos(intents[i].tox, intents[i].toy);
+            
+            // Calcular dirección basada en el movimiento
+            int dx = intents[i].tox - ox;
+            int dy = intents[i].toy - oy;
+            if (dx > 0) enemyFacing[i] = EnemyFacing::Right;
+            else if (dx < 0) enemyFacing[i] = EnemyFacing::Left;
+            else if (dy > 0) enemyFacing[i] = EnemyFacing::Down;
+            else if (dy < 0) enemyFacing[i] = EnemyFacing::Up;
+        } 
+        else {
+            // NO SE MUEVE (Bloqueado o llegó al jugador)
+            // IMPORTANTE: Si está adyacente al jugador, FORZAR que le mire.
+            // Esto arregla el bug de que no ataquen si se pegan a ti.
+            if (isAdjacent4(ox, oy, px, py)) {
+                int dx = px - ox;
+                int dy = py - oy;
+                if (std::abs(dx) >= std::abs(dy)) {
+                    enemyFacing[i] = (dx > 0) ? EnemyFacing::Right : EnemyFacing::Left;
+                } else {
+                    enemyFacing[i] = (dy > 0) ? EnemyFacing::Down : EnemyFacing::Up;
+                }
+            }
         }
+    }
+    
+    // Intentar atacar después de moverse/rotar
+    enemyTryAttackFacing();
+}
 
-        // No permitir que un enemigo se meta en la casilla del jugador
-        int nx = tx, ny = ty;
-        if (nx == px && ny == py) {
-            nx = ox;
-            ny = oy;
+void Game::takeDamage(int amount) {
+    if (isDashing) return;
+    // Si tiene escudo
+    if (hasShield) {
+        hasShield = false;    // Romper el escudo
+        shieldTimer = 0.0f;   // Resetear tiempo visual
+        
+        // Feedback visual: Muestra un "0" azul indicando daño bloqueado
+        Vector2 pos = { px * (float)tileSize + 8, py * (float)tileSize - 10 };
+        spawnFloatingText(pos, 0, SKYBLUE); 
+
+        std::cout << "[Shield] ¡Golpe bloqueado! El escudo se ha roto.\n";
+        return; // Salimos sin restar vida real
+    }
+
+    // 2. Si no tiene escudo (Daño normal)
+    hp = std::max(0, hp - amount);
+    PlaySound(sfxHurt);
+
+    shakeTimer = 0.3f;
+    
+    // Feedback visual: Texto flotante ROJO con el daño recibido
+    Vector2 pos = { px * (float)tileSize + 8, py * (float)tileSize - 10 };
+    spawnFloatingText(pos, amount, RED);
+    
+    std::cout << "[HP] -" << amount << " -> " << hp << "\n";
+}
+
+Rectangle Game::uiCenterRect(float w, float h) const {
+    return {(screenW - w) * 0.5f, (screenH - h) * 0.5f, w, h};
+}
+
+// -----------------------------------------------------------------------------
+// IMPLEMENTACIÓN DE COMBATE Y PROYECTILES
+// -----------------------------------------------------------------------------
+
+void Game::performMeleeAttack() {
+    gAttack.rangeTiles = 1;
+    gAttack.cooldown   = CD_HANDS;
+    gAttack.swingTime  = 0.1f;
+    gAttack.frontOnly  = true; 
+
+    gAttack.swinging   = true;
+    gAttack.swingTimer = gAttack.swingTime;
+    gAttack.cdTimer    = gAttack.cooldown; 
+
+    IVec2 center{px, py};
+    gAttack.lastTiles = computeMeleeTilesOccluded(
+        center, gAttack.lastDir, gAttack.rangeTiles, gAttack.frontOnly, map);
+
+    bool hit = false;
+    for (size_t i = 0; i < enemies.size(); ++i) {
+        IVec2 epos = {enemies[i].getX(), enemies[i].getY()};
+        bool impacted = false;
+        for (const auto& t : gAttack.lastTiles) {
+            if (t.x == epos.x && t.y == epos.y) { impacted = true; break; }
         }
+        
+        if (impacted) {
+            hit = true;
+            
+            // SONIDO GOLPE
+            PlaySound(sfxHit); 
 
-        enemies[i].setPos(nx, ny);
+            if (enemyHP.size() != enemies.size()) enemyHP.assign(enemies.size(), ENEMY_BASE_HP);
+            
+            enemyHP[i] -= DMG_HANDS;
+
+            Vector2 ePos = { (float)enemies[i].getX() * tileSize + 8, 
+                             (float)enemies[i].getY() * tileSize - 10 };
+            spawnFloatingText(ePos, DMG_HANDS, RAYWHITE);
+
+            if (i < enemyFlashTimer.size()) enemyFlashTimer[i] = 0.15f;
+
+            std::cout << "[Melee] Puñetazo! -" << DMG_HANDS << "\n";
+            
+            // PROVOCACIÓN (IA Agresiva)
+            if (i < enemyAtkCD.size()) enemyAtkCD[i] = 0.0f;
+            int dx = px - enemies[i].getX();
+            int dy = py - enemies[i].getY();
+            if (i < enemyFacing.size()) {
+                if (std::abs(dx) >= std::abs(dy)) enemyFacing[i] = (dx > 0) ? EnemyFacing::Right : EnemyFacing::Left;
+                else enemyFacing[i] = (dy > 0) ? EnemyFacing::Down : EnemyFacing::Up;
+            }
+        }
+    }
+    
+    // Limpieza de muertos + EXPLOSIONES + SONIDO MUERTE
+    if (hit) {
+         std::vector<size_t> toRemove;
+         for(size_t i=0; i<enemyHP.size(); ++i) if(enemyHP[i] <= 0) toRemove.push_back(i);
+         if (!toRemove.empty()) {
+            std::sort(toRemove.rbegin(), toRemove.rend());
+            for (size_t idx : toRemove) {
+                // EXPLOSIÓN VISUAL
+                float ex = enemies[idx].getX() * tileSize + tileSize / 2.0f;
+                float ey = enemies[idx].getY() * tileSize + tileSize / 2.0f;
+                spawnExplosion({ex, ey}, 15, DARKGRAY);
+                spawnExplosion({ex, ey}, 5, RED); 
+                
+                // SONIDO EXPLOSIÓN
+                PlaySound(sfxExplosion);
+
+                enemies.erase(enemies.begin() + idx);
+                if (idx < enemyFacing.size()) enemyFacing.erase(enemyFacing.begin() + idx);
+                if (idx < enemyHP.size()) enemyHP.erase(enemyHP.begin() + idx);
+                if (idx < enemyAtkCD.size()) enemyAtkCD.erase(enemyAtkCD.begin() + idx);
+                if (idx < enemyFlashTimer.size()) enemyFlashTimer.erase(enemyFlashTimer.begin() + idx);
+            }
+        }
     }
 
     enemyTryAttackFacing();
 }
 
-void Game::takeDamage(int amount) {
-    int old = hp;
-    hp = std::max(0, hp - amount);
-    int oldPct = (int)std::lround(100.0 * old / std::max(1, hpMax));
-    int newPct = (int)std::lround(100.0 * hp / std::max(1, hpMax));
-    std::cout << "[HP] -" << amount << " (" << old << "→" << hp << ") " << oldPct
-              << "%→" << newPct << "%\n";
+void Game::performSwordAttack() {
+    int dmg = DMG_SWORD_T1;
+    if (swordTier == 2) dmg = DMG_SWORD_T2;
+    if (swordTier == 3) dmg = DMG_SWORD_T3;
 
-    if (hp == 0 && state == GameState::Playing) {
-        state = GameState::GameOver;
-        gAttack.swinging = false;
-        gAttack.lastTiles.clear();
-        std::cout << "[GameOver] Has sido destruido.\n";
+    gAttack.rangeTiles = 1; 
+    gAttack.cooldown   = CD_SWORD;
+    gAttack.swingTime  = 0.15f; 
+    gAttack.frontOnly  = true; 
+
+    gAttack.swinging   = true;
+    gAttack.swingTimer = gAttack.swingTime;
+    gAttack.cdTimer    = gAttack.cooldown;
+    
+    IVec2 center{px, py};
+    gAttack.lastTiles = computeMeleeTilesOccluded(
+        center, gAttack.lastDir, gAttack.rangeTiles, gAttack.frontOnly, map);
+
+    bool hit = false;
+    for (size_t i = 0; i < enemies.size(); ++i) {
+        IVec2 epos = {enemies[i].getX(), enemies[i].getY()};
+        for (const auto& t : gAttack.lastTiles) {
+            if (t.x == epos.x && t.y == epos.y) {
+                hit = true;
+                
+                // SONIDO GOLPE
+                PlaySound(sfxHit);
+
+                if (enemyHP.size() != enemies.size()) enemyHP.assign(enemies.size(), ENEMY_BASE_HP);
+                
+                enemyHP[i] -= dmg;
+
+                Vector2 ePos = { (float)enemies[i].getX() * tileSize + 8, 
+                                 (float)enemies[i].getY() * tileSize - 10 };
+                Color c = (swordTier >= 3) ? YELLOW : RAYWHITE;
+                spawnFloatingText(ePos, dmg, c);
+
+                if (i < enemyFlashTimer.size()) enemyFlashTimer[i] = 0.15f;
+
+                std::cout << "[Sword] Slash! -" << dmg << "\n";
+
+                // PROVOCACIÓN
+                if (i < enemyAtkCD.size()) enemyAtkCD[i] = 0.0f; 
+                int dx = px - enemies[i].getX();
+                int dy = py - enemies[i].getY();
+                if (i < enemyFacing.size()) {
+                    if (std::abs(dx) >= std::abs(dy)) enemyFacing[i] = (dx > 0) ? EnemyFacing::Right : EnemyFacing::Left;
+                    else enemyFacing[i] = (dy > 0) ? EnemyFacing::Down : EnemyFacing::Up;
+                }
+                break;
+            }
+        }
+    }
+    
+    // Limpieza de muertos + EXPLOSIONES + SONIDO
+     if (hit) {
+         std::vector<size_t> toRemove;
+         for(size_t i=0; i<enemyHP.size(); ++i) if(enemyHP[i] <= 0) toRemove.push_back(i);
+         if (!toRemove.empty()) {
+            std::sort(toRemove.rbegin(), toRemove.rend());
+            for (size_t idx : toRemove) {
+                // EXPLOSIÓN VISUAL
+                float ex = enemies[idx].getX() * tileSize + tileSize / 2.0f;
+                float ey = enemies[idx].getY() * tileSize + tileSize / 2.0f;
+                spawnExplosion({ex, ey}, 15, DARKGRAY);
+                spawnExplosion({ex, ey}, 5, RED); 
+                
+                // SONIDO EXPLOSIÓN
+                PlaySound(sfxExplosion);
+
+                enemies.erase(enemies.begin() + idx);
+                if (idx < enemyFacing.size()) enemyFacing.erase(enemyFacing.begin() + idx);
+                if (idx < enemyHP.size()) enemyHP.erase(enemyHP.begin() + idx);
+                if (idx < enemyAtkCD.size()) enemyAtkCD.erase(enemyAtkCD.begin() + idx);
+                if (idx < enemyFlashTimer.size()) enemyFlashTimer.erase(enemyFlashTimer.begin() + idx);
+            }
+        }
+    }
+
+    enemyTryAttackFacing();
+}
+
+void Game::performPlasmaAttack() {
+    plasmaCooldown = CD_PLASMA;
+    spawnProjectile(DMG_PLASMA);
+
+    if (plasmaTier >= 2) {
+        burstShotsLeft = 1;     
+        burstTimer = 0.15f;     
+    } else {
+        burstShotsLeft = 0;
     }
 }
 
-Rectangle Game::uiCenterRect(float w, float h) const {
-    return {(screenW - w) * 0.5f, (screenH - h) * 0.5f, w, h};
+void Game::spawnProjectile(int dmg) {
+    Projectile p;
+    p.pos = { px * (float)tileSize + tileSize/2.0f, py * (float)tileSize + tileSize/2.0f };
+    
+    Vector2 dir = { (float)gAttack.lastDir.x, (float)gAttack.lastDir.y };
+    if (dir.x == 0 && dir.y == 0) dir = {0, 1};
+
+    float len = std::sqrt(dir.x*dir.x + dir.y*dir.y);
+    if (len > 0) { dir.x/=len; dir.y/=len; }
+
+    p.vel = { dir.x * PLASMA_SPEED, dir.y * PLASMA_SPEED };
+    p.maxDistance = PLASMA_RANGE_TILES * tileSize;
+    p.distanceTraveled = 0.0f;
+    p.damage = dmg;
+    p.active = true;
+
+    projectiles.push_back(p);
+}
+
+void Game::updateProjectiles(float dt) {
+    // 1. Burst
+    if (burstShotsLeft > 0) {
+        burstTimer -= dt;
+        if (burstTimer <= 0.0f) {
+            spawnProjectile(DMG_PLASMA);
+            burstShotsLeft--;
+            burstTimer = 0.15f;
+        }
+    }
+
+    // 2. Movimiento y Colisiones
+    for (auto &p : projectiles) {
+        if (!p.active) continue;
+
+        float step = std::sqrt(p.vel.x*p.vel.x + p.vel.y*p.vel.y) * dt;
+        p.pos.x += p.vel.x * dt;
+        p.pos.y += p.vel.y * dt;
+        p.distanceTraveled += step;
+
+        if (p.distanceTraveled >= p.maxDistance) {
+            p.active = false;
+            continue;
+        }
+
+        int tx = (int)(p.pos.x / tileSize);
+        int ty = (int)(p.pos.y / tileSize);
+        if (tx < 0 || ty < 0 || tx >= map.width() || ty >= map.height() || 
+            map.at(tx, ty) == WALL) {
+            p.active = false; 
+            continue;
+        }
+
+        for (size_t i = 0; i < enemies.size(); ++i) {
+            Vector2 ePos = { 
+                enemies[i].getX() * (float)tileSize + tileSize/2.0f,
+                enemies[i].getY() * (float)tileSize + tileSize/2.0f
+            };
+            
+            float dx = p.pos.x - ePos.x;
+            float dy = p.pos.y - ePos.y;
+            float rad = tileSize * 0.6f; 
+
+            if (dx*dx + dy*dy < rad*rad) {
+                p.active = false;
+                
+                // SONIDO IMPACTO
+                PlaySound(sfxHit);
+
+                if (enemyHP.size() != enemies.size()) enemyHP.assign(enemies.size(), 100);
+                enemyHP[i] -= p.damage;
+
+                Vector2 ePosFloat = { (float)enemies[i].getX() * tileSize + 8, 
+                                      (float)enemies[i].getY() * tileSize - 10 };
+                spawnFloatingText(ePosFloat, p.damage, SKYBLUE); 
+
+                if (i < enemyFlashTimer.size()) enemyFlashTimer[i] = 0.15f;
+    
+                std::cout << "[Plasma] Hit! -" << p.damage << "\n";
+                break; 
+            }
+        }
+    }
+
+    projectiles.erase(
+        std::remove_if(projectiles.begin(), projectiles.end(), 
+            [](const Projectile& p){ return !p.active; }),
+        projectiles.end()
+    );
+
+    // 3. Limpieza de muertos + EXPLOSIONES + SONIDO
+    std::vector<size_t> toRemove;
+    for(size_t i=0; i<enemyHP.size(); ++i) {
+        if (enemyHP[i] <= 0) toRemove.push_back(i);
+    }
+    if (!toRemove.empty()) {
+        std::sort(toRemove.rbegin(), toRemove.rend());
+        for (size_t idx : toRemove) {
+            // EXPLOSIÓN VISUAL
+            float ex = enemies[idx].getX() * tileSize + tileSize / 2.0f;
+            float ey = enemies[idx].getY() * tileSize + tileSize / 2.0f;
+            spawnExplosion({ex, ey}, 15, DARKGRAY);
+            spawnExplosion({ex, ey}, 5, RED); 
+            
+            // SONIDO EXPLOSIÓN
+            PlaySound(sfxExplosion);
+
+            enemies.erase(enemies.begin() + idx);
+            if (idx < enemyFacing.size()) enemyFacing.erase(enemyFacing.begin() + idx);
+            if (idx < enemyHP.size()) enemyHP.erase(enemyHP.begin() + idx);
+            if (idx < enemyAtkCD.size()) enemyAtkCD.erase(enemyAtkCD.begin() + idx);
+            if (idx < enemyFlashTimer.size()) enemyFlashTimer.erase(enemyFlashTimer.begin() + idx);
+        }
+    }
+}
+
+void Game::drawProjectiles() const {
+    for (const auto& p : projectiles) {
+        DrawCircleV(p.pos, 5.0f, SKYBLUE);
+        DrawCircleV(p.pos, 2.0f, WHITE);
+    }
+}
+
+// --- SISTEMA DE TEXTOS FLOTANTES ---
+
+void Game::spawnFloatingText(Vector2 pos, int value, Color color) {
+    FloatingText ft;
+    // Un poco de aleatoriedad en la posición para que no se solapen si hay muchos
+    float offsetX = (float)(rand() % 16 - 8); 
+    ft.pos = { pos.x + offsetX, pos.y };
+    ft.value = value;
+    ft.lifeTime = 0.8f; // Duran 0.8 segundos
+    ft.timer = ft.lifeTime;
+    ft.color = color;
+    floatingTexts.push_back(ft);
+}
+
+void Game::updateFloatingTexts(float dt) {
+    for (auto &ft : floatingTexts) {
+        ft.timer -= dt;
+        // El texto sube hacia arriba (eje Y negativo)
+        ft.pos.y -= 30.0f * dt; 
+    }
+
+    // Borrar textos expirados
+    floatingTexts.erase(
+        std::remove_if(floatingTexts.begin(), floatingTexts.end(), 
+            [](const FloatingText& ft){ return ft.timer <= 0.0f; }),
+        floatingTexts.end()
+    );
+}
+
+void Game::drawFloatingTexts() const {
+    for (const auto& ft : floatingTexts) {
+        // Calcular transparencia (fade out)
+        float alpha = ft.timer / ft.lifeTime;
+        Color c = ft.color;
+        c.a = (unsigned char)(255.0f * alpha);
+
+        // Dibujar borde negro para que se lea bien
+        const char* txt = TextFormat("%d", ft.value);
+        DrawText(txt, (int)ft.pos.x + 1, (int)ft.pos.y + 1, 10, Fade(BLACK, alpha)); // Sombra
+        DrawText(txt, (int)ft.pos.x, (int)ft.pos.y, 10, c); // Texto
+    }
+}
+
+// --- SISTEMA DE PARTÍCULAS (Al final de Game.cpp) ---
+
+void Game::spawnExplosion(Vector2 pos, int count, Color color) {
+    for (int i = 0; i < count; ++i) {
+        Particle p;
+        p.pos = pos;
+        
+        // Velocidad aleatoria en 360 grados
+        float angle = (float)GetRandomValue(0, 360) * DEG2RAD;
+        float speed = (float)GetRandomValue(50, 150); // Rapidez variable
+        
+        p.vel = { cosf(angle) * speed, sinf(angle) * speed };
+        
+        p.maxLife = (float)GetRandomValue(5, 10) / 10.0f; // Entre 0.5s y 1.0s
+        p.life = p.maxLife;
+        
+        p.size = (float)GetRandomValue(2, 5); // Tamaños variados
+        p.color = color;
+        
+        particles.push_back(p);
+    }
+}
+
+void Game::updateParticles(float dt) {
+    for (auto &p : particles) {
+        p.life -= dt;
+        
+        // Movimiento
+        p.pos.x += p.vel.x * dt;
+        p.pos.y += p.vel.y * dt;
+        
+        // Fricción (las partículas se frenan un poco)
+        p.vel.x *= 0.95f;
+        p.vel.y *= 0.95f;
+        
+        // Opcional: Hacerlas más pequeñas al morir
+        if (p.life < 0.5f) p.size *= 0.98f;
+    }
+
+    // Borrar partículas muertas
+    particles.erase(
+        std::remove_if(particles.begin(), particles.end(), 
+            [](const Particle& p){ return p.life <= 0.0f; }),
+        particles.end()
+    );
+}
+
+void Game::drawParticles() const {
+    for (const auto& p : particles) {
+        // Fade out (se vuelven transparentes al final)
+        float alpha = p.life / p.maxLife;
+        Color c = Fade(p.color, alpha);
+        
+        DrawRectangleV(p.pos, {p.size, p.size}, c);
+    }
 }

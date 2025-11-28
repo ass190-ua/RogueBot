@@ -148,6 +148,7 @@ void Map::computeVisibility(int px, int py, int radius) {
             int dx = x - px, dy = y - py;
             if (dx*dx + dy*dy <= r2) {
                 m_visible[y * m_w + x] = 1;
+                m_discovered[y * m_w + x] = 1;
             }
         }
     }
