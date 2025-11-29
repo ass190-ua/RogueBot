@@ -46,6 +46,39 @@ static bool loadTextAsset(const char *relPath, std::string &outText) {
 
 void ItemSprites::load() {
     if (loaded) return;
+
+    // 1. GENERACIÓN PROCEDURAL "ESTILO RETRO CLEAN"
+    
+    // A) SUELO: Losas de cemento limpias
+    Image imgFloor = GenImageColor(32, 32, Color{30, 30, 35, 255});
+    
+    // CORRECCIÓN 1: Usamos Rectangle para el borde del suelo
+    ImageDrawRectangleLines(&imgFloor, Rectangle{0, 0, 32, 32}, 1, Color{15, 15, 20, 255});
+    
+    floor = LoadTextureFromImage(imgFloor);
+    UnloadImage(imgFloor);
+
+    // B) PARED: Bloque Biselado (Efecto 3D clásico)
+    // 1. Base del bloque
+    Image imgWall = GenImageColor(32, 32, Color{70, 70, 80, 255});
+    
+    // 2. Iluminación (Borde Superior e Izquierdo -> Color Claro)
+    // ImageDrawRectangle SÍ acepta coordenadas sueltas, así que estas están bien:
+    ImageDrawRectangle(&imgWall, 0, 0, 32, 2, Color{110, 110, 120, 255}); // Borde Arriba
+    ImageDrawRectangle(&imgWall, 0, 0, 2, 32, Color{110, 110, 120, 255}); // Borde Izquierda
+    
+    // 3. Sombra (Borde Inferior y Derecho -> Color Oscuro)
+    ImageDrawRectangle(&imgWall, 0, 30, 32, 2, Color{40, 40, 50, 255});  // Borde Abajo
+    ImageDrawRectangle(&imgWall, 30, 0, 2, 32, Color{40, 40, 50, 255});  // Borde Derecha
+    
+    // 4. Detalle interior (Un cuadrado grabado en el centro)
+    // CORRECCIÓN 2: Usamos Rectangle para el detalle interior
+    ImageDrawRectangleLines(&imgWall, Rectangle{8, 8, 16, 16}, 1, Color{50, 50, 60, 255});
+
+    wall = LoadTextureFromImage(imgWall);
+    UnloadImage(imgWall);
+
+    // 2. CARGA DE SPRITES (Archivos reales)
     keycard = loadTex("assets/sprites/items/item_keycard.png");
     shield = loadTex("assets/sprites/items/item_shield.png");
     pila = loadTex("assets/sprites/items/item_healthbattery.png");
@@ -56,16 +89,24 @@ void ItemSprites::load() {
     plasma1 = loadTex("assets/sprites/items/item_plasma1.png");
     plasma2 = loadTex("assets/sprites/items/item_plasma2.png");
     battery = loadTex("assets/sprites/items/item_battery.png");
+    
     enemy = loadTex("assets/sprites/enemies/enemy.png");
     enemyUp = loadTex("assets/sprites/enemies/enemy_up.png");
     enemyDown = loadTex("assets/sprites/enemies/enemy_down.png");
     enemyLeft = loadTex("assets/sprites/enemies/enemy_left.png");
     enemyRight = loadTex("assets/sprites/enemies/enemy_right.png");
+    
     loaded = true;
 }
 
 void ItemSprites::unload() {
     if (!loaded) return;
+    
+    // Descargar las procedurales
+    UnloadTexture(wall);
+    UnloadTexture(floor);
+
+    // Descargar el resto
     UnloadTexture(keycard);
     UnloadTexture(shield);
     UnloadTexture(pila);
@@ -81,6 +122,7 @@ void ItemSprites::unload() {
     UnloadTexture(enemyDown);
     UnloadTexture(enemyLeft);
     UnloadTexture(enemyRight);
+    
     loaded = false;
 }
 
@@ -1032,14 +1074,12 @@ int Game::defaultFovFromViewport() const {
     return std::clamp(r, 3, 20);
 }
 
-// --- ARCHIVO: src/core/Game.cpp ---
-
 void Game::update() {
     if (state != GameState::Playing) return;
 
     float dt = GetFrameTime();
 
-    // --- LÓGICA DE DASH ---
+    // LÓGICA DE DASH 
     if (isDashing) {
         dashTimer -= dt;
         
@@ -1073,7 +1113,7 @@ void Game::update() {
         camera.target.y = desired.y;
         clampCameraToMap();
         
-        return; // <--- IMPORTANTE: No hacemos nada más mientras dashea
+        return; // No hacemos nada más mientras dashea
     }
 
     // Gestionar Cooldown del Dash
@@ -1090,8 +1130,15 @@ void Game::update() {
         glassesTimer -= dt;
         if (glassesTimer <= 0.0f) recomputeFovIfNeeded(); 
     }
-    for (auto &t : enemyFlashTimer) t = std::max(0.0f, t - dt);
+    if (slashActive) {
+        slashTimer -= dt;
+        if (slashTimer <= 0.0f) slashActive = false;
+    }
 
+    for (auto &t : enemyFlashTimer) t = std::max(0.0f, t - dt);
+    for (auto &e : enemies) e.updateAnimation(dt);
+
+    updateShooters(dt);
     updateProjectiles(dt);
     updateFloatingTexts(dt);
     updateParticles(dt);
@@ -1140,6 +1187,7 @@ void Game::update() {
 
     damageCooldown = std::max(0.0f, damageCooldown - GetFrameTime());
     for (auto &cd : enemyAtkCD) cd = std::max(0.0f, cd - dt);
+    for (auto &cd : enemyShootCD) cd = std::max(0.0f, cd - dt); 
 }
 
 void Game::onExitReached() {
@@ -1165,28 +1213,27 @@ void Game::render() {
 
     BeginMode2D(camera);
 
-    map.draw(tileSize);
+    // 1. Dibujar Mapa
+    map.draw(tileSize, px, py, getFovRadius(), itemSprites.wall, itemSprites.floor);
+    
+    // 2. Dibujar Enemigos
     drawEnemies();
+    
+    // 3. Dibujar Jugador
     player.draw(tileSize, px, py);
+    
+    // 4. Dibujar Items
     drawItems();
     
-    // PROYECTILES (NUEVO)
-    drawProjectiles();
-    drawFloatingTexts();
-    drawParticles();
-
-    if (gAttack.swinging && !gAttack.lastTiles.empty()) {
-        Color fill = {255, 230, 50, 120}; 
-        for (const auto &t : gAttack.lastTiles) {
-            int xpx = t.x * tileSize;
-            int ypx = t.y * tileSize;
-            DrawRectangle(xpx, ypx, tileSize, tileSize, fill);
-            DrawRectangleLines(xpx, ypx, tileSize, tileSize, YELLOW);
-        }
-    }
+    // 5. Efectos Visuales
+    drawSlash();        // Estela de la espada
+    drawProjectiles();  // Balas de plasma
+    drawFloatingTexts(); // Números de daño
+    drawParticles();    // Sangre y explosiones
 
     EndMode2D();
 
+    // 6. HUD
     if (state == GameState::Playing) hud.drawPlaying(*this);
     else if (state == GameState::Victory) hud.drawVictory(*this);
     else if (state == GameState::GameOver) hud.drawGameOver(*this);
@@ -1195,7 +1242,7 @@ void Game::render() {
 }
 
 void Game::updateEnemiesAfterPlayerMove(bool moved) {
-    if (!moved) return;
+    if (!moved) return; 
 
     struct Intent {
         int fromx, fromy; 
@@ -1212,121 +1259,125 @@ void Game::updateEnemiesAfterPlayerMove(bool moved) {
     };
 
     auto can = [&](int nx, int ny) -> bool {
-        // CORRECCIÓN SOLAPAMIENTO: 
-        // El enemigo nunca puede considerar "caminable" la casilla del jugador.
-        if (nx == px && ny == py) return false; 
-
+        if (nx == px && ny == py) return false; // No pisar al jugador
         return nx >= 0 && ny >= 0 && nx < map.width() && ny < map.height() &&
                map.isWalkable(nx, ny);
     };
 
     auto sgn = [](int v) { return (v > 0) - (v < 0); };
 
-    // Lógica Greedy mejorada
     auto greedyNext = [&](int ex, int ey) -> std::pair<int, int> {
         int dx = px - ex, dy = py - ey;
-        
-        // Si ya está encima (bug extremo), no moverse
         if (dx == 0 && dy == 0) return {ex, ey};
-
-        // Intentar eje mayor primero
         if (std::abs(dx) >= std::abs(dy)) {
             int nx = ex + sgn(dx), ny = ey;
             if (can(nx, ny)) return {nx, ny};
-            // Si falla, probar eje menor
             nx = ex; ny = ey + sgn(dy);
             if (can(nx, ny)) return {nx, ny};
-        }
-        else {
+        } else {
             int nx = ex, ny = ey + sgn(dy);
             if (can(nx, ny)) return {nx, ny};
-            // Si falla, probar eje mayor
             nx = ex + sgn(dx); ny = ey;
             if (can(nx, ny)) return {nx, ny};
         }
-        
-        // Si está bloqueado o el siguiente paso es el jugador (can devuelve false),
-        // devolvemos la posición actual pero intentaremos rotarlo después.
         return {ex, ey}; 
     };
 
     std::vector<Intent> intents;
     intents.reserve(enemies.size());
 
+    // FASE 1: DECIDIR INTENCIONES
     for (size_t i = 0; i < enemies.size(); ++i) {
         const auto &e = enemies[i];
         Intent it{e.getX(), e.getY(), e.getX(), e.getY(), false, 1'000'000, i};
 
-        if (inRangePx(e.getX(), e.getY())) {
+        bool shouldMove = true;
+
+        // LÓGICA SHOOTER: Si tengo tiro, ME PARO (pero NO disparo aquí, eso lo hace updateShooters)
+        if (e.getType() == Enemy::Shooter) {
+            bool hasLoS = false;
+            if (e.getX() == px || e.getY() == py) {
+                hasLoS = true;
+                int x1 = std::min(e.getX(), px), x2 = std::max(e.getX(), px);
+                int y1 = std::min(e.getY(), py), y2 = std::max(e.getY(), py);
+                
+                if (e.getY() == py) { 
+                    for(int x = x1 + 1; x < x2; ++x) if(map.at(x, py) == WALL) hasLoS = false;
+                } else { 
+                    for(int y = y1 + 1; y < y2; ++y) if(map.at(px, y) == WALL) hasLoS = false;
+                }
+            }
+
+            if (hasLoS && inRangePx(e.getX(), e.getY())) {
+                shouldMove = false; // STOP para apuntar
+                
+                // Actualizamos facing para mirar al jugador
+                int dx = px - e.getX();
+                int dy = py - e.getY();
+                if (dx > 0) enemyFacing[i] = EnemyFacing::Right;
+                else if (dx < 0) enemyFacing[i] = EnemyFacing::Left;
+                else if (dy > 0) enemyFacing[i] = EnemyFacing::Down;
+                else if (dy < 0) enemyFacing[i] = EnemyFacing::Up;
+            }
+        }
+
+        // Si debe moverse y está en rango, calcula ruta
+        if (shouldMove && inRangePx(e.getX(), e.getY())) {
             auto [nx, ny] = greedyNext(e.getX(), e.getY());
-            
-            // Si la función greedy dice "quédate aquí" (porque hay pared o jugador),
-            // marcamos wants=false, pero luego calcularemos el facing manualmente.
-            it.tox = nx; 
-            it.toy = ny;
+            it.tox = nx; it.toy = ny;
             it.wants = (nx != e.getX() || ny != e.getY());
             it.score = std::abs(px - nx) + std::abs(py - ny);
-        }
-        else {
+        } else {
             it.score = std::abs(px - e.getX()) + std::abs(py - e.getY()); 
         }
         intents.push_back(it);
     }
 
-    // Resolución de conflictos entre enemigos (Evitar que se fusionen)
+    // FASE 2: RESOLUCIÓN DE CONFLICTOS
     for (size_t i = 0; i < intents.size(); ++i) {
         if (!intents[i].wants) continue;
         for (size_t j = i + 1; j < intents.size(); ++j) {
             if (!intents[j].wants) continue;
-            
-            // Dos enemigos quieren ir a la misma casilla
             if (intents[i].tox == intents[j].tox && intents[i].toy == intents[j].toy) {
-                // Gana el que esté más cerca del jugador (menor score)
                 if (intents[j].score < intents[i].score) intents[i].wants = false;
                 else intents[j].wants = false;
             }
-            // Intercambio directo (Head-on swap) - Evitar atravesarse
             if (intents[i].tox == intents[j].fromx && intents[i].toy == intents[j].fromy &&
                 intents[j].tox == intents[i].fromx && intents[j].toy == intents[i].fromy) {
-                 intents[i].wants = false;
-                 intents[j].wants = false;
+                 intents[i].wants = false; intents[j].wants = false;
             }
         }
     }
 
-    // APLICAR MOVIMIENTO Y ROTACIÓN (Facing)
+    // FASE 3: MOVER
     for (size_t i = 0; i < enemies.size(); ++i) {
         int ox = intents[i].fromx, oy = intents[i].fromy;
-        
         if (intents[i].wants) {
-            // MOVERSE
             enemies[i].setPos(intents[i].tox, intents[i].toy);
-            
-            // Calcular dirección basada en el movimiento
             int dx = intents[i].tox - ox;
             int dy = intents[i].toy - oy;
+
+            // Si va a la derecha, se inclina a la derecha (-15 grados visuales)
+            // Si va a la izquierda, a la izquierda (+15 grados)
+            // Si va arriba/abajo, hacemos un pequeño "wobble" alterno
+            if (dx > 0) enemies[i].addTilt(-15.0f);
+            else if (dx < 0) enemies[i].addTilt(15.0f);
+            else enemies[i].addTilt((i % 2 == 0) ? 10.0f : -10.0f);
+
             if (dx > 0) enemyFacing[i] = EnemyFacing::Right;
             else if (dx < 0) enemyFacing[i] = EnemyFacing::Left;
             else if (dy > 0) enemyFacing[i] = EnemyFacing::Down;
             else if (dy < 0) enemyFacing[i] = EnemyFacing::Up;
-        } 
-        else {
-            // NO SE MUEVE (Bloqueado o llegó al jugador)
-            // IMPORTANTE: Si está adyacente al jugador, FORZAR que le mire.
-            // Esto arregla el bug de que no ataquen si se pegan a ti.
+        } else {
+            // Si choca o se para, se gira hacia el jugador si está adyacente
             if (isAdjacent4(ox, oy, px, py)) {
-                int dx = px - ox;
-                int dy = py - oy;
-                if (std::abs(dx) >= std::abs(dy)) {
-                    enemyFacing[i] = (dx > 0) ? EnemyFacing::Right : EnemyFacing::Left;
-                } else {
-                    enemyFacing[i] = (dy > 0) ? EnemyFacing::Down : EnemyFacing::Up;
-                }
+                int dx = px - ox; int dy = py - oy;
+                if (std::abs(dx) >= std::abs(dy)) enemyFacing[i] = (dx > 0) ? EnemyFacing::Right : EnemyFacing::Left;
+                else enemyFacing[i] = (dy > 0) ? EnemyFacing::Down : EnemyFacing::Up;
             }
         }
     }
-    
-    // Intentar atacar después de moverse/rotar
+
     enemyTryAttackFacing();
 }
 
@@ -1447,8 +1498,28 @@ void Game::performMeleeAttack() {
 
 void Game::performSwordAttack() {
     int dmg = DMG_SWORD_T1;
-    if (swordTier == 2) dmg = DMG_SWORD_T2;
-    if (swordTier == 3) dmg = DMG_SWORD_T3;
+    Color trailColor = SKYBLUE; // Color T1 (Azul claro)
+
+    if (swordTier == 2) { 
+        dmg = DMG_SWORD_T2; 
+        trailColor = LIME; // Color T2 (Verde)
+    }
+    if (swordTier == 3) { 
+        dmg = DMG_SWORD_T3; 
+        trailColor = RED;  // Color T3 (Rojo Sith)
+    }
+
+    // --- ACTIVAR EFECTO SLASH ---
+    slashActive = true;
+    slashTimer = 0.15f; // Duración corta y rápida
+    slashColor = trailColor;
+
+    // Calcular ángulo según dirección (Raylib usa grados: Derecha=0, Abajo=90...)
+    if (gAttack.lastDir.x > 0) slashBaseAngle = 0.0f;        // Derecha
+    else if (gAttack.lastDir.x < 0) slashBaseAngle = 180.0f; // Izquierda
+    else if (gAttack.lastDir.y > 0) slashBaseAngle = 90.0f;  // Abajo
+    else slashBaseAngle = 270.0f;                            // Arriba
+    // ----------------------------
 
     gAttack.rangeTiles = 1; 
     gAttack.cooldown   = CD_SWORD;
@@ -1470,7 +1541,6 @@ void Game::performSwordAttack() {
             if (t.x == epos.x && t.y == epos.y) {
                 hit = true;
                 
-                // SONIDO GOLPE
                 PlaySound(sfxHit);
 
                 if (enemyHP.size() != enemies.size()) enemyHP.assign(enemies.size(), ENEMY_BASE_HP);
@@ -1479,14 +1549,13 @@ void Game::performSwordAttack() {
 
                 Vector2 ePos = { (float)enemies[i].getX() * tileSize + 8, 
                                  (float)enemies[i].getY() * tileSize - 10 };
-                Color c = (swordTier >= 3) ? YELLOW : RAYWHITE;
-                spawnFloatingText(ePos, dmg, c);
+                // Usamos el mismo color del trail para el texto
+                spawnFloatingText(ePos, dmg, trailColor);
 
                 if (i < enemyFlashTimer.size()) enemyFlashTimer[i] = 0.15f;
 
                 std::cout << "[Sword] Slash! -" << dmg << "\n";
 
-                // PROVOCACIÓN
                 if (i < enemyAtkCD.size()) enemyAtkCD[i] = 0.0f; 
                 int dx = px - enemies[i].getX();
                 int dy = py - enemies[i].getY();
@@ -1499,26 +1568,24 @@ void Game::performSwordAttack() {
         }
     }
     
-    // Limpieza de muertos + EXPLOSIONES + SONIDO
      if (hit) {
          std::vector<size_t> toRemove;
          for(size_t i=0; i<enemyHP.size(); ++i) if(enemyHP[i] <= 0) toRemove.push_back(i);
          if (!toRemove.empty()) {
             std::sort(toRemove.rbegin(), toRemove.rend());
             for (size_t idx : toRemove) {
-                // EXPLOSIÓN VISUAL
                 float ex = enemies[idx].getX() * tileSize + tileSize / 2.0f;
                 float ey = enemies[idx].getY() * tileSize + tileSize / 2.0f;
                 spawnExplosion({ex, ey}, 15, DARKGRAY);
                 spawnExplosion({ex, ey}, 5, RED); 
                 
-                // SONIDO EXPLOSIÓN
                 PlaySound(sfxExplosion);
 
                 enemies.erase(enemies.begin() + idx);
                 if (idx < enemyFacing.size()) enemyFacing.erase(enemyFacing.begin() + idx);
                 if (idx < enemyHP.size()) enemyHP.erase(enemyHP.begin() + idx);
                 if (idx < enemyAtkCD.size()) enemyAtkCD.erase(enemyAtkCD.begin() + idx);
+                if (idx < enemyShootCD.size()) enemyShootCD.erase(enemyShootCD.begin() + idx);
                 if (idx < enemyFlashTimer.size()) enemyFlashTimer.erase(enemyFlashTimer.begin() + idx);
             }
         }
@@ -1559,7 +1626,7 @@ void Game::spawnProjectile(int dmg) {
 }
 
 void Game::updateProjectiles(float dt) {
-    // 1. Burst
+    // 1. Burst Jugador
     if (burstShotsLeft > 0) {
         burstTimer -= dt;
         if (burstTimer <= 0.0f) {
@@ -1583,6 +1650,7 @@ void Game::updateProjectiles(float dt) {
             continue;
         }
 
+        // Paredes
         int tx = (int)(p.pos.x / tileSize);
         int ty = (int)(p.pos.y / tileSize);
         if (tx < 0 || ty < 0 || tx >= map.width() || ty >= map.height() || 
@@ -1591,33 +1659,58 @@ void Game::updateProjectiles(float dt) {
             continue;
         }
 
-        for (size_t i = 0; i < enemies.size(); ++i) {
-            Vector2 ePos = { 
-                enemies[i].getX() * (float)tileSize + tileSize/2.0f,
-                enemies[i].getY() * (float)tileSize + tileSize/2.0f
-            };
-            
-            float dx = p.pos.x - ePos.x;
-            float dy = p.pos.y - ePos.y;
-            float rad = tileSize * 0.6f; 
+        // LÓGICA DE IMPACTO
+        if (p.isEnemy) {
+            // --- BALA ENEMIGA -> JUGADOR ---
+            Vector2 pCenter = { px * (float)tileSize + tileSize/2.0f, py * (float)tileSize + tileSize/2.0f };
+            float dx = p.pos.x - pCenter.x;
+            float dy = p.pos.y - pCenter.y;
+            float rad = tileSize * 0.4f; // Hitbox pequeña para esquivar
 
             if (dx*dx + dy*dy < rad*rad) {
                 p.active = false;
+                takeDamage(p.damage); 
+                // Feedback visual
+                spawnFloatingText(p.pos, p.damage, RED);
+                break;
+            }
+        } 
+        else {
+            // --- BALA JUGADOR -> ENEMIGOS ---
+            for (size_t i = 0; i < enemies.size(); ++i) {
+                Vector2 ePos = { 
+                    enemies[i].getX() * (float)tileSize + tileSize/2.0f,
+                    enemies[i].getY() * (float)tileSize + tileSize/2.0f
+                };
                 
-                // SONIDO IMPACTO
-                PlaySound(sfxHit);
+                float dx = p.pos.x - ePos.x;
+                float dy = p.pos.y - ePos.y;
+                float rad = tileSize * 0.6f; 
 
-                if (enemyHP.size() != enemies.size()) enemyHP.assign(enemies.size(), 100);
-                enemyHP[i] -= p.damage;
+                if (dx*dx + dy*dy < rad*rad) {
+                    p.active = false;
+                    PlaySound(sfxHit);
 
-                Vector2 ePosFloat = { (float)enemies[i].getX() * tileSize + 8, 
-                                      (float)enemies[i].getY() * tileSize - 10 };
-                spawnFloatingText(ePosFloat, p.damage, SKYBLUE); 
+                    if (enemyHP.size() != enemies.size()) enemyHP.assign(enemies.size(), 100);
+                    enemyHP[i] -= p.damage;
 
-                if (i < enemyFlashTimer.size()) enemyFlashTimer[i] = 0.15f;
-    
-                std::cout << "[Plasma] Hit! -" << p.damage << "\n";
-                break; 
+                    Vector2 txtPos = { (float)enemies[i].getX() * tileSize + 8, 
+                                       (float)enemies[i].getY() * tileSize - 10 };
+                    spawnFloatingText(txtPos, p.damage, SKYBLUE); 
+
+                    if (i < enemyFlashTimer.size()) enemyFlashTimer[i] = 0.15f;
+        
+                    // Provocación (Corrección Bug anterior)
+                    if (i < enemyAtkCD.size()) enemyAtkCD[i] = 0.0f;
+                    int edx = px - enemies[i].getX();
+                    int edy = py - enemies[i].getY();
+                    if (i < enemyFacing.size()) {
+                        if (std::abs(edx) >= std::abs(edy)) enemyFacing[i] = (edx > 0) ? EnemyFacing::Right : EnemyFacing::Left;
+                        else enemyFacing[i] = (edy > 0) ? EnemyFacing::Down : EnemyFacing::Up;
+                    }
+
+                    break; 
+                }
             }
         }
     }
@@ -1628,7 +1721,7 @@ void Game::updateProjectiles(float dt) {
         projectiles.end()
     );
 
-    // 3. Limpieza de muertos + EXPLOSIONES + SONIDO
+    // 3. Limpieza de muertos
     std::vector<size_t> toRemove;
     for(size_t i=0; i<enemyHP.size(); ++i) {
         if (enemyHP[i] <= 0) toRemove.push_back(i);
@@ -1636,33 +1729,100 @@ void Game::updateProjectiles(float dt) {
     if (!toRemove.empty()) {
         std::sort(toRemove.rbegin(), toRemove.rend());
         for (size_t idx : toRemove) {
-            // EXPLOSIÓN VISUAL
             float ex = enemies[idx].getX() * tileSize + tileSize / 2.0f;
             float ey = enemies[idx].getY() * tileSize + tileSize / 2.0f;
             spawnExplosion({ex, ey}, 15, DARKGRAY);
             spawnExplosion({ex, ey}, 5, RED); 
-            
-            // SONIDO EXPLOSIÓN
             PlaySound(sfxExplosion);
 
             enemies.erase(enemies.begin() + idx);
             if (idx < enemyFacing.size()) enemyFacing.erase(enemyFacing.begin() + idx);
             if (idx < enemyHP.size()) enemyHP.erase(enemyHP.begin() + idx);
             if (idx < enemyAtkCD.size()) enemyAtkCD.erase(enemyAtkCD.begin() + idx);
+            if (idx < enemyShootCD.size()) enemyShootCD.erase(enemyShootCD.begin() + idx); // <--- BORRAR CD DISPARO
             if (idx < enemyFlashTimer.size()) enemyFlashTimer.erase(enemyFlashTimer.begin() + idx);
         }
+    }
+    
+    enemyTryAttackFacing();
+}
+
+void Game::updateShooters(float dt) {
+    for (size_t i = 0; i < enemies.size(); ++i) {
+        // Solo procesamos Shooters vivos
+        if (enemies[i].getType() != Enemy::Shooter) continue;
+        if (enemyHP[i] <= 0) continue; 
+
+        // Chequear Cooldown (Tiempo Real)
+        if (enemyShootCD[i] > 0.0f) continue;
+
+        const int ex = enemies[i].getX();
+        const int ey = enemies[i].getY();
+
+        // 1. Chequear Alineación (Ejes)
+        if (ex != px && ey != py) continue; // No está en línea recta
+
+        // 2. Chequear Paredes (Raycast simple)
+        bool blocked = false;
+        if (ex == px) { // Vertical
+            int y1 = std::min(ey, py) + 1;
+            int y2 = std::max(ey, py);
+            for (int y = y1; y < y2; ++y) if (map.at(px, y) == WALL) { blocked = true; break; }
+        } else { // Horizontal
+            int x1 = std::min(ex, px) + 1;
+            int x2 = std::max(ex, px);
+            for (int x = x1; x < x2; ++x) if (map.at(x, py) == WALL) { blocked = true; break; }
+        }
+        
+        if (blocked) continue;
+        
+        // A. Girar hacia el jugador (por si estaba mirando a otro lado)
+        int dx = px - ex;
+        int dy = py - ey;
+        if (dx > 0) enemyFacing[i] = EnemyFacing::Right;
+        else if (dx < 0) enemyFacing[i] = EnemyFacing::Left;
+        else if (dy > 0) enemyFacing[i] = EnemyFacing::Down;
+        else if (dy < 0) enemyFacing[i] = EnemyFacing::Up;
+
+        // B. Crear el Proyectil Enemigo
+        Projectile p;
+        p.isEnemy = true; // Importante: Daña al jugador
+        p.active = true;
+        p.damage = 1; // 1 = Medio Corazón
+        p.maxDistance = 7.0f * tileSize;
+        p.pos = { ex * (float)tileSize + tileSize/2.0f, ey * (float)tileSize + tileSize/2.0f };
+        
+        IVec2 dir = facingToDir(enemyFacing[i]);
+        p.vel = { dir.x * 150.0f, dir.y * 150.0f }; // Velocidad lenta esquivable
+        
+        projectiles.push_back(p);
+        
+        // C. Reiniciar Cooldown (Dispara cada 2.5 segundos)
+        enemyShootCD[i] = 2.5f; 
+        
+        // D. Efectos
+        PlaySound(sfxDash); // Reusamos el sonido de aire/silenciador
     }
 }
 
 void Game::drawProjectiles() const {
     for (const auto& p : projectiles) {
-        DrawCircleV(p.pos, 5.0f, SKYBLUE);
-        DrawCircleV(p.pos, 2.0f, WHITE);
+        // Elegir color según el bando
+        Color mainColor = p.isEnemy ? RED : SKYBLUE;
+        
+        // Si es enemiga, el núcleo lo hacemos naranja para que parezca fuego/láser dañino
+        // Si es tuya, el núcleo es blanco puro (plasma)
+        Color coreColor = p.isEnemy ? ORANGE : WHITE;
+
+        // Dibujar halo exterior
+        DrawCircleV(p.pos, 5.0f, mainColor);
+        
+        // Dibujar núcleo brillante
+        DrawCircleV(p.pos, 2.0f, coreColor);
     }
 }
 
-// --- SISTEMA DE TEXTOS FLOTANTES ---
-
+// SISTEMA DE TEXTOS FLOTANTES
 void Game::spawnFloatingText(Vector2 pos, int value, Color color) {
     FloatingText ft;
     // Un poco de aleatoriedad en la posición para que no se solapen si hay muchos
@@ -1759,4 +1919,30 @@ void Game::drawParticles() const {
         
         DrawRectangleV(p.pos, {p.size, p.size}, c);
     }
+}
+
+void Game::drawSlash() const {
+    if (!slashActive) return;
+
+    // Calculamos el centro del jugador
+    Vector2 center = { 
+        px * (float)tileSize + tileSize / 2.0f, 
+        py * (float)tileSize + tileSize / 2.0f 
+    };
+
+    // Radio del corte (un poco más grande que el tile para que sobresalga)
+    float radiusInner = tileSize * 0.5f;
+    float radiusOuter = tileSize * 1.2f;
+
+    // Ángulos del arco (120 grados de amplitud)
+    float startAngle = slashBaseAngle - 60.0f;
+    float endAngle   = slashBaseAngle + 60.0f;
+
+    // Fade Out (Se vuelve transparente al final)
+    // 0.15f es la duración total del golpe
+    float alpha = std::clamp(slashTimer / 0.15f, 0.0f, 1.0f); 
+    Color c = Fade(slashColor, alpha);
+
+    // Dibujamos el arco
+    DrawRing(center, radiusInner, radiusOuter, startAngle, endAngle, 16, c);
 }

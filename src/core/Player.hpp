@@ -73,6 +73,11 @@ private:
         }
         return 0; // Fallback seguro
     }
+
+    // Variables de Animación Procedural ("Juice")
+    float animTime = 0.0f;
+    float tiltAngle = 0.0f;
+    float targetTilt = 0.0f;
 };
 
 #endif
