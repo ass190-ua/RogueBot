@@ -176,27 +176,71 @@ void Map::computeVisibility(int px, int py, int radius) {
 }
 
 // Renderizado
-void Map::draw(int tileSize) const {
+void Map::draw(int tileSize, int px, int py, int radius, 
+               const Texture2D& wallTex, const Texture2D& floorTex) const {
+               
     for (int y = 0; y < m_h; ++y) {
         for (int x = 0; x < m_w; ++x) {
+            
+            // Si no está descubierto, Negro absoluto
+            if (m_discovered[y * m_w + x] == 0) continue;
 
-            // Paleta de colores
-            Color base = DARKGRAY; // WALL
-            if (at(x,y) == FLOOR) base = Color{35,35,35,255}; // Suelo oscuro
-            else if (at(x,y) == EXIT) base = Color{0,120,80,255}; // Verde oscuro
+            // --- CÁLCULO DE ILUMINACIÓN ---
+            Color tint = WHITE;
+            
+            if (m_fogEnabled) {
+                // 1. ZONA DE MEMORIA (Descubierto pero no visible ahora)
+                if (m_visible[y * m_w + x] == 0) {
+                    // CAMBIO: Mucho más oscuro para dar atmósfera
+                    tint = { 40, 40, 50, 255 }; 
+                } 
+                // 2. ZONA VISIBLE (Antorcha)
+                else {
+                    // Calculamos distancia al jugador
+                    float dx = (float)(x - px);
+                    float dy = (float)(y - py);
+                    float dist = std::sqrt(dx*dx + dy*dy);
+                    
+                    // Factor de luz (1.0 en el centro, 0.0 en el borde del radio)
+                    // El "+ 1.0f" es para suavizar el borde
+                    float light = 1.0f - (dist / (float)(radius + 1));
+                    light = std::clamp(light, 0.0f, 1.0f);
+                    
+                    // Curva de luz para que el centro sea muy brillante y caiga rápido
+                    // (Efecto linterna)
+                    light = powf(light, 0.5f); 
 
-            // Si la niebla está desactivada (Debug), dibujamos todo
-            if (!m_fogEnabled) {
-                DrawRectangle(x*tileSize, y*tileSize, tileSize, tileSize, base);
-                continue;
+                    // Aplicamos la luz, pero asegurando un mínimo para que se vea
+                    unsigned char val = (unsigned char)(255.0f * light);
+                    if (val < 60) val = 60; // Mínimo de luz en zona visible
+                    
+                    tint = { val, val, val, 255 };
+                }
             }
 
-            // --- Lógica de Renderizado con Niebla ---
-            // Solo dibujamos si es visible ahora mismo.
-            const bool vis = (m_visible[y * m_w + x] != 0);
-            Color c = vis ? base : Color{10,10,10,255}; // Negro casi total si no es visible
-            
-            DrawRectangle(x*tileSize, y*tileSize, tileSize, tileSize, c);
+            // --- DIBUJADO (Igual que antes) ---
+            Rectangle dest = { 
+                (float)(x * tileSize), 
+                (float)(y * tileSize), 
+                (float)tileSize, 
+                (float)tileSize 
+            };
+            Vector2 origin = { 0, 0 };
+            Tile t = at(x, y);
+
+            if (t == WALL) {
+                Rectangle src = { 0, 0, (float)wallTex.width, (float)wallTex.height };
+                DrawTexturePro(wallTex, src, dest, origin, 0.0f, tint);
+            } 
+            else if (t == FLOOR || t == EXIT) {
+                Rectangle src = { 0, 0, (float)floorTex.width, (float)floorTex.height };
+                DrawTexturePro(floorTex, src, dest, origin, 0.0f, tint);
+
+                if (t == EXIT) {
+                    DrawRectangleRec(dest, Fade(GREEN, 0.4f));
+                    DrawRectangleLinesEx(dest, 2, LIME);
+                }
+            }
         }
     }
 }

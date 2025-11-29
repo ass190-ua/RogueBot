@@ -1,27 +1,9 @@
 #include "Player.hpp"
 #include <stdexcept>
 #include <iostream>
+#include <cmath> // Necesario para sinf
 #include "AssetPath.hpp"
-
-// Helper: Carga segura de texturas
-// Intenta cargar una textura. Si falla (archivo no encontrado o corrupto),
-// genera una imagen blanca de 32x32 píxeles en tiempo de ejecución.
-// Esto evita que el juego haga crash o dibuje basura invisible.
-static Texture2D loadTexPoint(const std::string& rel) {
-    const std::string full = assetPath(rel); // Resuelve la ruta absoluta
-    Texture2D t = LoadTexture(full.c_str());
-    
-    // Verificación de Raylib: id 0 significa error de carga
-    if (t.id == 0) {
-        std::cerr << "[ASSETS] FALLBACK tex point para: " << full << "\n";
-        // Generar textura de emergencia (Placeholder)
-        Image white = GenImageColor(32, 32, WHITE);
-        t = LoadTextureFromImage(white);
-        UnloadImage(white); // Liberamos la imagen de RAM una vez subida a VRAM
-    }
-
-    return t;
-}
+#include "ResourceManager.hpp" // Integración con el Gestor de Recursos
 
 // Gestión de recursos
 void Player::load(const std::string& baseDir) {
@@ -37,11 +19,13 @@ void Player::load(const std::string& baseDir) {
         for (int f = 0; f < 3; ++f) {
             std::string path = baseDir + "/robot_" + dirs[d] + std::string("_") + frames[f] + ".png";
             
-            tex[d][f] = loadTexPoint(path); // Carga segura
+            // CAMBIO: Usamos el Singleton ResourceManager para cargar la textura
+            // Esto asegura que si ya está en memoria, no se vuelva a leer del disco.
+            tex[d][f] = ResourceManager::getInstance().getTexture(path);
             
             if (tex[d][f].id == 0) {
                 // Aquí se podría ser estricto y lanzar excepción, 
-                // pero el fallback anterior ya maneja el error visualmente.
+                // pero el ResourceManager ya maneja el error visualmente (Magenta).
                 // throw std::runtime_error("No se pudo cargar " + path);
             }
         }
@@ -52,11 +36,7 @@ void Player::load(const std::string& baseDir) {
 
 void Player::unload() {
     if (!loaded) return;
-    // Es vital liberar cada textura para evitar fugas de memoria VRAM
-    for (int d = 0; d < 4; ++d)
-        for (int f = 0; f < 3; ++f)
-            if (tex[d][f].id != 0) UnloadTexture(tex[d][f]);
-
+    
     loaded = false;
 }
 
@@ -77,6 +57,11 @@ void Player::setDirectionFromDelta(int dx, int dy) {
     else if (dx < 0) dir = Direction::Left;
     else if (dy > 0) dir = Direction::Down;
     else if (dy < 0) dir = Direction::Up;
+
+    // Al movernos, inclinamos el sprite hacia la dirección del movimiento
+    if (dx > 0) targetTilt = -15.0f;      // Derecha
+    else if (dx < 0) targetTilt = 15.0f;  // Izquierda
+    else targetTilt = (dy > 0) ? 5.0f : -5.0f; // Arriba/Abajo (pequeño balanceo)
 }
 
 // Máquina de estados de animación
@@ -96,33 +81,54 @@ void Player::update(float dt, bool isMoving) {
         animTimer = 0.0f;
         walkIndex = 0;
     }
+
+    // Respiración continua
+    animTime += dt * 5.0f; 
+
+    // Suavizado de la inclinación (Spring/Lerp)
+    // El 15.0f hace que el jugador reaccione más rápido que los enemigos
+    tiltAngle += (targetTilt - tiltAngle) * 15.0f * dt;
+    
+    // Decaimiento: Si dejas de moverte, targetTilt vuelve a 0
+    // Si te mueves, setDirectionFromDelta lo volverá a poner en 15/-15
+    if (!isMoving) {
+        targetTilt += (0.0f - targetTilt) * 10.0f * dt;
+    }
 }
 
 // Renderizado
 void Player::draw(int tileSize, int px, int py) const {
-    int d = dirIndex(dir); // Convierte Enum a int (0-3)
-
-    // Lógica de selección de frame:
-    // 1. Si estamos quietos (animTimer == 0 && walkIndex == 0) -> Frame 0 (Idle)
-    // 2. Si nos movemos, alternamos entre Frame 1 y 2 según walkIndex.
-    int frameWalk = (walkIndex == 0) ? 1 : 2; 
-    
-    // Detectar estado IDLE exacto:
-    // La condición 'animTimer == 0.0f && walkIndex == 0' ocurre en el 'else' del update().
-    bool isIdle = (animTimer == 0.0f && walkIndex == 0); 
-    
-    int drawFrame = isIdle ? 0 : frameWalk;
+    // Selección del frame (Igual que antes)
+    int d = dirIndex(dir);
+    int frame = (walkIndex == 0) ? 1 : 2; 
+    int drawFrame = (animTimer == 0.0f && walkIndex == 0) ? 0 : frame;
 
     const Texture2D& t = tex[d][drawFrame];
     
-    // Coordenadas de pantalla
+    // Coordenadas base en pantalla
     const float sx = (float)(px * tileSize);
     const float sy = (float)(py * tileSize);
-
-    // Escalado automático
-    // Si tus sprites son de 16x16 pero el tile del juego es 32x32, esto lo escala x2.
-    // Si son de 64x64, los reduce a la mitad. Muy robusto para probar distintos assets.
-    float scale = (float)tileSize / (float)t.width;
     
-    DrawTextureEx(t, {sx, sy}, 0.0f, scale, WHITE);
+    // 1. Respiración (Squash & Stretch)
+    // Cuando está quieto respira más visiblemente. Cuando corre, se tensa (menos amplitud).
+    float breatheAmp = 0.05f; 
+    float breathe = 1.0f + sinf(animTime) * breatheAmp;
+
+    // 2. Origen de rotación (Los pies)
+    // Para que al rotar no "flote", rotamos desde el centro inferior.
+    Vector2 origin = { (float)tileSize / 2.0f, (float)tileSize };
+
+    // 3. Rectángulos de Origen y Destino
+    Rectangle src = { 0.0f, 0.0f, (float)t.width, (float)t.height };
+    
+    // El destino se ajusta para aplicar el "breathe" en el eje Y
+    Rectangle dest = {
+        sx + tileSize / 2.0f, // Centro X
+        sy + tileSize,        // Base Y (Pies)
+        (float)tileSize,      // Ancho
+        (float)tileSize * breathe // Alto variable
+    };
+
+    // 4. Dibujar con rotación
+    DrawTexturePro(t, src, dest, origin, tiltAngle, WHITE);
 }

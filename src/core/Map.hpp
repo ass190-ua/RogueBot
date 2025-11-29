@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <cstdint>
+#include "raylib.h"
 #include <utility> // std::pair
 
 // Tipos de celda. Usamos uint8_t para ahorrar memoria (1 byte por tile).
@@ -24,9 +25,8 @@ public:
     void generate(int width, int height, unsigned seed = 0);
     
     // Renderiza el mapa usando Raylib (Tile por tile).
-    void draw(int tileSize) const;
-
-    // Sistema de visión (FOV, "FOG OF WAR")
+    void draw(int tileSize, int px, int py, int radius, 
+              const Texture2D& wallTex, const Texture2D& floorTex) const;    // Sistema de visión (FOV, "FOG OF WAR")
     
     // Calcula qué celdas ve el jugador desde (px, py) con un radio 'radius'.
     // Actualiza los vectores 'm_visible' y 'm_discovered'.

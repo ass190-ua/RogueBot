@@ -9,19 +9,14 @@
 
 // Renderizado de enemigos
 void Game::drawEnemies() const {
-    // Lambda auxiliar: Verifica si una celda es visible para el jugador ( FOV, "Fog of War")
     auto visible = [&](int x, int y) { 
         return !map.fogEnabled() || map.isVisible(x, y); 
     };
 
     for (size_t i = 0; i < enemies.size(); ++i) {
         const auto &e = enemies[i];
-        
-        // Si el enemigo está en la niebla, no se dibuja ni él ni su barra de vida
         if (!visible(e.getX(), e.getY())) continue;
 
-        // 1. Selección de textura (sprite) Según dirección
-        // Seleccionamos el sprite correcto basándonos en hacia dónde mira el enemigo
         const Texture2D *tex = nullptr;
         switch (i < enemyFacing.size() ? enemyFacing[i] : EnemyFacing::Down) {
             case EnemyFacing::Up:    tex = &itemSprites.enemyUp;   break;
@@ -30,62 +25,60 @@ void Game::drawEnemies() const {
             case EnemyFacing::Right: tex = &itemSprites.enemyRight;break;
         }
 
-        // Coordenadas en píxeles (Mundo)
         const float xpx = (float)(e.getX() * tileSize);
         const float ypx = (float)(e.getY() * tileSize);
 
-        // Renderizado del Sprite
+        Color tint = WHITE;
+        if (e.getType() == Enemy::Shooter) tint = { 255, 160, 50, 255 }; 
+
+        // 1. Respiración (Squash & Stretch)
+        // Usamos el seno del tiempo para calcular una escala Y que oscila entre 0.95 y 1.05
+        float breathe = 1.0f + sinf(e.getAnimTime()) * 0.05f;
+        
+        // 2. Origen de rotación
+        // Queremos que roten desde sus "pies" (centro-abajo), no desde la esquina
+        // El centro del tile es (16, 16). Los pies son (16, 32).
+        Vector2 origin = { (float)tileSize / 2.0f, (float)tileSize }; 
+        
+        // 3. Destino ajustado
+        // Como rotamos desde los pies, la posición Y de destino debe ser la base del tile
+        Rectangle dest = {
+            xpx + tileSize/2.0f, // Centro X
+            ypx + tileSize,      // Pies Y
+            (float)tileSize,     // Ancho
+            (float)tileSize * breathe // Alto (Respirando)
+        };
+
         if (tex && tex->id != 0) {
-            // Caso ideal: Tenemos sprite específico direccional
             Rectangle src{0,0,(float)tex->width,(float)tex->height};
-            Rectangle dst{xpx, ypx, (float)tileSize, (float)tileSize};
-            Vector2 origin{0,0};
-            DrawTexturePro(*tex, src, dst, origin, 0.0f, WHITE);
+            // Usamos la rotación (tilt)
+            DrawTexturePro(*tex, src, dest, origin, e.getTilt(), tint);
         }
         else if (itemSprites.enemy.id != 0) {
-            // Fallback 1: Sprite genérico de enemigo (sin dirección)
             Rectangle src{0,0,(float)itemSprites.enemy.width,(float)itemSprites.enemy.height};
-            Rectangle dst{xpx, ypx, (float)tileSize, (float)tileSize};
-            Vector2 origin{0,0};
-            DrawTexturePro(itemSprites.enemy, src, dst, origin, 0.0f, WHITE);
+            DrawTexturePro(itemSprites.enemy, src, dest, origin, e.getTilt(), tint);
         }
         else {
-            // Fallback 2: Primitiva geométrica (círculo/cuadrado) si no cargaron texturas
-            e.draw(tileSize);
+            e.draw(tileSize); 
         }
 
-        // 2. Efecto de daño (flash blanco)
-        // Si el enemigo ha sido golpeado recientemente, dibujamos un recuadro blanco
-        // semi-transparente encima. Esto da feedback visual de impacto inmediato.
+        // Flash blanco
         if (i < enemyFlashTimer.size() && enemyFlashTimer[i] > 0.0f) {
+            // Dibujamos el cuadrado simple encima porque rotar un rectángulo sin textura es complejo en Raylib simple
+            // Pero como es un flash rápido, no se nota la discrepancia
             DrawRectangle((int)xpx, (int)ypx, tileSize, tileSize, Fade(WHITE, 0.7f));
         }
 
-        // 3. Barra de vida (hp bar)
+        // Barra de vida
         if (i < enemyHP.size()) {
-            const int w = tileSize; // Ancho igual al tile
-            const int h = 4;        // Alto de 4px
-            const int x = (int)(e.getX() * tileSize);
-            const int y = (int)(e.getY() * tileSize) - (h + 2); // Dibujada justo encima de la cabeza
-
-            // Cálculo del ancho de la barra verde según % de vida restante
+            const int w = tileSize, h = 4;
+            const int x = (int)xpx;
+            const int y = (int)ypx - (h + 2);
             int hpw = (int)std::lround(w * (enemyHP[i] / 100.0));
             hpw = std::clamp(hpw, 0, w);
-
-            // Fondo gris oscuro (para ver cuánto falta)
-            DrawRectangle(x, y, w, h, Color{60, 60, 60, 200}); 
-            
-            // Lógica de color dinámico (Gradiente):
-            // 100% Vida -> Verde (R=0, G=255)
-            // 50% Vida  -> Amarillo (R=127, G=127)
-            // 0% Vida   -> Rojo (R=255, G=0)
-            float pct = std::clamp(static_cast<float>(enemyHP[i]) / 100.0f, 0.0f, 1.0f);
-            unsigned char r = (unsigned char)std::lround(255 * (1.0f - pct));
-            unsigned char g = (unsigned char)std::lround(255 * pct);
-            Color lifeCol = {r, g, 0, 230};
-            
-            DrawRectangle(x, y, hpw, h, lifeCol);  // Parte coloreada
-            DrawRectangleLines(x, y, w, h, BLACK); // Borde negro para contraste
+            DrawRectangle(x, y, w, h, Color{60, 60, 60, 200});
+            DrawRectangle(x, y, hpw, h, RED); 
+            DrawRectangleLines(x, y, w, h, BLACK);
         }
     }
 }
@@ -160,7 +153,8 @@ void Game::spawnEnemiesForLevel() {
 
     // 2. Selección aleatoria
     std::uniform_int_distribution<int> dist(0, (int)candidates.size() - 1);
-    
+    std::uniform_int_distribution<int> typeDist(0, 100); // Probabilidad 0-100
+
     // Lista de posiciones ocupadas para evitar superponer enemigos entre sí o con items
     auto used = std::vector<IVec2>{spawnTile, exitTile};
     auto isUsed = [&](int x, int y) {
@@ -175,7 +169,15 @@ void Game::spawnEnemiesForLevel() {
             const auto &p = candidates[dist(rng)];
             if (!isUsed(p.x, p.y))
             {
-                enemies.emplace_back(p.x, p.y);
+                // Decidir tipo de enemigo
+                // Nivel 1: 100% Melee
+                // Nivel 2+: 30% Shooter
+                Enemy::Type t = Enemy::Melee;
+                if (currentLevel >= 2 && typeDist(rng) < 30) {
+                    t = Enemy::Shooter;
+                }
+
+                enemies.emplace_back(p.x, p.y, t); // Creamos enemigo con tipo
                 used.push_back(p);
                 break;
             }
@@ -191,5 +193,6 @@ void Game::spawnEnemiesForLevel() {
     enemyFacing.assign(enemies.size(), EnemyFacing::Down);
     enemyHP.assign(enemies.size(), hpForLevel); 
     enemyAtkCD.assign(enemies.size(), 0.0f);
+    enemyShootCD.assign(enemies.size(), 0.0f); // Inicializar cooldown disparo
     enemyFlashTimer.assign(enemies.size(), 0.0f);
 }

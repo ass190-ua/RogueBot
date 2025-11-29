@@ -20,6 +20,7 @@ struct Projectile {
     float   maxDistance = 0.0f;
     int     damage = 0;
     bool    active = true; // Se pone a false al chocar para borrarlo
+    bool    isEnemy = false; // Identifica si la bala es de un enemigo
 };
 
 // Texto flotante de daño ("+20", "-1HP") - Estilo RPG
@@ -65,6 +66,9 @@ enum class InputDevice {
 
 // Contenedor de todas las texturas del juego para carga centralizada
 struct ItemSprites {
+    //Texturas mapa
+    Texture2D wall{};
+    Texture2D floor{};
     // Items
     Texture2D keycard{};
     Texture2D shield{};
@@ -172,6 +176,7 @@ private:
     std::vector<Enemy> enemies;
     std::vector<int>   enemyHP;
     std::vector<float> enemyAtkCD;      // Cooldown de ataque individual
+    std::vector<float> enemyShootCD;    // Cooldown disparo (Shooter)
     std::vector<float> enemyFlashTimer; // Feedback visual de golpe
     std::vector<EnemyFacing> enemyFacing;
     
@@ -269,9 +274,17 @@ private:
     int burstShotsLeft = 0; // Para disparo en ráfaga (opcional)
     float burstTimer = 0.0f;
 
+    bool slashActive = false;
+    float slashTimer = 0.0f;
+    float slashBaseAngle = 0.0f; // Ángulo central del corte
+    Color slashColor = WHITE;
+    
+    void drawSlash() const; // Función para dibujarlo
+
     void performMeleeAttack();  // Puñetazo
     void performSwordAttack();  // Espadazo
     void performPlasmaAttack(); // Disparo
+    void updateShooters(float dt); // Lógica de disparo de enemigos independiente
     
     void spawnProjectile(int dmg);
     void updateProjectiles(float dt);
