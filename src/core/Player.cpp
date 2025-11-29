@@ -1,28 +1,9 @@
 #include "Player.hpp"
 #include <stdexcept>
 #include <iostream>
-#include <cmath>
+#include <cmath> // Necesario para sinf
 #include "AssetPath.hpp"
-
-// Helper: Carga segura de texturas
-// Intenta cargar una textura. Si falla (archivo no encontrado o corrupto),
-// genera una imagen blanca de 32x32 píxeles en tiempo de ejecución.
-// Esto evita que el juego haga crash o dibuje basura invisible.
-static Texture2D loadTexPoint(const std::string& rel) {
-    const std::string full = assetPath(rel); // Resuelve la ruta absoluta
-    Texture2D t = LoadTexture(full.c_str());
-    
-    // Verificación de Raylib: id 0 significa error de carga
-    if (t.id == 0) {
-        std::cerr << "[ASSETS] FALLBACK tex point para: " << full << "\n";
-        // Generar textura de emergencia (Placeholder)
-        Image white = GenImageColor(32, 32, WHITE);
-        t = LoadTextureFromImage(white);
-        UnloadImage(white); // Liberamos la imagen de RAM una vez subida a VRAM
-    }
-
-    return t;
-}
+#include "ResourceManager.hpp" // Integración con el Gestor de Recursos
 
 // Gestión de recursos
 void Player::load(const std::string& baseDir) {
@@ -38,11 +19,13 @@ void Player::load(const std::string& baseDir) {
         for (int f = 0; f < 3; ++f) {
             std::string path = baseDir + "/robot_" + dirs[d] + std::string("_") + frames[f] + ".png";
             
-            tex[d][f] = loadTexPoint(path); // Carga segura
+            // CAMBIO: Usamos el Singleton ResourceManager para cargar la textura
+            // Esto asegura que si ya está en memoria, no se vuelva a leer del disco.
+            tex[d][f] = ResourceManager::getInstance().getTexture(path);
             
             if (tex[d][f].id == 0) {
                 // Aquí se podría ser estricto y lanzar excepción, 
-                // pero el fallback anterior ya maneja el error visualmente.
+                // pero el ResourceManager ya maneja el error visualmente (Magenta).
                 // throw std::runtime_error("No se pudo cargar " + path);
             }
         }
@@ -53,11 +36,7 @@ void Player::load(const std::string& baseDir) {
 
 void Player::unload() {
     if (!loaded) return;
-    // Es vital liberar cada textura para evitar fugas de memoria VRAM
-    for (int d = 0; d < 4; ++d)
-        for (int f = 0; f < 3; ++f)
-            if (tex[d][f].id != 0) UnloadTexture(tex[d][f]);
-
+    
     loaded = false;
 }
 

@@ -7,6 +7,7 @@
 #include <climits>
 #include "GameUtils.hpp"
 #include "AssetPath.hpp"
+#include "ResourceManager.hpp"
 
 static inline unsigned now_seed() {
     return static_cast<unsigned>(time(nullptr));
@@ -79,22 +80,25 @@ void ItemSprites::load() {
     UnloadImage(imgWall);
 
     // 2. CARGA DE SPRITES (Archivos reales)
-    keycard = loadTex("assets/sprites/items/item_keycard.png");
-    shield = loadTex("assets/sprites/items/item_shield.png");
-    pila = loadTex("assets/sprites/items/item_healthbattery.png");
-    glasses = loadTex("assets/sprites/items/item_glasses.png");
-    swordBlue = loadTex("assets/sprites/items/item_sword_blue.png");
-    swordGreen = loadTex("assets/sprites/items/item_sword_green.png");
-    swordRed = loadTex("assets/sprites/items/item_sword_red.png");
-    plasma1 = loadTex("assets/sprites/items/item_plasma1.png");
-    plasma2 = loadTex("assets/sprites/items/item_plasma2.png");
-    battery = loadTex("assets/sprites/items/item_battery.png");
+    keycard    = ResourceManager::getInstance().getTexture("assets/sprites/items/item_keycard.png");
+    shield     = ResourceManager::getInstance().getTexture("assets/sprites/items/item_shield.png");
+    pila       = ResourceManager::getInstance().getTexture("assets/sprites/items/item_healthbattery.png");
+    glasses    = ResourceManager::getInstance().getTexture("assets/sprites/items/item_glasses.png");
+    swordBlue  = ResourceManager::getInstance().getTexture("assets/sprites/items/item_sword_blue.png");
+    swordGreen = ResourceManager::getInstance().getTexture("assets/sprites/items/item_sword_green.png");
+    swordRed   = ResourceManager::getInstance().getTexture("assets/sprites/items/item_sword_red.png");
+    plasma1    = ResourceManager::getInstance().getTexture("assets/sprites/items/item_plasma1.png");
+    plasma2    = ResourceManager::getInstance().getTexture("assets/sprites/items/item_plasma2.png");
+    battery    = ResourceManager::getInstance().getTexture("assets/sprites/items/item_battery.png");
     
-    enemy = loadTex("assets/sprites/enemies/enemy.png");
-    enemyUp = loadTex("assets/sprites/enemies/enemy_up.png");
-    enemyDown = loadTex("assets/sprites/enemies/enemy_down.png");
-    enemyLeft = loadTex("assets/sprites/enemies/enemy_left.png");
-    enemyRight = loadTex("assets/sprites/enemies/enemy_right.png");
+    enemy      = ResourceManager::getInstance().getTexture("assets/sprites/enemies/enemy.png");
+    enemyUp    = ResourceManager::getInstance().getTexture("assets/sprites/enemies/enemy_up.png");
+    enemyDown  = ResourceManager::getInstance().getTexture("assets/sprites/enemies/enemy_down.png");
+    enemyLeft  = ResourceManager::getInstance().getTexture("assets/sprites/enemies/enemy_left.png");
+    enemyRight = ResourceManager::getInstance().getTexture("assets/sprites/enemies/enemy_right.png");
+    
+    // Jugador (Player tiene su propio load, habría que cambiarlo también, 
+    // pero ItemSprites ya cumple gran parte).
     
     loaded = true;
 }
@@ -102,26 +106,9 @@ void ItemSprites::load() {
 void ItemSprites::unload() {
     if (!loaded) return;
     
-    // Descargar las procedurales
+    // Solo descargamos lo que creamos manualmente (procedural)
     UnloadTexture(wall);
     UnloadTexture(floor);
-
-    // Descargar el resto
-    UnloadTexture(keycard);
-    UnloadTexture(shield);
-    UnloadTexture(pila);
-    UnloadTexture(glasses);
-    UnloadTexture(swordBlue);
-    UnloadTexture(swordGreen);
-    UnloadTexture(swordRed);
-    UnloadTexture(plasma1);
-    UnloadTexture(plasma2);
-    UnloadTexture(battery);
-    UnloadTexture(enemy);
-    UnloadTexture(enemyUp);
-    UnloadTexture(enemyDown);
-    UnloadTexture(enemyLeft);
-    UnloadTexture(enemyRight);
     
     loaded = false;
 }
@@ -517,6 +504,8 @@ void Game::run() {
 
     player.unload();
     itemSprites.unload();
+    ResourceManager::getInstance().clear(); 
+    CloseAudioDevice();
     CloseWindow();
 }
 
