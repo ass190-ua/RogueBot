@@ -158,6 +158,15 @@ endif()
 # Crear el ejecutable a partir de todos los .cpp recogidos
 add_executable(${PROJECT_NAME} ${ROGUEBOT_SOURCES})
 
+# Forzar enlazado estático en Windows (MinGW)
+if(WIN32 AND MINGW)
+    target_link_options(${PROJECT_NAME} PRIVATE 
+        -static 
+        -static-libgcc 
+        -static-libstdc++
+    )
+endif()
+
 # Añadir los directorios de cabeceras (.hpp) al target
 target_include_directories(${PROJECT_NAME}
     PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
