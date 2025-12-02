@@ -305,6 +305,20 @@ private:
 
     // Sistema de audio (Procedural)
     // Generamos sonidos con código si no hay archivos .wav
+
+    // Tipos de sonido para el generador
+    enum SoundType { 
+        SND_HIT,
+        SND_EXPLOSION,
+        SND_PICKUP,
+        SND_POWERUP,
+        SND_HURT,
+        SND_WIN,
+        SND_LOOSE,
+        SND_AMBIENT,
+        SND_DASH
+    };
+    
     Sound generateSound(int type); 
 
     Sound sfxHit{};       
