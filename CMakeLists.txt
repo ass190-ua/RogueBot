@@ -42,7 +42,7 @@ cmake_minimum_required(VERSION 3.20)
 #   cmake --build build --target package
 # -----------------------------------------------------------------------------
 project(roguebot
-        VERSION 1.0
+        VERSION 1.1
         DESCRIPTION "RogueBot — Roguelike con raylib"
         LANGUAGES CXX)
 
