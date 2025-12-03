@@ -1,0 +1,110 @@
+name: Build RogueBot packages on release
+
+on:
+  release:
+    types: [published]      # al publicar una release
+  workflow_dispatch:        # opcional: lanzarlo a mano
+
+jobs:
+  # ============================================================
+  #  🐧 Linux: .deb + .tar.gz con CMake + CPack
+  # ============================================================
+  linux-packages:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install build toolchain & system libs for raylib
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            git \
+            cmake \
+            pkg-config \
+            libx11-dev libxrandr-dev libxi-dev libxxf86vm-dev \
+            libxinerama-dev libxcursor-dev \
+            libgl1-mesa-dev libglu1-mesa-dev mesa-common-dev \
+            libasound2-dev
+
+      - name: Configure CMake (Release, install layout)
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release \
+                -DPREFER_RAYLIB_STATIC=ON \
+                -DUSE_EXTERNAL_RAYLIB=OFF \
+                -DASSET_ROOT=/usr/local/share/roguebot/assets
+
+      - name: Build RogueBot
+        run: cmake --build build -j$(nproc)
+
+      - name: Create packages (DEB + TGZ)
+        run: cmake --build build --target package
+
+      # --- subir a la release solo si el evento es "release" ---
+      - name: Upload Linux packages to GitHub Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            build/*.deb
+            build/*.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # --- si se lanza a mano, subir como artifacts del workflow ---
+      - name: Upload Linux packages as workflow artifacts (manual run)
+        if: github.event_name != 'release'
+        uses: actions/upload-artifact@v4
+        with:
+          name: roguebot-linux-packages
+          path: |
+            build/*.deb
+            build/*.tar.gz
+
+  # ============================================================
+  #  🪟 Windows: ZIP “portable” + instalador NSIS (.exe)
+  # ============================================================
+  windows-packages:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install NSIS (for CPack NSIS generator)
+        run: choco install nsis -y
+
+      - name: Configure CMake (Release, portable layout)
+        run: >
+          cmake -B build
+          -DCMAKE_BUILD_TYPE=Release
+          -DPREFER_RAYLIB_STATIC=ON
+          -DUSE_EXTERNAL_RAYLIB=OFF
+          -DASSET_ROOT=assets
+
+      - name: Build RogueBot (Release)
+        run: cmake --build build --config Release
+
+      - name: Create Windows packages (ZIP + NSIS)
+        run: cmake --build build --config Release --target package
+
+      - name: Upload Windows packages to GitHub Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            build/*.zip
+            build/*.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Windows packages as workflow artifacts (manual run)
+        if: github.event_name != 'release'
+        uses: actions/upload-artifact@v4
+        with:
+          name: roguebot-windows-packages
+          path: |
+            build/*.zip
+            build/*.exe

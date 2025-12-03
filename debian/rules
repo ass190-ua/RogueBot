@@ -1,0 +1,11 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	# Compila el juego con la ruta del sistema para los assets
+	$(MAKE) ASSET_ROOT=/usr/share/roguebot/assets all
+
+override_dh_auto_install:
+	$(MAKE) DESTDIR="$(CURDIR)/debian/roguebot" PREFIX=/usr install

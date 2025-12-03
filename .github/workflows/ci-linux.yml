@@ -1,0 +1,45 @@
+name: CI / build-linux
+
+on:
+  workflow_dispatch:          # permitir lanzarlo a mano
+  pull_request:
+    branches: [ develop, main ]
+  push:
+    branches: [ develop, main, 'feature/**' ]
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install build toolchain & system libs for raylib
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            git \
+            cmake \
+            pkg-config \
+            libx11-dev libxrandr-dev libxi-dev libxxf86vm-dev \
+            libxinerama-dev libxcursor-dev \
+            libgl1-mesa-dev libglu1-mesa-dev mesa-common-dev \
+            libasound2-dev
+
+      - name: Configure CMake (Release)
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release \
+                -DPREFER_RAYLIB_STATIC=ON \
+                -DUSE_EXTERNAL_RAYLIB=OFF \
+                -DASSET_ROOT=assets
+
+      - name: Build RogueBot
+        run: cmake --build build -j$(nproc)
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: roguebot-linux
+          path: build/roguebot
