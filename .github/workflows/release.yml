@@ -1,5 +1,8 @@
 name: Build RogueBot packages on release
 
+permissions:
+  contents: write
+
 on:
   release:
     types: [published]      # al publicar una release
