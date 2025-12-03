@@ -1,6 +1,6 @@
 #include "Game.hpp"
-#include <algorithm> // std::min, std::clamp
-#include <cmath>     // std::floor
+#include <algorithm>
+#include <cmath>
 
 int Game::getFovRadius() const {
     int r = fovTiles;
