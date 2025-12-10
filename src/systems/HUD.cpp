@@ -271,6 +271,18 @@ void HUD::drawPlaying(const Game &game) const {
         
         statusY += statusGap;
     }
+
+    if (game.isGodMode()) {
+        // Dibujarlo centrado arriba o cerca de la vida
+        const char* text = "- GOD MODE -";
+        int w = MeasureText(text, 20);
+        int x = (GetScreenWidth() - w) / 2;
+        
+        // Efecto parpadeo simple con el tiempo
+        if ((int)(GetTime() * 2) % 2 == 0) {
+            DrawText(text, x, 40, 20, YELLOW); // Color dorado
+        }
+    }
 }
 
 // Pantalla de Victoria

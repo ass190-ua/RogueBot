@@ -183,16 +183,15 @@ void Map::draw(int tileSize, int px, int py, int radius,
         for (int x = 0; x < m_w; ++x) {
             
             // Si no está descubierto, Negro absoluto
-            if (m_discovered[y * m_w + x] == 0) continue;
+            if (!m_revealAll && m_discovered[y * m_w + x] == 0) continue;
 
             // --- CÁLCULO DE ILUMINACIÓN ---
             Color tint = WHITE;
             
-            if (m_fogEnabled) {
-                // 1. ZONA DE MEMORIA (Descubierto pero no visible ahora)
+            if (!m_revealAll && m_fogEnabled) {
+                // 1. ZONA DE MEMORIA
                 if (m_visible[y * m_w + x] == 0) {
-                    // CAMBIO: Mucho más oscuro para dar atmósfera
-                    tint = { 40, 40, 50, 255 }; 
+                     tint = { 40, 40, 50, 255 }; 
                 } 
                 // 2. ZONA VISIBLE (Antorcha)
                 else {
