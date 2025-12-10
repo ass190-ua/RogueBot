@@ -365,16 +365,17 @@ void Game::handleOptionsInput()
         }
     }
 
-    // Clic de ratón
-    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
+    // Ratón
+    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) ||
+        IsMouseButtonDown(MOUSE_LEFT_BUTTON))   // permite arrastrar
     {
         Vector2 mp = GetMousePosition();
 
-        int btnW = screenW / 3;
-        int btnH = screenH / 12;
+        int btnW    = screenW / 3;
+        int btnH    = screenH / 12;
         int centerX = screenW / 2;
 
-        // Estos rectángulos deben coincidir con los que usas en renderOptionsMenu()
+    
         Rectangle diffRect = {
             (float)(centerX - btnW / 2),
             (float)(screenH / 3),
@@ -389,17 +390,35 @@ void Game::handleOptionsInput()
             (float)btnH
         };
 
-        // Click en dificultad → rotar dificultad
+        float sliderMarginY = screenH * 0.05f;
+        float sliderW       = (float)btnW;
+        float sliderH       = btnH / 8.0f;
+        float sliderX       = (float)(centerX - btnW / 2);
+        float sliderY       = diffRect.y + diffRect.height + sliderMarginY;
+
+        Rectangle sliderRect = { sliderX, sliderY, sliderW, sliderH };
+
+        // 1) Cambiar dificultad
         if (CheckCollisionPointRec(mp, diffRect))
         {
             cycleDifficulty();
             return;
         }
 
-        // Click en VOLVER → volver al menú principal
+        // 2) Volver al menú principal
         if (CheckCollisionPointRec(mp, backRect))
         {
             state = GameState::MainMenu;
+            return;
+        }
+
+        // 3) Ajustar volumen con el slider
+        if (CheckCollisionPointRec(mp, sliderRect))
+        {
+            float rel = (mp.x - sliderRect.x) / sliderRect.width;
+            rel = std::clamp(rel, 0.0f, 1.0f);
+            audioVolume = rel;
+            SetMasterVolume(audioVolume);   // aquí actualizamos el volumen global del juego
             return;
         }
     }

@@ -365,6 +365,8 @@ private:
     // Sistema de audio (Procedural)
     // Generamos sonidos con código si no hay archivos .wav
 
+    float audioVolume = 0.2f;
+    std::string getVolumeLabel() const;
     // Tipos de sonido para el generador
     enum SoundType
     {
