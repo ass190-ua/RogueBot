@@ -13,19 +13,21 @@
 
 // Estructuras de datos auxiliares (Entidades ligeras)
 // Proyectil de Plasma (Disparo a distancia)
-struct Projectile {
+struct Projectile
+{
     Vector2 pos;
     Vector2 vel; // Velocidad (Vector dirección * magnitud)
-    float   distanceTraveled = 0.0f;
-    float   maxDistance = 0.0f;
-    int     damage = 0;
-    bool    active = true; // Se pone a false al chocar para borrarlo
-    bool    isEnemy = false; // Identifica si la bala es de un enemigo
+    float distanceTraveled = 0.0f;
+    float maxDistance = 0.0f;
+    int damage = 0;
+    bool active = true;   // Se pone a false al chocar para borrarlo
+    bool isEnemy = false; // Identifica si la bala es de un enemigo
 };
 
 // Texto flotante de daño ("+20", "-1HP") - Estilo RPG
-struct FloatingText {
-    Vector2 pos;      
+struct FloatingText
+{
+    Vector2 pos;
     int value;      // Valor numérico a mostrar
     float timer;    // Tiempo restante de vida
     float lifeTime; // Duración total inicial (para el Alpha/FadeOut)
@@ -33,11 +35,12 @@ struct FloatingText {
 };
 
 // Partículas simples para explosiones y efectos
-struct Particle {
+struct Particle
+{
     Vector2 pos;
     Vector2 vel;
     float life; // Vida restante
-    float maxLife;    
+    float maxLife;
     float size; // Tamaño en píxeles
     Color color;
 };
@@ -46,27 +49,41 @@ struct Particle {
 // Modo de movimiento del jugador:
 // StepByStep: Clásico Roguelike (1 pulsación = 1 paso). Preciso.
 // RepeatCooldown: Tipo Action-RPG (mantener pulsado para correr). Fluido.
-enum class MovementMode {
+enum class MovementMode
+{
     StepByStep,
     RepeatCooldown
 };
 
-enum class GameState {
+enum class GameState
+{
     MainMenu,
     Playing,
     Victory,
-    GameOver
+    GameOver,
+    OptionsMenu
 };
 
 // Para mostrar prompts correctos ("Presiona E" vs "Presiona A")
-enum class InputDevice {
+enum class InputDevice
+{
     Keyboard,
     Gamepad
 };
 
+// Dificultad del juego. Permite seleccionar entre modos Fácil, Medio y Difícil.
+// Esto afecta al número de enemigos y a su salud en cada nivel.
+enum class Difficulty
+{
+    Easy,
+    Medium,
+    Hard
+};
+
 // Contenedor de todas las texturas del juego para carga centralizada
-struct ItemSprites {
-    //Texturas mapa
+struct ItemSprites
+{
+    // Texturas mapa
     Texture2D wall{};
     Texture2D floor{};
     // Items
@@ -87,39 +104,40 @@ struct ItemSprites {
     Texture2D enemyDown{};
     Texture2D enemyLeft{};
     Texture2D enemyRight{};
-    
+
     bool loaded = false;
     void load();   // Carga todo
     void unload(); // Libera todo
 };
 
 // Clase principal del juego (Game Loop)
-class Game {
+class Game
+{
 public:
     // Constructor explícito para evitar conversiones implícitas accidentales de int a Game
     explicit Game(unsigned seed = 0);
-    
+
     // Bucle principal: Init -> Update -> Render -> Cleanup
     void run();
 
     // Getters públicos (Para el HUD y Renderizado)
     // Son const porque el HUD solo lee, no modifica.
-    
-    const std::vector<Enemy>& getEnemies() const { return enemies; }
-    const std::vector<ItemSpawn>& getItems() const { return items; }
+
+    const std::vector<Enemy> &getEnemies() const { return enemies; }
+    const std::vector<ItemSpawn> &getItems() const { return items; }
 
     int getScreenW() const { return screenW; }
     int getScreenH() const { return screenH; }
-    
+
     // Semillas para reproducibilidad (Debug/Speedrun)
     unsigned getRunSeed() const { return runSeed; }
     unsigned getLevelSeed() const { return levelSeed; }
-    
+
     int getCurrentLevel() const { return currentLevel; }
     int getMaxLevels() const { return maxLevels; }
-    
+
     const char *movementModeText() const; // Texto para la UI ("Modo Pasos" / "Modo Continuo")
-    
+
     const Map &getMap() const { return map; }
     int getPlayerX() const { return px; }
     int getPlayerY() const { return py; }
@@ -129,7 +147,7 @@ public:
     // Estadísticas del Jugador
     int getHP() const { return hp; }
     int getHPMax() const { return hpMax; }
-    
+
     // Estados de Power-Ups
     bool isShieldActive() const { return hasShield; }
     float getShieldTime() const { return shieldTimer; }
@@ -137,14 +155,20 @@ public:
     float getDashCooldown() const { return dashCooldownTimer; }
 
     // Dirección del Enemigo (para saber qué sprite dibujar)
-    enum class EnemyFacing { Down, Up, Left, Right };
+    enum class EnemyFacing
+    {
+        Down,
+        Up,
+        Left,
+        Right
+    };
 
 private:
     // Sistemas core
     Player player;
     HUD hud;
     Map map;
-    
+
     int screenW;
     int screenH;
     int tileSize = 32;
@@ -153,7 +177,7 @@ private:
     int px = 0, py = 0; // Posición en rejilla
     int hp = 10;
     int hpMax = 10;
-    
+
     // Invulnerabilidad tras recibir daño (i-frames)
     float damageCooldown = 0.0f;
     const float DAMAGE_COOLDOWN = 0.2f;
@@ -163,10 +187,10 @@ private:
     unsigned runSeed = 0;   // Semilla global de la partida
     unsigned levelSeed = 0; // Semilla específica del nivel actual
     std::mt19937 rng;
-    
+
     // Contexto persistente entre niveles (armas desbloqueadas, batería usada, etc.)
-    RunContext runCtx; 
-    
+    RunContext runCtx;
+
     // Objetos en el suelo
     std::vector<ItemSpawn> items;
     ItemSprites itemSprites;
@@ -174,17 +198,35 @@ private:
     // Gestión de enemigos
     // Vectores paralelos (SoA - Structure of Arrays) para rendimiento
     std::vector<Enemy> enemies;
-    std::vector<int>   enemyHP;
+    std::vector<int> enemyHP;
+    std::vector<int> enemyMaxHP;
     std::vector<float> enemyAtkCD;      // Cooldown de ataque individual
     std::vector<float> enemyShootCD;    // Cooldown disparo (Shooter)
     std::vector<float> enemyFlashTimer; // Feedback visual de golpe
     std::vector<EnemyFacing> enemyFacing;
-    
+
     int ENEMY_DETECT_RADIUS_PX = 32 * 6; // Radio de agresión
 
     void spawnEnemiesForLevel();
-    int enemiesPerLevel(int lvl) const { return (lvl == 1) ? 5 : (lvl == 2) ? 8 : 12;}
-    
+    int enemiesPerLevel(int lvl) const
+    {
+        // Determina cuántos enemigos debe haber por nivel según la dificultad.
+        // Easy: 3,5,7  / Medium: 4,6,8  / Hard: 5,8,12
+        switch (difficulty)
+        {
+        case Difficulty::Easy:
+            return (lvl == 1) ? 3 : (lvl == 2) ? 5
+                                               : 7;
+        case Difficulty::Medium:
+            return (lvl == 1) ? 4 : (lvl == 2) ? 6
+                                               : 8;
+        case Difficulty::Hard:
+        default:
+            return (lvl == 1) ? 5 : (lvl == 2) ? 8
+                                               : 12;
+        }
+    }
+
     // IA: Mueve a los enemigos cuando el jugador se mueve
     void updateEnemiesAfterPlayerMove(bool moved);
     void enemyTryAttackFacing(); // IA: Intenta atacar si tiene rango
@@ -194,7 +236,7 @@ private:
     // Gestión de input y estado de juego
     InputDevice lastInput = InputDevice::Keyboard;
     GameState state = GameState::MainMenu;
-    
+
     MovementMode moveMode = MovementMode::StepByStep;
     float moveCooldown = 0.0f;         // Temporizador para repetición de tecla
     const float MOVE_INTERVAL = 0.12f; // Velocidad de repetición
@@ -208,15 +250,18 @@ private:
     void newLevel(int level);
     unsigned nextRunSeed() const;
     unsigned seedForLevel(unsigned base, int level) const; // Hash determinista
-    
+
     // Bucle principal desglosado
     void processInput();
     void update();
     void render();
-    
+
     // UI Screens
     void renderMainMenu();
     void renderHelpOverlay();
+    void renderOptionsMenu(); 
+    void handleOptionsInput(); 
+
     Rectangle uiCenterRect(float w, float h) const;
 
     // CÁMARA Y VISIBILIDAD
@@ -226,23 +271,23 @@ private:
 
     void clampCameraToMap(); // Evita ver el vacío negro fuera del mapa
     void centerCameraOnPlayer();
-    
+
     bool fogEnabled = true;
-    int fovTiles = 8; // Radio de visión base
+    int fovTiles = 8;                   // Radio de visión base
     int defaultFovFromViewport() const; // Calcula FOV según tamaño de ventana
-    void recomputeFovIfNeeded(); // Raycasting de visión
+    void recomputeFovIfNeeded();        // Raycasting de visión
 
     // Lógica de movimiento
-    void tryMove(int dx, int dy); // Intenta mover, gestiona colisiones
+    void tryMove(int dx, int dy);          // Intenta mover, gestiona colisiones
     void onSuccessfulStep(int dx, int dy); // Se llama si el movimiento fue válido
-    void onExitReached(); // Jugador pisa la salida
+    void onExitReached();                  // Jugador pisa la salida
 
     // Inventario y habilidades pasivas
-    bool hasKey = false;     // Necesaria para pasar de nivel
-    bool hasShield = false;  // Invulnerabilidad temporal
+    bool hasKey = false;    // Necesaria para pasar de nivel
+    bool hasShield = false; // Invulnerabilidad temporal
     float shieldTimer = 0.0f;
     bool hasBattery = false; // Vida extra (1-UP)
-    
+
     // Gafas 3D (Modificadores de FOV)
     float glassesTimer = 0.0f;
     int glassesFovMod = 0;
@@ -263,13 +308,13 @@ private:
     int helpScroll = 0;
     std::string helpText;
     int mainMenuSelection = 0;
-    
+
     void handleMenuInput();
     void handlePlayingInput(float dt);
 
     // Sistema de combate avanzado (Proyectiles & Skills)
-    std::vector<Projectile> projectiles; 
-    
+    std::vector<Projectile> projectiles;
+
     float plasmaCooldown = 0.0f;
     int burstShotsLeft = 0; // Para disparo en ráfaga (opcional)
     float burstTimer = 0.0f;
@@ -278,14 +323,14 @@ private:
     float slashTimer = 0.0f;
     float slashBaseAngle = 0.0f; // Ángulo central del corte
     Color slashColor = WHITE;
-    
+
     void drawSlash() const; // Función para dibujarlo
 
-    void performMeleeAttack();  // Puñetazo
-    void performSwordAttack();  // Espadazo
-    void performPlasmaAttack(); // Disparo
+    void performMeleeAttack();     // Puñetazo
+    void performSwordAttack();     // Espadazo
+    void performPlasmaAttack();    // Disparo
     void updateShooters(float dt); // Lógica de disparo de enemigos independiente
-    
+
     void spawnProjectile(int dmg);
     void updateProjectiles(float dt);
     void drawProjectiles() const;
@@ -303,11 +348,26 @@ private:
     void updateParticles(float dt);
     void drawParticles() const;
 
+    // ---------------------------------------------------------------------
+    // Ajustes del menú principal y dificultad
+    // ---------------------------------------------------------------------
+    // Si es true, se muestra el panel de ajustes en el menú principal
+    bool showSettingsMenu = false;
+    // Dificultad actual seleccionada. Por defecto empezamos en modo Difícil para
+    // mantener el comportamiento original si el usuario no cambia nada.
+    Difficulty difficulty = Difficulty::Hard;
+
+    // Cambia la dificultad de forma cíclica (Easy → Medium → Hard → Easy)
+    void cycleDifficulty();
+    // Devuelve un texto descriptivo de la dificultad actual para la UI
+    const char *getDifficultyLabel() const;
+
     // Sistema de audio (Procedural)
     // Generamos sonidos con código si no hay archivos .wav
 
     // Tipos de sonido para el generador
-    enum SoundType { 
+    enum SoundType
+    {
         SND_HIT,
         SND_EXPLOSION,
         SND_PICKUP,
@@ -318,28 +378,28 @@ private:
         SND_AMBIENT,
         SND_DASH
     };
-    
-    Sound generateSound(int type); 
 
-    Sound sfxHit{};       
-    Sound sfxExplosion{}; 
-    Sound sfxPickup{};    
-    Sound sfxPowerUp{};   
-    Sound sfxHurt{};      
-    Sound sfxWin{};       
-    Sound sfxLoose{};     
-    Sound sfxDash{};      
-    Sound sfxAmbient{};   
+    Sound generateSound(int type);
+
+    Sound sfxHit{};
+    Sound sfxExplosion{};
+    Sound sfxPickup{};
+    Sound sfxPowerUp{};
+    Sound sfxHurt{};
+    Sound sfxWin{};
+    Sound sfxLoose{};
+    Sound sfxDash{};
+    Sound sfxAmbient{};
 
     // Habilidad activa: Dash (Esquiva)
     bool isDashing = false;         // Estado de inmunidad/velocidad
     float dashTimer = 0.0f;         // Duración del dash
     float dashCooldownTimer = 0.0f; // Tiempo de recarga
-    
-    const float DASH_DURATION = 0.15f; 
-    const float DASH_COOLDOWN = 2.0f;  
-    const int DASH_DISTANCE = 3;       // Salta 3 casillas
-    
+
+    const float DASH_DURATION = 0.15f;
+    const float DASH_COOLDOWN = 2.0f;
+    const int DASH_DISTANCE = 3; // Salta 3 casillas
+
     Vector2 dashStartPos{}; // Para interpolación suave (Lerp)
     Vector2 dashEndPos{};
 };
