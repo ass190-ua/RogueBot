@@ -431,3 +431,25 @@ void Game::onExitReached() {
         std::cout << "[Victory] Fin!\n";
     }
 }
+
+// Cambia la dificultad actual de forma cíclica. Al llegar al final vuelve al primero.
+void Game::cycleDifficulty() {
+    if (difficulty == Difficulty::Easy) {
+        difficulty = Difficulty::Medium;
+    }
+    else if (difficulty == Difficulty::Medium) {
+        difficulty = Difficulty::Hard;
+    }
+    else {
+        difficulty = Difficulty::Easy;
+    }
+}
+
+// Devuelve una cadena estática con el nombre de la dificultad, usada en el menú.
+const char *Game::getDifficultyLabel() const {
+    switch (difficulty) {
+        case Difficulty::Easy:   return "Dificultad: Fácil";
+        case Difficulty::Medium: return "Dificultad: Normal";
+        default:                 return "Dificultad: Difícil";
+    }
+}
