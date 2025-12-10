@@ -9,7 +9,7 @@
 // Variable global definida en Game.cpp
 extern bool gQuitRequested;
 
-// Función auxiliar para leer el texto de ayuda (movida desde Game.cpp)
+// Función auxiliar para leer el texto de ayuda
 static bool loadTextAsset(const char *relPath, std::string &outText) {
     const std::string full = assetPath(relPath);
     char *buf = LoadFileText(full.c_str());
@@ -26,6 +26,51 @@ static bool loadTextAsset(const char *relPath, std::string &outText) {
 }
 
 void Game::processInput() {
+    // --------------------------------------------------------
+    // 1. DETECCIÓN DE ACTIVACIÓN (F12) - MODO DIOS
+    // --------------------------------------------------------
+    if (IsKeyPressed(KEY_F12)) {
+        showGodModeInput = !showGodModeInput;
+        godModeInput.clear(); // Limpiar texto al abrir
+        return;
+    }
+
+    // 2. SI ESTAMOS ESCRIBIENDO LA CONTRASEÑA...
+    if (showGodModeInput) {
+        // Capturar caracteres del teclado (Input de texto)
+        int key = GetCharPressed();
+        while (key > 0) {
+            if ((key >= 32) && (key <= 125) && (godModeInput.length() < 10)) {
+                godModeInput.push_back((char)key);
+            }
+            key = GetCharPressed();
+        }
+
+        // Borrar caracteres (Backspace)
+        if (IsKeyPressed(KEY_BACKSPACE) && !godModeInput.empty()) {
+            godModeInput.pop_back();
+        }
+
+        // Confirmar (Enter)
+        if (IsKeyPressed(KEY_ENTER)) {
+            if (godModeInput == "IDDQD") { // Contraseña
+                toggleGodMode(!godMode);   // Invertir estado actual
+            }
+            showGodModeInput = false;      // Cerrar cuadro
+            godModeInput.clear();
+        }
+
+        // Cancelar (Escape)
+        if (IsKeyPressed(KEY_ESCAPE)) {
+            showGodModeInput = false;
+        }
+        
+        return; // IMPORTANTE: Bloquear el resto del input del juego mientras escribes
+    }
+
+    // --------------------------------------------------------
+    // 3. INPUT GENERAL (MENÚ / SALIR)
+    // --------------------------------------------------------
     if (state != GameState::MainMenu) {
         bool escPressed = IsKeyPressed(KEY_ESCAPE);
         const int gp0 = 0;
@@ -39,6 +84,18 @@ void Game::processInput() {
             showHelp = false;
             gAttack.swinging = false;
             gAttack.lastTiles.clear();
+
+            // Desactivar Modo Dios al salir al menú para no hacer trampa en la siguiente run
+            if (godMode) {
+                godMode = false;        // Quitar invencibilidad
+                map.setRevealAll(false);// Restaurar niebla
+                // No llamamos a toggleGodMode() para evitar el sonido al salir
+            }
+
+            // Asegurarnos de cerrar el cuadro de diálogo si estaba abierto
+            showGodModeInput = false; 
+            godModeInput.clear();
+            
             state = GameState::MainMenu;
             mainMenuSelection = 0;   
             return;
@@ -70,20 +127,8 @@ void Game::processInput() {
         moveCooldown = 0.0f;
     }
 
-    if (IsKeyPressed(KEY_F2)) {
-        fogEnabled = !fogEnabled;
-        map.setFogEnabled(fogEnabled);
-        if (fogEnabled) map.computeVisibility(px, py, getFovRadius());
-    }
-
-    if (IsKeyPressed(KEY_LEFT_BRACKET)) {
-        fovTiles = std::max(2, fovTiles - 1);
-        if (map.fogEnabled()) map.computeVisibility(px, py, getFovRadius());
-    }
-    if (IsKeyPressed(KEY_RIGHT_BRACKET)) {
-        fovTiles = std::min(30, fovTiles + 1);
-        if (map.fogEnabled()) map.computeVisibility(px, py, getFovRadius());
-    }
+    // [ELIMINADO] F2 (Niebla)
+    // [ELIMINADO] Corchetes (FOV)
 
     const float dt = GetFrameTime();
     if (state == GameState::MainMenu) {
@@ -335,7 +380,7 @@ void Game::handlePlayingInput(float dt) {
     if (interact) tryManualPickup();
 
     // --------------------------------------------------------
-    // 3. DASH (ESQUIVA) - NUEVO BLOQUE
+    // 3. DASH (ESQUIVA)
     // --------------------------------------------------------
     bool dashPressed = IsKeyPressed(KEY_LEFT_SHIFT) || IsKeyPressed(KEY_RIGHT_SHIFT);
     if (IsGamepadAvailable(gpId)) {
@@ -528,8 +573,4 @@ void Game::handlePlayingInput(float dt) {
             // std::cout << "No tienes plasma\n";
         }
     }
-
-    // Cheats
-    if (IsKeyPressed(KEY_H)) { hp = std::max(0, hp - 2); }      
-    if (IsKeyPressed(KEY_J)) { hp = std::min(hpMax, hp + 2); }  
 }

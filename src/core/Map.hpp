@@ -35,11 +35,13 @@ public:
     // Activa/Desactiva la niebla (útil para debug o modos fáciles).
     void setFogEnabled(bool enabled) { m_fogEnabled = enabled; }
 
+    void setRevealAll(bool reveal) { m_revealAll = reveal; }
+
     // Consultas de visión:
     // isVisible: ¿Lo veo AHORA mismo? (Iluminado)
     // isDiscovered: ¿Lo he visto ALGUNA vez? (Grisáceo/Memoria)
-    bool isVisible(int x, int y) const { return m_visible[y * m_w + x] != 0; }
-    bool isDiscovered(int x, int y) const { return m_discovered[y * m_w + x] != 0; }
+    bool isVisible(int x, int y) const { return m_revealAll || m_visible[y * m_w + x] != 0; }
+    bool isDiscovered(int x, int y) const { return m_revealAll || m_discovered[y * m_w + x] != 0; }
     bool fogEnabled() const { return m_fogEnabled; }
 
     // Acceso a datos (Geometría)
@@ -94,6 +96,7 @@ private:
     // Verifica si dos habitaciones se superponen (con margen de padding)
     static bool overlaps(const Room& a, const Room& b, int padding = 1);
 
+    bool m_revealAll = false; 
     bool m_fogEnabled = true;
 };
 

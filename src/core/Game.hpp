@@ -136,6 +136,11 @@ public:
     float getGlassesTime() const { return glassesTimer; }
     float getDashCooldown() const { return dashCooldownTimer; }
 
+    // Modo Dios
+    bool isGodMode() const { return godMode; }
+    bool isInputtingGodPassword() const { return showGodModeInput; }
+    const std::string& getGodPasswordInput() const { return godModeInput; }
+
     // Dirección del Enemigo (para saber qué sprite dibujar)
     enum class EnemyFacing { Down, Up, Left, Right };
 
@@ -302,6 +307,14 @@ private:
     void spawnExplosion(Vector2 pos, int count, Color color);
     void updateParticles(float dt);
     void drawParticles() const;
+
+    // Variables del Modo Dios
+    bool godMode = false;           // ¿Está activo el modo dios?
+    bool showGodModeInput = false;  // ¿Mostrando el cuadro de contraseña?
+    std::string godModeInput = "";  // Texto que el usuario está escribiendo
+    
+    // Método auxiliar para activar/desactivar
+    void toggleGodMode(bool enable);
 
     // Sistema de audio (Procedural)
     // Generamos sonidos con código si no hay archivos .wav

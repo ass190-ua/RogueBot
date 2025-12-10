@@ -148,6 +148,10 @@ void Game::newRun() {
     runSeed = nextRunSeed();
     std::cout << "[Run] Seed base del run: " << runSeed << "\n";
 
+    godMode = false;
+    map.setRevealAll(false);
+    showGodModeInput = false;
+
     currentLevel = 1;
     state = GameState::Playing;
     moveCooldown = 0.0f;
@@ -182,6 +186,8 @@ void Game::newLevel(int level) {
 
     map.generate(tilesX, tilesY, levelSeed);
 
+    fovTiles = defaultFovFromViewport();
+
     auto r = map.firstRoom();
     if (r.w > 0 && r.h > 0) {
         px = r.x + r.w / 2;
@@ -195,7 +201,6 @@ void Game::newLevel(int level) {
 
     player.setGridPos(px, py);
 
-    fovTiles = defaultFovFromViewport();
     map.computeVisibility(px, py, getFovRadius());
 
     Vector2 playerCenterPx = {px * (float)tileSize + tileSize / 2.0f,
@@ -228,6 +233,32 @@ void Game::newLevel(int level) {
                                   spawnTile, exitTile, enemyTiles,
                                   level, 
                                   rng, runCtx);
+}
+
+// Implementación del toggle
+void Game::toggleGodMode(bool enable) {
+    godMode = enable;
+    
+    // Le decimos al mapa que lo revele todo (o vuelva a la normalidad)
+    map.setRevealAll(godMode);
+
+    if (godMode) {
+        std::cout << "[GOD MODE] ACTIVADO - IDDQD\n";
+
+         PlaySound(sfxPowerUp); 
+        // Mensaje visual (puedes usar tu sistema de texto flotante)
+        spawnFloatingText({(float)px*tileSize, (float)py*tileSize}, 9999, GOLD); // Truco visual
+
+        // Opcional: Curar al jugador
+        hp = hpMax; 
+    } else {
+        std::cout << "[GOD MODE] DESACTIVADO\n";
+        // Al desactivar, forzamos un recálculo de visión para que
+        // la niebla vuelva a aparecer correctamente alrededor del jugador.
+        // Sonido de error/apagado (ej. Hurt o Loose)
+        PlaySound(sfxLoose);
+        map.computeVisibility(px, py, getFovRadius());
+    }
 }
 
 void Game::run() {
@@ -273,6 +304,8 @@ void Game::run() {
 
 void Game::update() {
     if (state != GameState::Playing) return;
+
+    if (showGodModeInput) return;
 
     float dt = GetFrameTime();
 
