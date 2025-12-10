@@ -31,6 +31,12 @@ void Game::render() {
         return;
     }
 
+    // 2) Menú de opciones (nuevo)
+    if (state == GameState::OptionsMenu) {
+        renderOptionsMenu();   // <--- AQUÍ USAMOS LA FUNCIÓN NUEVA
+        return;
+    }
+
     BeginDrawing();
     ClearBackground(BLACK);
 

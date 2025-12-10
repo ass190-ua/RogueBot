@@ -7,7 +7,8 @@
 #include <string>
 
 // Renderizado del menu principal
-void Game::renderMainMenu() {
+void Game::renderMainMenu()
+{
     BeginDrawing();
     ClearBackground(BLACK);
 
@@ -16,7 +17,7 @@ void Game::renderMainMenu() {
     const char *title = "ROGUEBOT";
     int titleSize = (int)std::round(screenH * 0.14f);
     int titleW = MeasureText(title, titleSize);
-    
+
     // Centrado horizontal (X) y posición vertical (Y) al 30% de la pantalla
     int titleX = (screenW - titleW) / 2;
     int titleY = (int)(screenH * 0.30f) - titleSize;
@@ -25,10 +26,10 @@ void Game::renderMainMenu() {
     // para simular un borde grueso.
     int stroke = std::clamp(screenH / 180, 2, 8); // Grosor dinámico (min 2px, max 8px)
     int shadow = stroke * 2;
-    
+
     // Sombra (Desplazada abajo-derecha)
     DrawText(title, titleX + shadow, titleY + shadow, titleSize, Color{90, 0, 0, 255});
-    
+
     // Contorno (8 direcciones)
     DrawText(title, titleX - stroke, titleY, titleSize, BLACK); // Izq
     DrawText(title, titleX + stroke, titleY, titleSize, BLACK); // Der
@@ -39,7 +40,7 @@ void Game::renderMainMenu() {
     DrawText(title, titleX + stroke, titleY - stroke, titleSize, BLACK);
     DrawText(title, titleX - stroke, titleY + stroke, titleSize, BLACK);
     DrawText(title, titleX + stroke, titleY + stroke, titleSize, BLACK);
-    
+
     // Texto Principal (Rojo) encima de todo
     DrawText(title, titleX, titleY, titleSize, RED);
 
@@ -48,10 +49,10 @@ void Game::renderMainMenu() {
     // para que no se vean ni diminutos en 4k ni enormes en 800x600.
     int bw = (int)std::round(screenW * 0.46f);
     bw = std::clamp(bw, 360, 720);
-    
+
     int bh = (int)std::round(screenH * 0.12f);
     bh = std::clamp(bh, 80, 128);
-    
+
     int startY = (int)std::round(screenH * 0.52f); // Empiezan un poco más abajo del centro
     int gap = (int)std::round(screenH * 0.045f);   // Espacio vertical entre botones
 
@@ -64,7 +65,8 @@ void Game::renderMainMenu() {
 
     // 3. Lambdas de utilidad (UI Logic)
     // Lambda: Dibuja texto con un borde negro fino de 1px
-    auto drawOutlinedText = [&](int x, int y, const char *txt, int fs, Color c) {
+    auto drawOutlinedText = [&](int x, int y, const char *txt, int fs, Color c)
+    {
         DrawText(txt, x - 1, y, fs, BLACK);
         DrawText(txt, x + 1, y, fs, BLACK);
         DrawText(txt, x, y - 1, fs, BLACK);
@@ -74,49 +76,57 @@ void Game::renderMainMenu() {
 
     // Lambda: Algoritmo para partir texto en 2 líneas si no cabe en el ancho (maxW).
     // Busca el espacio ' ' más cercano al centro para dividir la frase equilibradamente.
-    auto splitTwoLines = [&](const std::string &s, int fs, int maxW) -> std::pair<std::string, std::string> {
+    auto splitTwoLines = [&](const std::string &s, int fs, int maxW) -> std::pair<std::string, std::string>
+    {
         if (MeasureText(s.c_str(), fs) <= maxW)
             return {s, ""}; // Cabe en una línea
-            
+
         int bestIdx = -1, bestWidth = INT_MAX;
-        for (size_t i = 0; i < s.size(); ++i) {
-            if (s[i] != ' ') continue; // Solo partimos por espacios
-            
+        for (size_t i = 0; i < s.size(); ++i)
+        {
+            if (s[i] != ' ')
+                continue; // Solo partimos por espacios
+
             // Simulamos partir aquí
             std::string a = s.substr(0, i);
             std::string b = s.substr(i + 1);
             int wa = MeasureText(a.c_str(), fs);
             int wb = MeasureText(b.c_str(), fs);
             int worst = std::max(wa, wb);
-            
+
             // Buscamos el corte que deje la línea más ancha lo más pequeña posible (equilbrio)
-            if (wa <= maxW && wb <= maxW && worst < bestWidth) {
+            if (wa <= maxW && wb <= maxW && worst < bestWidth)
+            {
                 bestWidth = worst;
                 bestIdx = (int)i;
             }
         }
-        if (bestIdx >= 0) {
+        if (bestIdx >= 0)
+        {
             return {s.substr(0, bestIdx), s.substr(bestIdx + 1)};
         }
         return {s, ""}; // Fallback: no se pudo partir bien
     };
 
     // Lambda Principal: Dibuja un botón completo (Fondo, Borde, Texto centrado)
-    auto drawPixelButton = [&](Rectangle r, const char *label, int index) {
-        bool hover    = CheckCollisionPointRec(mp, r);    // Ratón encima
-        bool selected = (mainMenuSelection == index);     // Teclado/Gamepad selecciona esto
+    auto drawPixelButton = [&](Rectangle r, const char *label, int index)
+    {
+        bool hover = CheckCollisionPointRec(mp, r);   // Ratón encima
+        bool selected = (mainMenuSelection == index); // Teclado/Gamepad selecciona esto
 
         // Sombra sólida desplazada (+3px)
         DrawRectangle((int)r.x + 3, (int)r.y + 3, (int)r.width, (int)r.height, Color{0, 0, 0, 120});
 
         // Definición de colores según estado
-        Color baseBg     = Color{25, 25, 30, 255};
-        Color hoverBg    = Color{40, 40, 46, 255};
+        Color baseBg = Color{25, 25, 30, 255};
+        Color hoverBg = Color{40, 40, 46, 255};
         Color selectedBg = Color{60, 60, 80, 255};
 
         Color bg = baseBg;
-        if (hover)    bg = hoverBg;
-        if (selected) bg = selectedBg;  // La selección por teclado tiene prioridad visual o se suma al hover
+        if (hover)
+            bg = hoverBg;
+        if (selected)
+            bg = selectedBg; // La selección por teclado tiene prioridad visual o se suma al hover
 
         DrawRectangleRec(r, bg);
 
@@ -124,7 +134,7 @@ void Game::renderMainMenu() {
         bool active = hover || selected;
         Color outer = active ? Color{200, 40, 40, 255} : Color{150, 25, 25, 255};
         Color inner = active ? Color{255, 70, 70, 255} : Color{210, 45, 45, 255};
-        
+
         DrawRectangleLinesEx(r, 4, outer); // Borde grueso externo
         Rectangle innerR = {r.x + 4, r.y + 4, r.width - 8, r.height - 8};
         DrawRectangleLinesEx(innerR, 2, inner); // Borde fino interno
@@ -133,40 +143,44 @@ void Game::renderMainMenu() {
         const int padding = 18;
         int maxW = (int)r.width - padding * 2;
         int fs = (int)std::round(r.height * 0.40f); // Fuente base = 40% altura botón
-        if (fs < 18) fs = 18; // Mínimo legible
+        if (fs < 18)
+            fs = 18; // Mínimo legible
 
         // Intentamos ajustar el texto. Si no cabe, reducimos fuente o partimos en 2 líneas.
         std::string s = label;
         auto lines = splitTwoLines(s, fs, maxW);
-        
+
         // Bucle "while": Reduce tamaño fuente mientras el texto se salga
         while (((!lines.second.empty() && (MeasureText(lines.first.c_str(), fs) > maxW ||
                                            MeasureText(lines.second.c_str(), fs) > maxW)) ||
                 (lines.second.empty() && MeasureText(lines.first.c_str(), fs) > maxW)) &&
-               fs > 14) {
+               fs > 14)
+        {
             fs -= 1;
             lines = splitTwoLines(s, fs, maxW);
         }
 
         // Dibujar el texto centrado (1 o 2 líneas)
         Color txtCol = RAYWHITE;
-        if (lines.second.empty()) {
+        if (lines.second.empty())
+        {
             // Una línea
             int tw = MeasureText(lines.first.c_str(), fs);
             int tx = (int)(r.x + (r.width - tw) / 2);
             int ty = (int)(r.y + (r.height - fs) / 2);
             drawOutlinedText(tx, ty, lines.first.c_str(), fs, txtCol);
         }
-        else {
+        else
+        {
             // Dos líneas
             int tw1 = MeasureText(lines.first.c_str(), fs);
             int tw2 = MeasureText(lines.second.c_str(), fs);
             int totalH = fs * 2 + (int)(fs * 0.20f); // Altura total + pequeño gap
             int baseY = (int)(r.y + (r.height - totalH) / 2);
-            
+
             int tx1 = (int)(r.x + (r.width - tw1) / 2);
             int tx2 = (int)(r.x + (r.width - tw2) / 2);
-            
+
             drawOutlinedText(tx1, baseY, lines.first.c_str(), fs, txtCol);
             drawOutlinedText(tx2, baseY + fs + (int)(fs * 0.20f), lines.second.c_str(), fs, txtCol);
         }
@@ -177,6 +191,27 @@ void Game::renderMainMenu() {
     drawPixelButton(readBtn, "LEER ANTES DE JUGAR", 1);
     drawPixelButton(quitBtn, "SALIR", 2);
 
+    // 5. Botón de ajustes en la esquina inferior derecha
+    // Calculamos un tamaño proporcional a la altura de la pantalla con límites para no desaparecer en resoluciones grandes o pequeñas.
+    int settingsSize = (int)std::round(screenH * 0.08f);
+    if (settingsSize < 48)
+        settingsSize = 48;
+    if (settingsSize > 120)
+        settingsSize = 120;
+    Rectangle settingsRect = {(float)(screenW - settingsSize - 20), (float)(screenH - settingsSize - 20), (float)settingsSize, (float)settingsSize};
+    // Dibujamos el botón de ajustes usando el mismo estilo de botones. Como índice usamos 3 para que no interfiera con la selección de teclado.
+    drawPixelButton(settingsRect, "AJUSTES", 3);
+
+    // Si el panel de ajustes está abierto, dibujamos el botón de dificultad a la izquierda del de ajustes
+    if (showSettingsMenu)
+    {
+        int diffW = settingsSize * 3;
+        int diffH = settingsSize;
+        Rectangle diffRect = {settingsRect.x - diffW - 20.0f, settingsRect.y + (settingsRect.height - diffH) / 2.0f,
+                              (float)diffW, (float)diffH};
+        drawPixelButton(diffRect, getDifficultyLabel(), 4);
+    }
+
     // Si el usuario abrió la guía, dibujamos el overlay encima de todo
     if (showHelp)
         renderHelpOverlay();
@@ -185,16 +220,19 @@ void Game::renderMainMenu() {
 }
 
 // Renderizado del overlay (modal) de ayuda
-void Game::renderHelpOverlay() {
+void Game::renderHelpOverlay()
+{
     // 1. Fondo semitransparente (Dimming) para oscurecer el menú de atrás
     DrawRectangle(0, 0, screenW, screenH, Color{0, 0, 0, 180});
 
     // 2. Panel Central
     int panelW = (int)std::round(screenW * 0.86f);
     int panelH = (int)std::round(screenH * 0.76f);
-    if (panelW > 1500) panelW = 1500; // Max width
-    if (panelH > 900)  panelH = 900;  // Max height
-    
+    if (panelW > 1500)
+        panelW = 1500; // Max width
+    if (panelH > 900)
+        panelH = 900; // Max height
+
     int px = (screenW - panelW) / 2;
     int py = (screenH - panelH) / 2;
 
@@ -215,7 +253,7 @@ void Game::renderHelpOverlay() {
     int viewportW = panelW - margin * 2;
 
     int backFs = std::max(16, (int)std::round(panelH * 0.048f)); // Tamaño fuente botón volver
-    int footerH = backFs + 16; // Espacio reservado abajo para el botón "Volver"
+    int footerH = backFs + 16;                                   // Espacio reservado abajo para el botón "Volver"
     int viewportH = panelH - (top - py) - margin - footerH;
 
     // Scissor mode: Recorta todo lo que se dibuje fuera de este rectángulo.
@@ -223,28 +261,36 @@ void Game::renderHelpOverlay() {
     BeginScissorMode(left, top, viewportW, viewportH);
 
     int fontSize = (int)std::round(screenH * 0.022f);
-    if (fontSize < 16) fontSize = 16;
+    if (fontSize < 16)
+        fontSize = 16;
     int lineH = (int)std::round(fontSize * 1.25f);
 
     // Calcular altura total del texto para limitar el scroll
     int lines = 1;
-    for (char c : helpText) if (c == '\n') ++lines;
+    for (char c : helpText)
+        if (c == '\n')
+            ++lines;
     int totalH = lines * lineH;
     int maxScroll = std::max(0, totalH - viewportH);
-    if (helpScroll > maxScroll) helpScroll = maxScroll; // Clamp scroll
+    if (helpScroll > maxScroll)
+        helpScroll = maxScroll; // Clamp scroll
 
     // Dibujado del texto línea a línea
     int y = top - helpScroll; // Aplicar desplazamiento negativo (scroll)
-    std::string line; line.reserve(256);
-    
+    std::string line;
+    line.reserve(256);
+
     // Iteramos char a char para detectar saltos de línea manuales
-    for (size_t i = 0; i <= helpText.size(); ++i) {
-        if (i == helpText.size() || helpText[i] == '\n') {
+    for (size_t i = 0; i <= helpText.size(); ++i)
+    {
+        if (i == helpText.size() || helpText[i] == '\n')
+        {
             DrawText(line.c_str(), left, y, fontSize, Color{230, 230, 230, 255});
             y += lineH;
             line.clear();
         }
-        else line.push_back(helpText[i]);
+        else
+            line.push_back(helpText[i]);
     }
     EndScissorMode(); // Fin del recorte
 
@@ -254,7 +300,7 @@ void Game::renderHelpOverlay() {
     // Posicionado abajo a la derecha
     int tx = px + panelW - tw - 16;
     int ty = py + panelH - backFs - 12;
-    
+
     // Hitbox para el ratón
     Rectangle backHit = {(float)(tx - 6), (float)(ty - 4),
                          (float)(tw + 12), (float)(backFs + 8)};
@@ -266,8 +312,85 @@ void Game::renderHelpOverlay() {
     DrawText(backTxt, tx, ty, backFs, link);
 
     // Subrayado al pasar el ratón (estilo hipervínculo)
-    if (hover) {
+    if (hover)
+    {
         int underlineY = ty + backFs + 2;
         DrawLine(tx, underlineY, tx + tw, underlineY, link);
     }
+}
+
+void Game::renderOptionsMenu()
+{
+    BeginDrawing();
+    ClearBackground(BLACK);
+
+    // ---------- Título "OPCIONES" ----------
+    const char *title = "OPCIONES";
+    int titleFontSize = screenH / 10;
+    int titleWidth    = MeasureText(title, titleFontSize);
+    int titleX        = (screenW - titleWidth) / 2;
+    int titleY        = screenH / 8;
+
+    DrawText(title, titleX, titleY, titleFontSize, RED);
+
+    // ---------- Medidas comunes de botones ----------
+    int btnW    = screenW / 3;      // ancho de los botones
+    int btnH    = screenH / 12;     // alto de los botones
+    int centerX = screenW / 2;      // centro de la pantalla
+
+    // Lambda para dibujar un botón "pixel" simple (similar al menú principal)
+    auto drawSimpleButton = [&](Rectangle r, const char *label)
+    {
+        // Sombra
+        DrawRectangle((int)r.x + 3, (int)r.y + 3,
+                      (int)r.width, (int)r.height,
+                      Color{0, 0, 0, 120});
+
+        // Fondo
+        Color bg      = Color{25, 25, 30, 255};
+        Color outer   = Color{150, 25, 25, 255};
+        Color inner   = Color{210, 45, 45, 255};
+
+        DrawRectangleRec(r, bg);
+
+        // Bordes
+        DrawRectangleLinesEx(r, 4, outer);
+        Rectangle innerR = { r.x + 4, r.y + 4, r.width - 8, r.height - 8 };
+        DrawRectangleLinesEx(innerR, 2, inner);
+
+        // Texto centrado
+        int fs = (int)std::round(r.height * 0.40f);
+        if (fs < 18) fs = 18;
+
+        int tw = MeasureText(label, fs);
+        int tx = (int)(r.x + (r.width  - tw) / 2);
+        int ty = (int)(r.y + (r.height - fs) / 2);
+
+        // Sombra del texto
+        DrawText(label, tx + 1, ty + 1, fs, BLACK);
+        // Texto principal
+        DrawText(label, tx, ty, fs, RAYWHITE);
+    };
+
+    // ---------- Botón de DIFICULTAD ----------
+    Rectangle diffRect = {
+        (float)(centerX - btnW / 2),
+        (float)(screenH / 3),   // vertical aprox a 1/3 de la pantalla
+        (float)btnW,
+        (float)btnH
+    };
+
+    drawSimpleButton(diffRect, getDifficultyLabel());
+
+    // ---------- Botón VOLVER ----------
+    Rectangle backRect = {
+        (float)(centerX - btnW / 2),
+        (float)(screenH - screenH / 4),  // cerca de la parte baja
+        (float)btnW,
+        (float)btnH
+    };
+
+    drawSimpleButton(backRect, "VOLVER");
+
+    EndDrawing();
 }
