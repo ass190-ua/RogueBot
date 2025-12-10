@@ -148,29 +148,47 @@ void Game::newRun() {
     runSeed = nextRunSeed();
     std::cout << "[Run] Seed base del run: " << runSeed << "\n";
 
-    godMode = false;
-    map.setRevealAll(false);
-    showGodModeInput = false;
-
+    // Reiniciar estado básico
     currentLevel = 1;
     state = GameState::Playing;
     moveCooldown = 0.0f;
-    hp = 10;
+    hp = 10; // O el valor inicial que desees
 
+    // --- REINICIAR INVENTARIO Y POWER-UPS ---
     hasKey = false;
+    
+    // Escudo
     hasShield = false;
+    shieldTimer = 0.0f; // ¡Importante resetear el tiempo!
+
+    // Batería (Vida extra)
     hasBattery = false;
+
+    // Gafas 3D (Visión)
+    glassesTimer = 0.0f; // ¡Importante! Si no es 0, el juego cree que siguen activas
+    glassesFovMod = 0;   // Resetear el modificador de visión extra
+
+    // Armas
     swordTier = 0;
     plasmaTier = 0;
 
+    // --- REINICIAR MODO DIOS (Seguridad) ---
+    godMode = false;
+    showGodModeInput = false;
+    map.setRevealAll(false); // Apagar la luz del modo dios
+
+    // Reiniciar contexto de mejoras entre niveles
     runCtx.espadaMejorasObtenidas = 0;
     runCtx.plasmaMejorasObtenidas = 0;
     
+    // Reiniciar lógica de ataque
     gAttack = AttackRuntime{};
     gAttack.frontOnly = true;
 
-    // Limpiar proyectiles al iniciar run
+    // Limpiar proyectiles y entidades
     projectiles.clear();
+    floatingTexts.clear(); // Limpiar números flotantes viejos
+    particles.clear();     // Limpiar explosiones viejas
 
     newLevel(currentLevel);
 }
