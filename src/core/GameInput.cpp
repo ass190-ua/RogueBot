@@ -75,16 +75,17 @@ void Game::processInput()
     // --------------------------------------------------------
     // 3. INPUT GENERAL (MENÚ / SALIR)
     // --------------------------------------------------------
-    if (state != GameState::MainMenu)
+    // Excluimos OptionsMenu porque tiene su propia lógica de 'Volver' en handleOptionsInput
+    if (state != GameState::MainMenu && state != GameState::OptionsMenu)
     {
         bool escPressed = IsKeyPressed(KEY_ESCAPE);
         const int gp0 = 0;
         if (IsGamepadAvailable(gp0))
         {
             escPressed = escPressed ||
-                         IsGamepadButtonPressed(gp0, GAMEPAD_BUTTON_RIGHT_FACE_RIGHT) ||
-                         IsGamepadButtonPressed(gp0, GAMEPAD_BUTTON_MIDDLE_RIGHT) ||
-                         IsGamepadButtonPressed(gp0, GAMEPAD_BUTTON_MIDDLE);
+                         IsGamepadButtonPressed(gp0, GAMEPAD_BUTTON_RIGHT_FACE_RIGHT) || // B / Círculo
+                         // ELIMINADO: IsGamepadButtonPressed(gp0, GAMEPAD_BUTTON_MIDDLE_RIGHT) || <-- Start ya no saca del juego
+                         IsGamepadButtonPressed(gp0, GAMEPAD_BUTTON_MIDDLE);             // Guide
         }
         if (escPressed)
         {
@@ -123,7 +124,8 @@ void Game::processInput()
     }
 
     const int gpRestart = 0;
-    if (state != GameState::MainMenu &&
+    // Evitar reiniciar con botón si estamos en menús
+    if (state != GameState::MainMenu && state != GameState::OptionsMenu &&
         IsGamepadAvailable(gpRestart) &&
         IsGamepadButtonPressed(gpRestart, GAMEPAD_BUTTON_RIGHT_FACE_UP))
     {
@@ -139,18 +141,15 @@ void Game::processInput()
         moveCooldown = 0.0f;
     }
 
-    // [ELIMINADO] F2 (Niebla)
-    // [ELIMINADO] Corchetes (FOV)
-
     const float dt = GetFrameTime();
     if (state == GameState::MainMenu)
     {
         handleMenuInput();
         return;
     }
-    else if (state == GameState::OptionsMenu)   // <-- NUEVO
+    else if (state == GameState::OptionsMenu)   
     {
-        handleOptionsInput();                   // <-- NUEVO
+        handleOptionsInput();                   
         return;
     }
     else if (state == GameState::Playing)
@@ -168,34 +167,26 @@ void Game::handleMenuInput()
 
     if (showHelp)
     {
-        // ... (Tu código de menú de ayuda, igual que antes) ...
         int panelW = (int)std::round(screenW * 0.86f);
         int panelH = (int)std::round(screenH * 0.76f);
-        if (panelW > 1500)
-            panelW = 1500;
-        if (panelH > 900)
-            panelH = 900;
+        if (panelW > 1500) panelW = 1500;
+        if (panelH > 900)  panelH = 900;
         int pxl = (screenW - panelW) / 2;
         int pyl = (screenH - panelH) / 2;
 
         float wheel = GetMouseWheelMove();
-        if (wheel != 0.0f)
-        {
+        if (wheel != 0.0f) {
             helpScroll -= (int)(wheel * 40);
-            if (helpScroll < 0)
-                helpScroll = 0;
+            if (helpScroll < 0) helpScroll = 0;
         }
 
-        if (IsGamepadAvailable(menuGamepad))
-        {
+        if (IsGamepadAvailable(menuGamepad)) {
             float ay = GetGamepadAxisMovement(menuGamepad, GAMEPAD_AXIS_LEFT_Y);
             const float dead = 0.25f;
-            if (std::fabs(ay) > dead)
-            {
+            if (std::fabs(ay) > dead) {
                 const float speed = 400.0f;
                 helpScroll += (int)(ay * speed * GetFrameTime());
-                if (helpScroll < 0)
-                    helpScroll = 0;
+                if (helpScroll < 0) helpScroll = 0;
             }
         }
 
@@ -206,16 +197,12 @@ void Game::handleMenuInput()
         int footerH = backFs + 16;
         int viewportH = panelH - (top - pyl) - margin - footerH;
         int fontSize = (int)std::round(screenH * 0.022f);
-        if (fontSize < 16)
-            fontSize = 16;
+        if (fontSize < 16) fontSize = 16;
         int lineH = (int)std::round(fontSize * 1.25f);
         int lines = 1;
-        for (char c : helpText)
-            if (c == '\n')
-                ++lines;
+        for (char c : helpText) if (c == '\n') ++lines;
         int maxScroll = std::max(0, lines * lineH - viewportH);
-        if (helpScroll > maxScroll)
-            helpScroll = maxScroll;
+        if (helpScroll > maxScroll) helpScroll = maxScroll;
 
         const char *backTxt = "VOLVER";
         int tw = MeasureText(backTxt, backFs);
@@ -229,20 +216,19 @@ void Game::handleMenuInput()
         bool escBack = IsKeyPressed(KEY_ESCAPE);
         bool gpBack = false;
 
-        if (IsGamepadAvailable(menuGamepad))
-        {
+        if (IsGamepadAvailable(menuGamepad)) {
             gpBack = IsGamepadButtonPressed(menuGamepad, GAMEPAD_BUTTON_RIGHT_FACE_RIGHT) ||
                      IsGamepadButtonPressed(menuGamepad, GAMEPAD_BUTTON_LEFT_FACE_RIGHT) ||
                      IsGamepadButtonPressed(menuGamepad, GAMEPAD_BUTTON_RIGHT_FACE_DOWN);
         }
 
-        if (clickBack || escBack || gpBack)
-        {
+        if (clickBack || escBack || gpBack) {
             showHelp = false;
         }
         return;
     }
 
+    // Definición de botones
     int bw = (int)std::round(screenW * 0.35f);
     bw = std::clamp(bw, 320, 560);
     int bh = (int)std::round(screenH * 0.12f);
@@ -257,35 +243,28 @@ void Game::handleMenuInput()
     Rectangle quitBtn = {(float)((screenW - bw) / 2),
                          (float)(startY + (bh + gap) * 2), (float)bw, (float)bh};
 
+    // Rectángulo del botón ajustes (Coincide con GameUI)
+    int settingsSize = (int)std::round(screenH * 0.08f);
+    settingsSize = std::clamp(settingsSize, 48, 120);
+    Rectangle settingsRect = {(float)(screenW - settingsSize - 20), (float)(screenH - settingsSize - 20),
+                              (float)settingsSize, (float)settingsSize};
+    
+    // El rectángulo "diffRect" solo es relevante si showSettingsMenu es true, pero aquí estamos en el menú principal
+    // para ir a opciones, así que comprobamos el botón "settingsRect".
+
+    // Lógica Ratón
     if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
     {
         Vector2 mp = GetMousePosition();
 
-        // 1. Cálculo del botón de ajustes y dificultad (igual que en renderMainMenu)
-        int settingsSize = (int)std::round(screenH * 0.08f);
-        settingsSize = std::clamp(settingsSize, 48, 120);
-        Rectangle settingsRect = {(float)(screenW - settingsSize - 20), (float)(screenH - settingsSize - 20),
-                                  (float)settingsSize, (float)settingsSize};
-        int diffW = settingsSize * 3;
-        int diffH = settingsSize;
-        Rectangle diffRect = {settingsRect.x - diffW - 20.0f, settingsRect.y + (settingsRect.height - diffH) / 2.0f,
-                              (float)diffW, (float)diffH};
-
-        // 2. Comprobación de clic sobre el botón de ajustes: alternar menú de ajustes
+        // Clic en el botón de engranaje/ajustes
         if (CheckCollisionPointRec(mp, settingsRect))
         {
             state = GameState::OptionsMenu;
+            mainMenuSelection = 0; // Reset selección para el siguiente menú
             return;
         }
 
-        // 3. Si el menú de ajustes está abierto, comprobamos clic sobre el botón de dificultad
-        if (showSettingsMenu && CheckCollisionPointRec(mp, diffRect))
-        {
-            cycleDifficulty();
-            return;
-        }
-
-        // 4. Comprobación de clic sobre los botones principales (Jugar, Leer, Salir)
         if (CheckCollisionPointRec(mp, playBtn))
         {
             newRun();
@@ -306,32 +285,35 @@ void Game::handleMenuInput()
         }
     }
 
+    // --- LÓGICA DE ACTIVACIÓN ---
     auto activateSelection = [&]()
     {
-        if (mainMenuSelection == 0)
-        {
+        if (mainMenuSelection == 0) {
             newRun();
         }
-        else if (mainMenuSelection == 1)
-        {
+        else if (mainMenuSelection == 1) {
             if (helpText.empty())
                 loadTextAsset("assets/docs/objetos.txt", helpText);
             showHelp = true;
             helpScroll = 0;
         }
-        else
-        {
+        else if (mainMenuSelection == 2) {
             gQuitRequested = true;
+        }
+        else if (mainMenuSelection == 3) { // NUEVO: Opción 3 = Ajustes
+            state = GameState::OptionsMenu;
+            mainMenuSelection = 0; 
         }
     };
 
+    // --- NAVEGACIÓN TECLADO (Ahora con módulo 4) ---
     if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W))
     {
-        mainMenuSelection = (mainMenuSelection + 3 - 1) % 3;
+        mainMenuSelection = (mainMenuSelection + 4 - 1) % 4; // Cambiado 3 -> 4
     }
     if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S))
     {
-        mainMenuSelection = (mainMenuSelection + 1) % 3;
+        mainMenuSelection = (mainMenuSelection + 1) % 4;     // Cambiado 3 -> 4
     }
     if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE))
     {
@@ -339,15 +321,16 @@ void Game::handleMenuInput()
         return;
     }
 
+    // --- NAVEGACIÓN GAMEPAD (Ahora con módulo 4) ---
     if (IsGamepadAvailable(menuGamepad))
     {
         if (IsGamepadButtonPressed(menuGamepad, GAMEPAD_BUTTON_LEFT_FACE_UP))
         {
-            mainMenuSelection = (mainMenuSelection + 3 - 1) % 3;
+            mainMenuSelection = (mainMenuSelection + 4 - 1) % 4; // Cambiado 3 -> 4
         }
         if (IsGamepadButtonPressed(menuGamepad, GAMEPAD_BUTTON_LEFT_FACE_DOWN))
         {
-            mainMenuSelection = (mainMenuSelection + 1) % 3;
+            mainMenuSelection = (mainMenuSelection + 1) % 4;     // Cambiado 3 -> 4
         }
 
         static bool stickNeutral = true;
@@ -361,9 +344,9 @@ void Game::handleMenuInput()
         else if (stickNeutral)
         {
             if (ay < 0.0f)
-                mainMenuSelection = (mainMenuSelection + 3 - 1) % 3;
+                mainMenuSelection = (mainMenuSelection + 4 - 1) % 4; // Cambiado 3 -> 4
             else
-                mainMenuSelection = (mainMenuSelection + 1) % 3;
+                mainMenuSelection = (mainMenuSelection + 1) % 4;     // Cambiado 3 -> 4
             stickNeutral = false;
         }
 
@@ -372,6 +355,7 @@ void Game::handleMenuInput()
             activateSelection();
             return;
         }
+        // Botón Y / Triángulo para ayuda rápida
         if (IsGamepadButtonPressed(menuGamepad, GAMEPAD_BUTTON_RIGHT_FACE_UP))
         {
             if (helpText.empty())
@@ -385,22 +369,57 @@ void Game::handleMenuInput()
 
 void Game::handleOptionsInput()
 {
-    // Salir de opciones con ESC (por si no quieres usar sólo el botón VOLVER)
-    if (IsKeyPressed(KEY_ESCAPE))
-    {
+    // Reusamos mainMenuSelection para navegar: 0 = Dificultad, 1 = Volver
+
+    // 1. Salir con ESC o Botón B (Círculo)
+    if (IsKeyPressed(KEY_ESCAPE)) {
         state = GameState::MainMenu;
+        mainMenuSelection = 0;
         return;
     }
 
-    // Soporte mando (opcional)
     const int gp0 = 0;
-    if (IsGamepadAvailable(gp0))
-    {
-        if (IsGamepadButtonPressed(gp0, GAMEPAD_BUTTON_MIDDLE) ||
-            IsGamepadButtonPressed(gp0, GAMEPAD_BUTTON_MIDDLE_RIGHT))
-        {
-            state = GameState::MainMenu;
-            return;
+    // Navegación (Arriba/Abajo) y Selección (Enter/A)
+    bool up = IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W);
+    bool down = IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S);
+    bool enter = IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE);
+    bool back = false;
+
+    if (IsGamepadAvailable(gp0)) {
+        if (IsGamepadButtonPressed(gp0, GAMEPAD_BUTTON_RIGHT_FACE_RIGHT)) back = true; // B / Círculo
+        
+        if (IsGamepadButtonPressed(gp0, GAMEPAD_BUTTON_LEFT_FACE_UP)) up = true;
+        if (IsGamepadButtonPressed(gp0, GAMEPAD_BUTTON_LEFT_FACE_DOWN)) down = true;
+        if (IsGamepadButtonPressed(gp0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN)) enter = true; // A / Cruz
+
+        // Stick Analógico
+        static bool stickNeutral = true;
+        float ay = GetGamepadAxisMovement(gp0, GAMEPAD_AXIS_LEFT_Y);
+        if (std::fabs(ay) < 0.35f) stickNeutral = true;
+        else if (stickNeutral) {
+            if (ay < 0.0f) up = true;
+            else down = true;
+            stickNeutral = false;
+        }
+    }
+
+    if (back) {
+        state = GameState::MainMenu;
+        mainMenuSelection = 0;
+        return;
+    }
+
+    // Lógica de movimiento (solo hay 2 opciones)
+    if (up) mainMenuSelection = (mainMenuSelection + 2 - 1) % 2;
+    if (down) mainMenuSelection = (mainMenuSelection + 1) % 2;
+
+    // Lógica de acción
+    if (enter) {
+        if (mainMenuSelection == 0) {
+            cycleDifficulty(); // Cambiar dificultad
+        } else {
+            state = GameState::MainMenu; // Botón Volver
+            mainMenuSelection = 0;
         }
     }
 

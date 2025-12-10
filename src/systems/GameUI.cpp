@@ -338,9 +338,16 @@ void Game::renderOptionsMenu()
     int btnH    = screenH / 12;     // alto de los botones
     int centerX = screenW / 2;      // centro de la pantalla
 
-    // Lambda para dibujar un botón "pixel" simple (similar al menú principal)
-    auto drawSimpleButton = [&](Rectangle r, const char *label)
+    Vector2 mp = GetMousePosition();
+
+    // Lambda para dibujar un botón "pixel" simple
+    // AÑADIDO: int index para saber si está seleccionado por teclado/mando
+    auto drawSimpleButton = [&](Rectangle r, const char *label, int index)
     {
+        // Lógica de selección
+        bool hover = CheckCollisionPointRec(mp, r);
+        bool selected = (mainMenuSelection == index); 
+
         // Sombra
         DrawRectangle((int)r.x + 3, (int)r.y + 3,
                       (int)r.width, (int)r.height,
@@ -348,12 +355,17 @@ void Game::renderOptionsMenu()
 
         // Fondo
         Color bg      = Color{25, 25, 30, 255};
-        Color outer   = Color{150, 25, 25, 255};
-        Color inner   = Color{210, 45, 45, 255};
+        Color hoverBg = Color{40, 40, 46, 255};
+        Color selectedBg = Color{60, 60, 80, 255};
 
-        DrawRectangleRec(r, bg);
+        if (hover) bg = hoverBg;
+        if (selected) bg = selectedBg; // Prioridad al mando/teclado
 
         // Bordes
+        Color outer = (hover || selected) ? Color{200, 40, 40, 255} : Color{150, 25, 25, 255};
+        Color inner = (hover || selected) ? Color{255, 70, 70, 255} : Color{210, 45, 45, 255};
+
+        DrawRectangleRec(r, bg);
         DrawRectangleLinesEx(r, 4, outer);
         Rectangle innerR = { r.x + 4, r.y + 4, r.width - 8, r.height - 8 };
         DrawRectangleLinesEx(innerR, 2, inner);
@@ -366,31 +378,29 @@ void Game::renderOptionsMenu()
         int tx = (int)(r.x + (r.width  - tw) / 2);
         int ty = (int)(r.y + (r.height - fs) / 2);
 
-        // Sombra del texto
         DrawText(label, tx + 1, ty + 1, fs, BLACK);
-        // Texto principal
         DrawText(label, tx, ty, fs, RAYWHITE);
     };
 
-    // ---------- Botón de DIFICULTAD ----------
+    // ---------- Botón de DIFICULTAD (Índice 0) ----------
     Rectangle diffRect = {
         (float)(centerX - btnW / 2),
-        (float)(screenH / 3),   // vertical aprox a 1/3 de la pantalla
+        (float)(screenH / 3),
         (float)btnW,
         (float)btnH
     };
 
-    drawSimpleButton(diffRect, getDifficultyLabel());
+    drawSimpleButton(diffRect, getDifficultyLabel(), 0);
 
-    // ---------- Botón VOLVER ----------
+    // ---------- Botón VOLVER (Índice 1) ----------
     Rectangle backRect = {
         (float)(centerX - btnW / 2),
-        (float)(screenH - screenH / 4),  // cerca de la parte baja
+        (float)(screenH - screenH / 4),
         (float)btnW,
         (float)btnH
     };
 
-    drawSimpleButton(backRect, "VOLVER");
+    drawSimpleButton(backRect, "VOLVER", 1);
 
     EndDrawing();
 }
