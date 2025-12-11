@@ -59,6 +59,7 @@ enum class GameState
 {
     MainMenu,
     Playing,
+    Paused,
     Victory,
     GameOver,
     OptionsMenu
@@ -232,6 +233,24 @@ private:
         }
     }
 
+    // --- VARIABLES CHEAT CODE (MANDO) ---
+    // Secuencia: Arriba, Arriba, Abajo, Abajo, Izq, Der, Izq, Der, B, A
+    const std::vector<int> konamiCode = {
+        GAMEPAD_BUTTON_LEFT_FACE_UP,
+        GAMEPAD_BUTTON_LEFT_FACE_UP,
+        GAMEPAD_BUTTON_LEFT_FACE_DOWN,
+        GAMEPAD_BUTTON_LEFT_FACE_DOWN,
+        GAMEPAD_BUTTON_LEFT_FACE_LEFT,
+        GAMEPAD_BUTTON_LEFT_FACE_RIGHT,
+        GAMEPAD_BUTTON_LEFT_FACE_LEFT,
+        GAMEPAD_BUTTON_LEFT_FACE_RIGHT,
+        GAMEPAD_BUTTON_RIGHT_FACE_RIGHT, // B (Círculo)
+        GAMEPAD_BUTTON_RIGHT_FACE_DOWN   // A (Cruz)
+    };
+    
+    // Índice actual de la secuencia (cuántos has acertado seguidos)
+    size_t cheatCodeIndex = 0;
+
     // IA: Mueve a los enemigos cuando el jugador se mueve
     void updateEnemiesAfterPlayerMove(bool moved);
     void enemyTryAttackFacing(); // IA: Intenta atacar si tiene rango
@@ -313,9 +332,13 @@ private:
     int helpScroll = 0;
     std::string helpText;
     int mainMenuSelection = 0;
+    int pauseSelection = 0;  
+    GameState previousState = GameState::MainMenu;
 
     void handleMenuInput();
     void handlePlayingInput(float dt);
+    void renderPauseMenu();
+    void handlePauseInput();
 
     // Sistema de combate avanzado (Proyectiles & Skills)
     std::vector<Projectile> projectiles;
@@ -358,14 +381,16 @@ private:
     // ---------------------------------------------------------------------
     // Si es true, se muestra el panel de ajustes en el menú principal
     bool showSettingsMenu = false;
+    bool showDifficultyWarning = false;
     // Dificultad actual seleccionada. Por defecto empezamos en modo Difícil para
     // mantener el comportamiento original si el usuario no cambia nada.
-    Difficulty difficulty = Difficulty::Hard;
+    Difficulty difficulty = Difficulty::Medium;
+    Difficulty pendingDifficulty = Difficulty::Medium;
 
     // Cambia la dificultad de forma cíclica (Easy → Medium → Hard → Easy)
     void cycleDifficulty();
     // Devuelve un texto descriptivo de la dificultad actual para la UI
-    const char *getDifficultyLabel() const;
+    const char *getDifficultyLabel(Difficulty d) const;
 
     // Variables del Modo Dios
     bool godMode = false;           // ¿Está activo el modo dios?

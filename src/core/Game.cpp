@@ -287,15 +287,23 @@ void Game::run() {
 
         // --- GESTIÓN DE MÚSICA AMBIENTE ---
         // Solo suena si estamos jugando. Si salimos al menú, se calla.
-        if (state == GameState::Playing) {
-            // Si no está sonando, dale al play
+        if (state == GameState::Playing || state == GameState::Paused) {
             if (!IsSoundPlaying(sfxAmbient)) {
                 PlaySound(sfxAmbient);
             }
-            // Opcional: Ajustar volumen si quieres que sea sutil
-            // SetSoundVolume(sfxAmbient, 0.6f); 
+            
+            // Truco: Si está en pausa, pausamos el stream de audio
+            if (state == GameState::Paused) ResumeSound(sfxAmbient);
+            // Mejor lógica:
+            if (state == GameState::Paused) {
+                 // ilencio total:
+                 if (IsSoundPlaying(sfxAmbient)) PauseSound(sfxAmbient);
+            } else {
+                 if (!IsSoundPlaying(sfxAmbient)) ResumeSound(sfxAmbient);
+            }
+
         } else {
-            // Si estamos en menú/gameover y suena, la paramos
+            // Menú principal / GameOver / Victory
             if (IsSoundPlaying(sfxAmbient)) {
                 StopSound(sfxAmbient);
             }
@@ -464,8 +472,8 @@ void Game::cycleDifficulty() {
 }
 
 // Devuelve una cadena estática con el nombre de la dificultad, usada en el menú.
-const char *Game::getDifficultyLabel() const {
-    switch (difficulty) {
+const char *Game::getDifficultyLabel(Difficulty d) const {
+    switch (d) {
         case Difficulty::Easy:   return "Dificultad: Fácil";
         case Difficulty::Medium: return "Dificultad: Normal";
         default:                 return "Dificultad: Difícil";

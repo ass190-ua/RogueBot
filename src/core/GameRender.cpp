@@ -33,7 +33,7 @@ void Game::render() {
 
     // 2) Menú de opciones (nuevo)
     if (state == GameState::OptionsMenu) {
-        renderOptionsMenu();   // <--- AQUÍ USAMOS LA FUNCIÓN NUEVA
+        renderOptionsMenu();
         return;
     }
 
@@ -62,8 +62,14 @@ void Game::render() {
 
     EndMode2D();
 
-    // 6. HUD
-    if (state == GameState::Playing) hud.drawPlaying(*this);
+    // 6. HUD y OVERLAYS
+    if (state == GameState::Playing) {
+        hud.drawPlaying(*this);
+    }
+    else if (state == GameState::Paused) { // <--- NUEVO: Caso de Pausa
+        hud.drawPlaying(*this); // Dibujamos el HUD de fondo para contexto
+        renderPauseMenu();      // Dibujamos el menú de pausa encima
+    }
     else if (state == GameState::Victory) hud.drawVictory(*this);
     else if (state == GameState::GameOver) hud.drawGameOver(*this);
 
