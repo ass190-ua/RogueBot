@@ -47,6 +47,9 @@ void Game::render() {
     
     // 2. Dibujar Enemigos
     drawEnemies();
+
+    // Dibujar Boss
+    drawBoss();
     
     // 3. Dibujar Jugador
     player.draw(tileSize, px, py);

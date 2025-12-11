@@ -25,6 +25,8 @@ void Game::performMeleeAttack() {
         center, gAttack.lastDir, gAttack.rangeTiles, gAttack.frontOnly, map);
 
     bool hit = false;
+    
+    // 1. CHEQUEO CONTRA ENEMIGOS NORMALES
     for (size_t i = 0; i < enemies.size(); ++i) {
         IVec2 epos = {enemies[i].getX(), enemies[i].getY()};
         bool impacted = false;
@@ -34,8 +36,6 @@ void Game::performMeleeAttack() {
         
         if (impacted) {
             hit = true;
-            
-            // SONIDO GOLPE
             PlaySound(sfxHit); 
 
             if (enemyHP.size() != enemies.size()) enemyHP.assign(enemies.size(), ENEMY_BASE_HP);
@@ -60,6 +60,25 @@ void Game::performMeleeAttack() {
             }
         }
     }
+
+    // 2. NUEVO: CHEQUEO CONTRA EL BOSS (Faltaba esto)
+    if (boss.active) {
+        for (const auto& t : gAttack.lastTiles) {
+            // Hitbox del boss (Centro +/- 1 tile)
+            if (std::abs(t.x - boss.x) <= 1 && std::abs(t.y - boss.y) <= 1) {
+                hit = true;
+                boss.hp -= DMG_HANDS;
+                boss.flashTimer = 0.15f;
+                
+                PlaySound(sfxHit);
+                // Texto flotante en la cabeza del boss
+                spawnFloatingText({(float)boss.x*tileSize, (float)boss.y*tileSize}, DMG_HANDS, RAYWHITE);
+                
+                std::cout << "[Boss] Punched! HP: " << boss.hp << "\n";
+                break; // Solo le pegamos una vez por ataque
+            }
+        }
+    }
     
     // Limpieza de muertos + EXPLOSIONES + SONIDO MUERTE
     if (hit) {
@@ -74,7 +93,6 @@ void Game::performMeleeAttack() {
                 spawnExplosion({ex, ey}, 15, DARKGRAY);
                 spawnExplosion({ex, ey}, 5, RED); 
                 
-                // SONIDO EXPLOSIÓN
                 PlaySound(sfxExplosion);
 
                 enemies.erase(enemies.begin() + idx);
@@ -107,12 +125,10 @@ void Game::performSwordAttack() {
     slashTimer = 0.15f; // Duración corta y rápida
     slashColor = trailColor;
 
-    // Calcular ángulo según dirección (Raylib usa grados: Derecha=0, Abajo=90...)
     if (gAttack.lastDir.x > 0) slashBaseAngle = 0.0f;        // Derecha
     else if (gAttack.lastDir.x < 0) slashBaseAngle = 180.0f; // Izquierda
     else if (gAttack.lastDir.y > 0) slashBaseAngle = 90.0f;  // Abajo
     else slashBaseAngle = 270.0f;                            // Arriba
-    // ----------------------------
 
     gAttack.rangeTiles = 1; 
     gAttack.cooldown   = CD_SWORD;
@@ -128,12 +144,13 @@ void Game::performSwordAttack() {
         center, gAttack.lastDir, gAttack.rangeTiles, gAttack.frontOnly, map);
 
     bool hit = false;
+    
+    // 1. CHEQUEO CONTRA ENEMIGOS NORMALES
     for (size_t i = 0; i < enemies.size(); ++i) {
         IVec2 epos = {enemies[i].getX(), enemies[i].getY()};
         for (const auto& t : gAttack.lastTiles) {
             if (t.x == epos.x && t.y == epos.y) {
                 hit = true;
-                
                 PlaySound(sfxHit);
 
                 if (enemyHP.size() != enemies.size()) enemyHP.assign(enemies.size(), ENEMY_BASE_HP);
@@ -142,7 +159,6 @@ void Game::performSwordAttack() {
 
                 Vector2 ePos = { (float)enemies[i].getX() * tileSize + 8, 
                                  (float)enemies[i].getY() * tileSize - 10 };
-                // Usamos el mismo color del trail para el texto
                 spawnFloatingText(ePos, dmg, trailColor);
 
                 if (i < enemyFlashTimer.size()) enemyFlashTimer[i] = 0.15f;
@@ -157,6 +173,24 @@ void Game::performSwordAttack() {
                     else enemyFacing[i] = (dy > 0) ? EnemyFacing::Down : EnemyFacing::Up;
                 }
                 break;
+            }
+        }
+    }
+
+    // 2. NUEVO: CHEQUEO CONTRA EL BOSS (Faltaba esto)
+    if (boss.active) {
+        for (const auto& t : gAttack.lastTiles) {
+            // Hitbox generosa del boss (Centro +/- 1 tile)
+            if (std::abs(t.x - boss.x) <= 1 && std::abs(t.y - boss.y) <= 1) {
+                hit = true;
+                boss.hp -= dmg;
+                boss.flashTimer = 0.15f;
+                
+                PlaySound(sfxHit);
+                spawnFloatingText({(float)boss.x*tileSize, (float)boss.y*tileSize}, dmg, trailColor);
+                
+                std::cout << "[Boss] Slashed! HP: " << boss.hp << "\n";
+                break; 
             }
         }
     }
@@ -269,7 +303,10 @@ void Game::updateProjectiles(float dt) {
             }
         } 
         else {
-            // --- BALA JUGADOR -> ENEMIGOS ---
+            // --- BALA JUGADOR -> ...
+            
+            // A. Chequeo vs ENEMIGOS NORMALES
+            bool hitSomething = false;
             for (size_t i = 0; i < enemies.size(); ++i) {
                 Vector2 ePos = { 
                     enemies[i].getX() * (float)tileSize + tileSize/2.0f,
@@ -282,6 +319,7 @@ void Game::updateProjectiles(float dt) {
 
                 if (dx*dx + dy*dy < rad*rad) {
                     p.active = false;
+                    hitSomething = true;
                     PlaySound(sfxHit);
 
                     if (enemyHP.size() != enemies.size()) enemyHP.assign(enemies.size(), 100);
@@ -293,7 +331,7 @@ void Game::updateProjectiles(float dt) {
 
                     if (i < enemyFlashTimer.size()) enemyFlashTimer[i] = 0.15f;
         
-                    // Provocación (Corrección Bug anterior)
+                    // Provocación
                     if (i < enemyAtkCD.size()) enemyAtkCD[i] = 0.0f;
                     int edx = px - enemies[i].getX();
                     int edy = py - enemies[i].getY();
@@ -303,6 +341,24 @@ void Game::updateProjectiles(float dt) {
                     }
 
                     break; 
+                }
+            }
+
+            // B. NUEVO: Chequeo vs BOSS (Faltaba esto)
+            if (!hitSomething && boss.active) {
+                Vector2 bossPos = { boss.x * (float)tileSize + tileSize/2.0f, boss.y * (float)tileSize + tileSize/2.0f };
+                float dx = p.pos.x - bossPos.x;
+                float dy = p.pos.y - bossPos.y;
+                // Hitbox generosa para el boss (Radio de 45px aprox)
+                float bossRad = 45.0f; 
+
+                if (dx*dx + dy*dy < bossRad*bossRad) {
+                    p.active = false;
+                    boss.hp -= p.damage;
+                    boss.flashTimer = 0.1f;
+                    
+                    PlaySound(sfxHit);
+                    spawnFloatingText(p.pos, p.damage, PURPLE);
                 }
             }
         }
@@ -332,7 +388,7 @@ void Game::updateProjectiles(float dt) {
             if (idx < enemyFacing.size()) enemyFacing.erase(enemyFacing.begin() + idx);
             if (idx < enemyHP.size()) enemyHP.erase(enemyHP.begin() + idx);
             if (idx < enemyAtkCD.size()) enemyAtkCD.erase(enemyAtkCD.begin() + idx);
-            if (idx < enemyShootCD.size()) enemyShootCD.erase(enemyShootCD.begin() + idx); // <--- BORRAR CD DISPARO
+            if (idx < enemyShootCD.size()) enemyShootCD.erase(enemyShootCD.begin() + idx); 
             if (idx < enemyFlashTimer.size()) enemyFlashTimer.erase(enemyFlashTimer.begin() + idx);
         }
     }

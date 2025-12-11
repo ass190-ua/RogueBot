@@ -126,6 +126,31 @@ void Map::generate(int W, int H, unsigned seed) {
     }
 }
 
+// Genera una arena cerrada para el Boss (Nivel 4)
+void Map::generateBossArena(int W, int H) {
+    m_w = W; m_h = H;
+
+    // 1. Resetear todo a WALL
+    m_tiles.assign(W * H, WALL);
+    m_visible.assign(W * H, 0);
+    m_discovered.assign(W * H, 0);
+    m_rooms.clear();
+
+    // 2. Crear una gran sala central (dejando un borde de muros)
+    // Dejamos 2 tiles de margen por cada lado
+    int padding = 2;
+    Room arena;
+    arena.x = padding;
+    arena.y = padding;
+    arena.w = W - (padding * 2);
+    arena.h = H - (padding * 2);
+
+    carveRoom(arena);
+    
+    // Guardamos esta "habitación" para saber dónde colocar al Boss/Jugador
+    m_rooms.push_back(arena);
+}
+
 // Cambia celdas de WALL a FLOOR en el rectángulo dado
 void Map::carveRoom(const Room& r) {
     for (int y = r.y; y < r.y + r.h && y < m_h; ++y)
