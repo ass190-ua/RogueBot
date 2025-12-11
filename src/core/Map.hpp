@@ -24,6 +24,9 @@ public:
     // Crea un nuevo nivel procedimental (algoritmo BSP o aleatorio).
     void generate(int width, int height, unsigned seed = 0);
     
+    // --- NUEVO: Genera la arena del Boss (espacio abierto) ---
+    void generateBossArena(int width, int height);
+
     // Renderiza el mapa usando Raylib (Tile por tile).
     void draw(int tileSize, int px, int py, int radius, 
               const Texture2D& wallTex, const Texture2D& floorTex) const;    // Sistema de visión (FOV, "FOG OF WAR")

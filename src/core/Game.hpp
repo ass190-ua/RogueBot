@@ -106,9 +106,45 @@ struct ItemSprites
     Texture2D enemyLeft{};
     Texture2D enemyRight{};
 
+    // Texturas del Boss
+    Texture2D bossUpIdle{};
+    Texture2D bossDownIdle{};
+    Texture2D bossLeftIdle{};
+    Texture2D bossRightIdle{};
+    Texture2D bossUpWalk1{};
+    Texture2D bossUpWalk2{};
+    Texture2D bossDownWalk1{};
+    Texture2D bossDownWalk2{};
+    Texture2D bossLeftWalk1{};
+    Texture2D bossLeftWalk2{};
+    Texture2D bossRightWalk1{};
+    Texture2D bossRightWalk2{};
+
     bool loaded = false;
     void load();   // Carga todo
     void unload(); // Libera todo
+};
+
+struct Boss {
+    bool active = false;
+    bool awakened = false; // ¿Se ha despertado ya?
+    int x = 0, y = 0;      // Posición lógica del Boss
+    
+    // NUEVO: Para detectar si el jugador se ha movido
+    int playerStartX = 0;
+    int playerStartY = 0;
+
+    int hp = 0;
+    int maxHp = 0;
+    int phase = 1;         // Fase 1, 2, 3, 4
+
+    // Dirección
+    enum Facing { UP, DOWN, LEFT, RIGHT } facing = DOWN;
+
+    // Temporizadores de Combate
+    float actionCooldown = 0.0f; // Tiempo para disparar
+    float moveTimer = 0.0f;      // Tiempo para dar el siguiente paso
+    float flashTimer = 0.0f;     // Feedback de daño rojo
 };
 
 // Clase principal del juego (Game Loop)
@@ -126,6 +162,7 @@ public:
 
     const std::vector<Enemy> &getEnemies() const { return enemies; }
     const std::vector<ItemSpawn> &getItems() const { return items; }
+    const Boss& getBoss() const { return boss; }
 
     int getScreenW() const { return screenW; }
     int getScreenH() const { return screenH; }
@@ -267,7 +304,7 @@ private:
 
     // Niveles
     int currentLevel = 1;
-    const int maxLevels = 3;
+    const int maxLevels = 4;
 
     // Transiciones de Nivel/Juego
     void newRun();
@@ -300,6 +337,15 @@ private:
     int fovTiles = 8;                   // Radio de visión base
     int defaultFovFromViewport() const; // Calcula FOV según tamaño de ventana
     void recomputeFovIfNeeded();        // Raycasting de visión
+
+    // Gestión del Boss
+    Boss boss; // Instancia del jefe
+    void spawnBoss();
+    void updateBoss(float dt);
+    void drawBoss() const;
+    
+    // Helpers colisión Boss (como es grande, necesitamos saber si un punto toca su "área")
+    bool isBossCell(int x, int y) const;
 
     // Lógica de movimiento
     void tryMove(int dx, int dy);          // Intenta mover, gestiona colisiones
