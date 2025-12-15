@@ -130,7 +130,7 @@ struct Boss {
     bool awakened = false; // ¿Se ha despertado ya?
     int x = 0, y = 0;      // Posición lógica del Boss
     
-    // NUEVO: Para detectar si el jugador se ha movido
+    // Para detectar si el jugador se ha movido
     int playerStartX = 0;
     int playerStartY = 0;
 
@@ -145,6 +145,7 @@ struct Boss {
     float actionCooldown = 0.0f; // Tiempo para disparar
     float moveTimer = 0.0f;      // Tiempo para dar el siguiente paso
     float flashTimer = 0.0f;     // Feedback de daño rojo
+    float animTime = 0.0f;       // Animación
 };
 
 // Clase principal del juego (Game Loop)
