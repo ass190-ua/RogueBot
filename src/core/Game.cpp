@@ -334,6 +334,7 @@ void Game::updateBoss(float dt) {
         return;
     }
 
+    boss.animTime += dt * 3.0f; 
     boss.flashTimer = std::max(0.0f, boss.flashTimer - dt);
 
     // 1. MECÁNICA DE DESPERTAR (CORREGIDA)
@@ -657,10 +658,9 @@ const char *Game::getDifficultyLabel(Difficulty d) const {
 void Game::drawBoss() const {
     if (!boss.active) return;
 
-    Texture2D tex = itemSprites.bossDownIdle; // Default
+    Texture2D tex = itemSprites.bossDownIdle; 
 
-    // Selección de sprite según facing y animación (simplificado)
-    // Aquí podrías implementar el ciclo de bossWalk1/2 usando boss.animTimer
+    // Selección de sprite (Igual que antes)
     switch(boss.facing) {
         case Boss::UP:    tex = itemSprites.bossUpIdle; break;
         case Boss::DOWN:  tex = itemSprites.bossDownIdle; break;
@@ -668,42 +668,62 @@ void Game::drawBoss() const {
         case Boss::RIGHT: tex = itemSprites.bossRightIdle; break;
     }
 
-    // Dibujado Gigante (Scale 3x)
-    float scale = 3.0f;
-    float spriteW = (float)tex.width * scale;
-    float spriteH = (float)tex.height * scale;
-
-    // Posición en pantalla (Centro del tile lógico)
-    Vector2 centerPos = {(float)boss.x * tileSize + tileSize/2, (float)boss.y * tileSize + tileSize/2};
+    // --- LÓGICA DE RESPIRACIÓN (Basada en Player.cpp) ---
     
-    // Destino: Centrado en esa posición lógica
+    // 1. Configuración de escala
+    float scale = 3.0f;
+    float baseW = (float)tex.width * scale;
+    float baseH = (float)tex.height * scale;
+
+    // 2. Factor de respiración (Squash & Stretch)
+    // Usamos boss.animTime. El 0.03f define qué tanto se estira (3%).
+    // El Player usa 0.05f, el Boss al ser grande se deforma menos para no parecer de gelatina.
+    float breathe = 1.0f + sinf(boss.animTime) * 0.03f;
+
+    // 3. Posición en pantalla
+    // Calculamos el centro de la casilla lógica del Boss
+    Vector2 centerPos = {
+        (float)boss.x * tileSize + tileSize/2.0f, 
+        (float)boss.y * tileSize + tileSize/2.0f
+    };
+    
+    // 4. Rectángulos de Destino y Origen
+    // IMPORTANTE: Para que respire "desde el suelo", el ancla (origin) debe estar en los pies.
+    
+    // El destino se dibuja en la posición de los pies del Boss
     Rectangle dest = {
-        centerPos.x - spriteW/2,
-        centerPos.y - spriteH/2, // Ajuste para que los pies coincidan mejor si fuera necesario
-        spriteW,
-        spriteH
+        centerPos.x,            // Centro X
+        centerPos.y + (baseH/2.0f), // Pies Y (ajustamos porque centerPos está en el centro del tile)
+        baseW,                  // Ancho fijo
+        baseH * breathe         // ALTO VARIABLE (Aquí ocurre la magia)
     };
 
-    Vector2 origin = {0,0};
-    Color tint = WHITE;
+    // El origen es el punto dentro de la textura que coincidirá con (dest.x, dest.y)
+    // Lo ponemos abajo al centro.
+    Vector2 origin = { 
+        baseW / 2.0f, 
+        baseH // Los pies de la textura
+    };
+
+    // --- DIBUJADO ---
     
-    // Feedback de golpe
+    Color tint = WHITE;
     if (boss.flashTimer > 0.0f) tint = RED;
-    // Feedback de fase (se pone más rojo/oscuro cuanto más enfadado)
-    if (boss.phase == 2) tint = {255, 200, 200, 255};
-    if (boss.phase == 3) tint = {255, 100, 100, 255};
+    else if (boss.phase == 2) tint = {255, 200, 200, 255};
+    else if (boss.phase == 3) tint = {255, 100, 100, 255};
 
     DrawTexturePro(tex, {0,0,(float)tex.width,(float)tex.height}, dest, origin, 0.0f, tint);
 
-    // Barra de vida del Boss (Estilo Boss de RPG: Barra grande arriba o abajo)
-    // La dibujamos sobre su cabeza
+    // --- BARRA DE VIDA (Ajustada para seguir la respiración o quedarse fija) ---
+    // La dibujamos fija relativa al centro lógico para que no "baile" con la respiración
     float barW = 100.0f;
     float barH = 10.0f;
     float barX = centerPos.x - barW/2;
-    float barY = dest.y - 20;
+    // Ponemos la barra arriba de la cabeza (considerando la altura base)
+    float barY = centerPos.y - (baseH / 2.0f) - 25.0f; 
 
     DrawRectangle(barX, barY, barW, barH, BLACK);
     float fill = ((float)boss.hp / (float)boss.maxHp) * barW;
-    DrawRectangle(barX, barY, fill, barH, PURPLE); // Color Boss
+    DrawRectangle(barX, barY, fill, barH, PURPLE);
     DrawRectangleLines(barX, barY, barW, barH, WHITE);
 }
