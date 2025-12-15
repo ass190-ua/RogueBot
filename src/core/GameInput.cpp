@@ -10,28 +10,24 @@
 extern bool gQuitRequested;
 
 // Función auxiliar para leer el texto de ayuda
-static bool loadTextAsset(const char *relPath, std::string &outText)
-{
+static bool loadTextAsset(const char *relPath, std::string &outText) {
     const std::string full = assetPath(relPath);
     char *buf = LoadFileText(full.c_str());
-    if (buf)
-    {
+    if (buf)  {
         outText.assign(buf);
         UnloadFileText(buf);
         return true;
     }
-    else
-    {
+    else {
         outText = "No se encontro '" + full + "'.\n";
         std::cerr << "[ASSETS] No se pudo cargar texto desde: " << full << "\n";
         return false;
     }
 }
 
-void Game::processInput()
-{
+void Game::processInput() {
     // --------------------------------------------------------
-    // 0. DETECCIÓN GLOBAL DE DISPOSITIVO (INPUT DEVICE)
+    // 0. Detección globar de dispositivo (Input Device)
     // --------------------------------------------------------
     // Esto asegura que la UI cambie los iconos (Teclado vs Mando) en cualquier menú.
     
@@ -57,13 +53,13 @@ void Game::processInput()
         bool gpActive = false;
         
         // Chequear botones principales
-        if (IsGamepadButtonDown(gpId, GAMEPAD_BUTTON_RIGHT_FACE_DOWN) ||  // A
-            IsGamepadButtonDown(gpId, GAMEPAD_BUTTON_RIGHT_FACE_RIGHT) || // B
-            IsGamepadButtonDown(gpId, GAMEPAD_BUTTON_LEFT_FACE_UP) ||     // Dpad
+        if (IsGamepadButtonDown(gpId, GAMEPAD_BUTTON_RIGHT_FACE_DOWN) || 
+            IsGamepadButtonDown(gpId, GAMEPAD_BUTTON_RIGHT_FACE_RIGHT) ||
+            IsGamepadButtonDown(gpId, GAMEPAD_BUTTON_LEFT_FACE_UP) ||
             IsGamepadButtonDown(gpId, GAMEPAD_BUTTON_LEFT_FACE_DOWN) ||
             IsGamepadButtonDown(gpId, GAMEPAD_BUTTON_LEFT_FACE_LEFT) ||
             IsGamepadButtonDown(gpId, GAMEPAD_BUTTON_LEFT_FACE_RIGHT) ||
-            IsGamepadButtonDown(gpId, GAMEPAD_BUTTON_MIDDLE_RIGHT))       // Start
+            IsGamepadButtonDown(gpId, GAMEPAD_BUTTON_MIDDLE_RIGHT))  
         {
             gpActive = true;
         }
@@ -80,7 +76,7 @@ void Game::processInput()
     }
 
     // --------------------------------------------------------
-    // DETECCIÓN DE CHEAT CODE (KONAMI CODE) - CON ANTI-REBOTE
+    // Detección de Cheat Code (Konami Code)
     // --------------------------------------------------------
     
     // Temporizador estático para evitar dobles pulsaciones (Debounce)
@@ -96,7 +92,7 @@ void Game::processInput()
         // Filtrar ruido (ID 0 es desconocido)
         if (pressedInput == 0) pressedInput = -1;
 
-        // 1. FALLBACK CRUCETA (D-PAD)
+        // 1. Fallback cruceta (D-PAD)
         if (pressedInput == -1) {
             if (IsGamepadButtonPressed(gpCheat, GAMEPAD_BUTTON_LEFT_FACE_UP))    pressedInput = GAMEPAD_BUTTON_LEFT_FACE_UP;
             else if (IsGamepadButtonPressed(gpCheat, GAMEPAD_BUTTON_LEFT_FACE_DOWN))  pressedInput = GAMEPAD_BUTTON_LEFT_FACE_DOWN;
@@ -107,7 +103,7 @@ void Game::processInput()
             else if (IsGamepadButtonPressed(gpCheat, GAMEPAD_BUTTON_RIGHT_FACE_RIGHT)) pressedInput = GAMEPAD_BUTTON_RIGHT_FACE_RIGHT; 
         }
 
-        // 2. JOYSTICK ANALÓGICO (Umbral más alto 0.7 para evitar falsos positivos)
+        // 2. Joystick analógico (Umbral más alto 0.7 para evitar falsos positivos)
         static bool stickUp = false;
         static bool stickDown = false;
         static bool stickLeft = false;
@@ -131,12 +127,8 @@ void Game::processInput()
             else stickRight = false;
         }
 
-        // 3. PROCESAR SECUENCIA
+        // 3. Pocesar secuencia
         if (pressedInput != -1) {
-            
-            // ¡ACTIVAMOS EL COOLDOWN! 
-            // Durante 0.25 segundos ignoraremos cualquier cosa que diga el mando.
-            // Esto elimina los rebotes instantáneamente.
             cheatTimer = 0.25f; 
 
             // Log limpio para que veas el progreso
@@ -163,7 +155,7 @@ void Game::processInput()
     }
 
     // --------------------------------------------------------
-    // 1. DETECCIÓN DE ACTIVACIÓN (F12) - MODO DIOS
+    // 1. Detección de activación (F12) - Modo Dios
     // --------------------------------------------------------
     if (IsKeyPressed(KEY_F12)) {
         showGodModeInput = !showGodModeInput;
@@ -171,7 +163,7 @@ void Game::processInput()
         return;
     }
 
-    // 2. SI ESTAMOS ESCRIBIENDO LA CONTRASEÑA...
+    // 2. Si estamos escribiendo la contraseña...
     if (showGodModeInput) {
         int key = GetCharPressed();
         while (key > 0) {
@@ -193,7 +185,7 @@ void Game::processInput()
     }
 
     // --------------------------------------------------------
-    // NUEVO: SISTEMA DE PAUSA (Toggle)
+    // Sistema de pausa (Toggle)
     // --------------------------------------------------------
     bool togglePause = IsKeyPressed(KEY_ESCAPE);
     if (IsGamepadAvailable(gpId)) {
@@ -201,15 +193,20 @@ void Game::processInput()
     }
 
     if (togglePause) {
-        if (state == GameState::Playing) {
+        // Si estamos Jugando O en Tutorial -> Pausar
+        if (state == GameState::Playing || state == GameState::Tutorial) {
+            pauseOrigin = state; // Guardamos el origen (Playing o Tutorial)
             state = GameState::Paused;
             pauseSelection = 0;
             PauseSound(sfxAmbient);
             return;
         }
+        // Si estamos Pausados -> Reanudar
         else if (state == GameState::Paused) {
-            state = GameState::Playing;
-            ResumeSound(sfxAmbient);
+            state = pauseOrigin;
+            
+            // Solo reactivamos música si volvemos al juego normal (Tutorial es silencio/sfx)
+            if (state == GameState::Playing) ResumeSound(sfxAmbient);
             return;
         }
         else if (state == GameState::OptionsMenu) {
@@ -220,10 +217,9 @@ void Game::processInput()
     }
 
     // --------------------------------------------------------
-    // 3. INPUT GENERAL (Salida directa en Game Over / Victory)
+    // 3. Input general (Salida directa en Game Over / Victory)
     // --------------------------------------------------------
-    if (state == GameState::Victory || state == GameState::GameOver)
-    {
+    if (state == GameState::Victory || state == GameState::GameOver) {
         bool escPressed = IsKeyPressed(KEY_ESCAPE);
         if (IsGamepadAvailable(gpId)) {
             escPressed = escPressed || IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_RIGHT_FACE_RIGHT) || 
@@ -253,13 +249,17 @@ void Game::processInput()
         newRun();
     };
 
-    if (IsKeyPressed(KEY_R)) {
+    // 1. Reinicio Teclado (Bloqueado en Tutorial)
+    if (IsKeyPressed(KEY_R) && state != GameState::Tutorial) { 
         restartRun();
         return;
     }
 
-    // Reinicio con mando (bloqueado en menús)
-    if (state != GameState::MainMenu && state != GameState::OptionsMenu && state != GameState::Paused &&
+    // 2. Reinicio mando (Bloqueado en menús y Tutorial)
+    if (state != GameState::MainMenu && 
+        state != GameState::OptionsMenu && 
+        state != GameState::Paused && 
+        state != GameState::Tutorial &&
         IsGamepadAvailable(gpId) &&
         IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_RIGHT_FACE_UP))
     {
@@ -287,6 +287,72 @@ void Game::processInput()
         handleOptionsInput();                   
         return;
     }
+    else if (state == GameState::Tutorial) {
+        // Si estamos en el Menú Final, usamos input de Menú
+        if (tutorialStep == TutorialStep::FinishedMenu) {
+            
+            // 1. Navegación (Arriba/Abajo)
+            bool up = IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W);
+            bool down = IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S);
+            bool enter = IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE);
+
+            if (IsGamepadAvailable(gpId)) {
+                if (IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_LEFT_FACE_UP)) up = true;
+                if (IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_LEFT_FACE_DOWN)) down = true;
+                if (IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_RIGHT_FACE_DOWN)) enter = true; // A / Cruz
+
+                // Stick analógico con "debounce" simple
+                static bool stickNeutral = true;
+                float ay = GetGamepadAxisMovement(gpId, GAMEPAD_AXIS_LEFT_Y);
+                if (std::fabs(ay) < 0.35f) stickNeutral = true;
+                else if (stickNeutral) {
+                    if (ay < 0.0f) up = true;
+                    else down = true;
+                    stickNeutral = false;
+                }
+            }
+
+            if (up) {
+                tutorialMenuSelection--;
+                if (tutorialMenuSelection < 0) tutorialMenuSelection = 2; // Ciclo
+                PlaySound(sfxPickup); // Feedback sonoro opcional
+            }
+            if (down) {
+                tutorialMenuSelection++;
+                if (tutorialMenuSelection > 2) tutorialMenuSelection = 0; // Ciclo
+                PlaySound(sfxPickup);
+            }
+
+            // 2. Acción
+            if (enter) {
+                if (tutorialMenuSelection == 0) {      // Repetir
+                    startTutorial();
+                } 
+                else if (tutorialMenuSelection == 1) { // Jugar
+                    newRun();
+                } 
+                else if (tutorialMenuSelection == 2) { // Menú
+                    state = GameState::MainMenu;
+                    StopSound(sfxAmbient);
+                }
+                PlaySound(sfxPowerUp); // Sonido de confirmación
+            }
+            
+            // Ratón (Opcional, para consistencia)
+            if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+                if (tutorialMenuSelection == 0) startTutorial();
+                else if (tutorialMenuSelection == 1) newRun();
+                else if (tutorialMenuSelection == 2) { state = GameState::MainMenu; StopSound(sfxAmbient); }
+            }
+
+        } 
+        else {
+            // Juego normal durante el tutorial
+            handlePlayingInput(dt);
+            updateTutorial(dt);
+        }
+        return;
+    }
     else if (state == GameState::Playing) {
         handlePlayingInput(dt);
         return;
@@ -295,12 +361,10 @@ void Game::processInput()
     player.update(dt, false);
 }
 
-void Game::handleMenuInput()
-{
+void Game::handleMenuInput() {
     const int menuGamepad = 0;
 
-    if (showHelp)
-    {
+    if (showHelp) {
         int panelW = (int)std::round(screenW * 0.86f);
         int panelH = (int)std::round(screenH * 0.76f);
         if (panelW > 1500) panelW = 1500;
@@ -399,33 +463,27 @@ void Game::handleMenuInput()
             return;
         }
 
-        if (CheckCollisionPointRec(mp, playBtn)){
+        if (CheckCollisionPointRec(mp, playBtn)) {
             newRun();
             return;
         }
-        if (CheckCollisionPointRec(mp, readBtn)){
-            if (helpText.empty())
-                loadTextAsset("assets/docs/objetos.txt", helpText);
-            showHelp = true;
-            helpScroll = 0;
+        if (CheckCollisionPointRec(mp, readBtn)) {
+            startTutorial(); 
             return;
         }
-        if (CheckCollisionPointRec(mp, quitBtn)){
+        if (CheckCollisionPointRec(mp, quitBtn)) {
             gQuitRequested = true;
             return;
         }
     }
 
-    // --- LÓGICA DE ACTIVACIÓN ---
+    // Lógica de activación
     auto activateSelection = [&](){
         if (mainMenuSelection == 0) {
             newRun();
         }
         else if (mainMenuSelection == 1) {
-            if (helpText.empty())
-                loadTextAsset("assets/docs/objetos.txt", helpText);
-            showHelp = true;
-            helpScroll = 0;
+            startTutorial();
         }
         else if (mainMenuSelection == 2) {
             gQuitRequested = true;
@@ -437,58 +495,48 @@ void Game::handleMenuInput()
         }
     };
 
-    // --- NAVEGACIÓN TECLADO (Ahora con módulo 4) ---
-    if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W))
-    {
-        mainMenuSelection = (mainMenuSelection + 4 - 1) % 4; // Cambiado 3 -> 4
+    // Navegación Teclado
+    if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) {
+        mainMenuSelection = (mainMenuSelection + 4 - 1) % 4; 
     }
-    if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S))
-    {
-        mainMenuSelection = (mainMenuSelection + 1) % 4;     // Cambiado 3 -> 4
+    if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
+        mainMenuSelection = (mainMenuSelection + 1) % 4; 
     }
-    if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE))
-    {
+    if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE)) {
         activateSelection();
         return;
     }
 
-    // --- NAVEGACIÓN GAMEPAD (Ahora con módulo 4) ---
-    if (IsGamepadAvailable(menuGamepad))
-    {
-        if (IsGamepadButtonPressed(menuGamepad, GAMEPAD_BUTTON_LEFT_FACE_UP))
-        {
-            mainMenuSelection = (mainMenuSelection + 4 - 1) % 4; // Cambiado 3 -> 4
+    // Navegación Gamepad
+    if (IsGamepadAvailable(menuGamepad)) {
+        if (IsGamepadButtonPressed(menuGamepad, GAMEPAD_BUTTON_LEFT_FACE_UP)) {
+            mainMenuSelection = (mainMenuSelection + 4 - 1) % 4;
         }
-        if (IsGamepadButtonPressed(menuGamepad, GAMEPAD_BUTTON_LEFT_FACE_DOWN))
-        {
-            mainMenuSelection = (mainMenuSelection + 1) % 4;     // Cambiado 3 -> 4
+        if (IsGamepadButtonPressed(menuGamepad, GAMEPAD_BUTTON_LEFT_FACE_DOWN)) {
+            mainMenuSelection = (mainMenuSelection + 1) % 4;
         }
 
         static bool stickNeutral = true;
         float ay = GetGamepadAxisMovement(menuGamepad, GAMEPAD_AXIS_LEFT_Y);
         const float dead = 0.35f;
 
-        if (std::fabs(ay) < dead)
-        {
+        if (std::fabs(ay) < dead) {
             stickNeutral = true;
         }
-        else if (stickNeutral)
-        {
+        else if (stickNeutral) {
             if (ay < 0.0f)
-                mainMenuSelection = (mainMenuSelection + 4 - 1) % 4; // Cambiado 3 -> 4
+                mainMenuSelection = (mainMenuSelection + 4 - 1) % 4;
             else
-                mainMenuSelection = (mainMenuSelection + 1) % 4;     // Cambiado 3 -> 4
+                mainMenuSelection = (mainMenuSelection + 1) % 4;
             stickNeutral = false;
         }
 
-        if (IsGamepadButtonPressed(menuGamepad, GAMEPAD_BUTTON_RIGHT_FACE_DOWN))
-        {
+        if (IsGamepadButtonPressed(menuGamepad, GAMEPAD_BUTTON_RIGHT_FACE_DOWN)) {
             activateSelection();
             return;
         }
         // Botón Y / Triángulo para ayuda rápida
-        if (IsGamepadButtonPressed(menuGamepad, GAMEPAD_BUTTON_RIGHT_FACE_UP))
-        {
+        if (IsGamepadButtonPressed(menuGamepad, GAMEPAD_BUTTON_RIGHT_FACE_UP)) {
             if (helpText.empty())
                 loadTextAsset("assets/docs/objetos.txt", helpText);
             showHelp = true;
@@ -498,15 +546,14 @@ void Game::handleMenuInput()
     }
 }
 
-void Game::handlePauseInput()
-{
+void Game::handlePauseInput() {
     // --------------------------------------------------------
-    // 1. NAVEGACIÓN TECLADO / GAMEPAD
+    // 1. Navegación teclado / Gamepad
     // --------------------------------------------------------
     bool up = IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W);
     bool down = IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S);
     bool enter = IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE);
-    bool back = false; // Nueva variable para "Volver"
+    bool back = false;
 
     const int gp = 0;
     if (IsGamepadAvailable(gp)) {
@@ -517,7 +564,7 @@ void Game::handlePauseInput()
         // Aceptación (A / Cruz)
         if (IsGamepadButtonPressed(gp, GAMEPAD_BUTTON_RIGHT_FACE_DOWN)) enter = true; 
         
-        // --- NUEVO: Botón Atrás (B / Círculo) ---
+        // Botón Atrás (B / Círculo)
         if (IsGamepadButtonPressed(gp, GAMEPAD_BUTTON_RIGHT_FACE_RIGHT)) back = true;
 
         // Joystick Izquierdo (con zona muerta)
@@ -535,11 +582,11 @@ void Game::handlePauseInput()
         }
     }
 
-    // --- ACCIÓN RÁPIDA: VOLVER (REANUDAR) ---
+    // Acción rápida: Volver (Reanudar)
     if (back) {
-        state = GameState::Playing;
-        ResumeSound(sfxAmbient);
-        return; // Salimos de la función inmediatamente
+        state = pauseOrigin;
+        if (state == GameState::Playing) ResumeSound(sfxAmbient);
+        return;
     }
 
     // Actualizar selección cíclica
@@ -547,7 +594,7 @@ void Game::handlePauseInput()
     if (down) pauseSelection = (pauseSelection + 1) % 3;
 
     // --------------------------------------------------------
-    // 2. LÓGICA DE RATÓN
+    // 2. Lógica de ratón
     // --------------------------------------------------------
     int centerX = screenW / 2;
     int centerY = screenH / 2;
@@ -574,23 +621,23 @@ void Game::handlePauseInput()
     }
 
     // --------------------------------------------------------
-    // 3. EJECUCIÓN DE ACCIÓN
+    // 3. Ejecución de acción
     // --------------------------------------------------------
     if (enter) {
         switch (pauseSelection) {
-            case 0: // REANUDAR
-                state = GameState::Playing;
-                ResumeSound(sfxAmbient);
+            case 0: // Reanudar
+                state = pauseOrigin;
+                if (state == GameState::Playing) ResumeSound(sfxAmbient);
                 break;
 
-            case 1: // AJUSTES
-                previousState = GameState::Paused; // IMPORTANTE: Recordar volver aquí
+            case 1: // Ajustes
+                previousState = GameState::Paused; // Recordar volver aquí
                 state = GameState::OptionsMenu;
                 mainMenuSelection = 0;
                 pendingDifficulty = difficulty; 
                 break;
 
-            case 2: // SALIR AL MENU
+            case 2: // Salir al menú
                 state = GameState::MainMenu;
                 StopSound(sfxAmbient);
                 mainMenuSelection = 0;
@@ -611,10 +658,9 @@ void Game::handlePauseInput()
     }
 }
 
-void Game::handleOptionsInput()
-{
+void Game::handleOptionsInput() {
     // --------------------------------------------------------
-    // 1. MANEJO DE ALERTA DE REINICIO
+    // 1. Manejo de alerta de reinicio
     // --------------------------------------------------------
     if (showDifficultyWarning) {
         bool confirm = false;
@@ -631,7 +677,7 @@ void Game::handleOptionsInput()
         }
 
         if (confirm) {
-            // APLICAR CAMBIOS Y REINICIAR
+            // Aplicar cambios y reiniciar
             difficulty = pendingDifficulty; // Confirmamos el cambio
             newRun();
             state = GameState::Playing;
@@ -646,7 +692,7 @@ void Game::handleOptionsInput()
     }
 
     // --------------------------------------------------------
-    // 2. NAVEGACIÓN
+    // 2. Navegación
     // --------------------------------------------------------
     bool back = false;
     if (IsKeyPressed(KEY_ESCAPE)) back = true;
@@ -654,16 +700,16 @@ void Game::handleOptionsInput()
     const int gp0 = 0;
     if (IsGamepadAvailable(gp0) && IsGamepadButtonPressed(gp0, GAMEPAD_BUTTON_RIGHT_FACE_RIGHT)) back = true;
 
-    // Lógica "VOLVER" (El momento de la verdad)
+    // Lógica "Volver"
     if (back) {
         // ¿Ha cambiado la dificultad?
         if (pendingDifficulty != difficulty) {
             if (previousState == GameState::Paused) {
-                // Si estamos en pausa y cambió -> ALERTA
+                // Si estamos en pausa y cambió -> Alerta
                 showDifficultyWarning = true;
                 return;
             } else {
-                // Si estamos en menú principal -> APLICAR DIRECTAMENTE
+                // Si estamos en menú principal -> Aplicar directamente
                 difficulty = pendingDifficulty;
             }
         }
@@ -700,7 +746,7 @@ void Game::handleOptionsInput()
     // Acción
     if (enter) {
         if (mainMenuSelection == 0) {
-            // CICLAR DIFICULTAD PENDIENTE (No la real)
+            // Ciclar dificultad pendiente (No la real)
             // Lógica simple de enum: Easy(0) -> Medium(1) -> Hard(2) -> Easy(0)
             int d = (int)pendingDifficulty;
             d = (d + 1) % 3;
@@ -746,46 +792,39 @@ void Game::handleOptionsInput()
 }
 
 // ----------------------------------------------------------------------------------
-// INPUT JUEGO (COMBATE Y MOVIMIENTO)
+// Input Juego (Combate y Movimiento)
 // ----------------------------------------------------------------------------------
-void Game::handlePlayingInput(float dt)
-{
+void Game::handlePlayingInput(float dt) {
     // --------------------------------------------------------
-    // 1. DETECCIÓN DE DISPOSITIVO
+    // 1. Detección de Dispositivo
     // --------------------------------------------------------
     if (IsKeyDown(KEY_W) || IsKeyDown(KEY_A) || IsKeyDown(KEY_S) || IsKeyDown(KEY_D) ||
         IsKeyDown(KEY_UP) || IsKeyDown(KEY_DOWN) || IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_RIGHT) ||
         IsKeyDown(KEY_E) || IsKeyDown(KEY_I) || IsKeyDown(KEY_O) ||
         IsKeyDown(KEY_SPACE) || IsKeyDown(KEY_ONE) || IsKeyDown(KEY_TWO) ||
-        IsKeyDown(KEY_LEFT_SHIFT))
-    { // Añadido Shift
-        lastInput = InputDevice::Keyboard;
+        IsKeyDown(KEY_LEFT_SHIFT)) { // Añadido Shift
+            lastInput = InputDevice::Keyboard;
     }
 
     const int gpId = 0;
-    if (IsGamepadAvailable(gpId))
-    {
+    if (IsGamepadAvailable(gpId)) {
         bool gpActive = false;
         // Check botones
-        for (int b = GAMEPAD_BUTTON_UNKNOWN + 1; b <= GAMEPAD_BUTTON_RIGHT_THUMB; b++)
-        {
-            if (IsGamepadButtonDown(gpId, b))
-            {
+        for (int b = GAMEPAD_BUTTON_UNKNOWN + 1; b <= GAMEPAD_BUTTON_RIGHT_THUMB; b++) {
+            if (IsGamepadButtonDown(gpId, b)) {
                 gpActive = true;
                 break;
             }
         }
         // Check ejes
-        if (!gpActive)
-        {
+        if (!gpActive) {
             float lx = GetGamepadAxisMovement(gpId, GAMEPAD_AXIS_LEFT_X);
             float ly = GetGamepadAxisMovement(gpId, GAMEPAD_AXIS_LEFT_Y);
             if (std::abs(lx) > 0.25f || std::abs(ly) > 0.25f)
                 gpActive = true;
         }
         // Check gatillos
-        if (!gpActive)
-        {
+        if (!gpActive) {
             float rt = GetGamepadAxisMovement(gpId, GAMEPAD_AXIS_RIGHT_TRIGGER);
             float lt = GetGamepadAxisMovement(gpId, GAMEPAD_AXIS_LEFT_TRIGGER);
             if (rt > 0.1f || lt > 0.1f)
@@ -797,7 +836,7 @@ void Game::handlePlayingInput(float dt)
     }
 
     // --------------------------------------------------------
-    // 2. LÓGICA DE JUEGO (Zoom, Interacción)
+    // 2. Lógica de juego (Zoom, Interacción)
     // --------------------------------------------------------
     if (IsKeyDown(KEY_I))
         cameraZoom += 1.0f * dt;
@@ -808,8 +847,7 @@ void Game::handlePlayingInput(float dt)
     if (wheel != 0.0f)
         cameraZoom = expf(logf(cameraZoom) + wheel * 0.1f);
 
-    if (IsGamepadAvailable(gpId))
-    {
+    if (IsGamepadAvailable(gpId)) {
         float rightY = GetGamepadAxisMovement(gpId, GAMEPAD_AXIS_RIGHT_Y);
         const float zoomThr = 0.2f;
         if (rightY < -zoomThr)
@@ -817,8 +855,7 @@ void Game::handlePlayingInput(float dt)
         else if (rightY > zoomThr)
             cameraZoom -= rightY * dt;
 
-        if (IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_RIGHT_THUMB))
-        {
+        if (IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_RIGHT_THUMB)) {
             cameraZoom = 1.0f;
             camera.zoom = cameraZoom;
             camera.rotation = 0.0f;
@@ -830,8 +867,7 @@ void Game::handlePlayingInput(float dt)
     camera.zoom = cameraZoom;
     clampCameraToMap();
 
-    if (IsKeyPressed(KEY_C))
-    {
+    if (IsKeyPressed(KEY_C)) {
         cameraZoom = 1.0f;
         camera.zoom = cameraZoom;
         camera.rotation = 0.0f;
@@ -840,8 +876,7 @@ void Game::handlePlayingInput(float dt)
 
     // Interacción (Pickup)
     bool interact = IsKeyPressed(KEY_E);
-    if (IsGamepadAvailable(gpId))
-    {
+    if (IsGamepadAvailable(gpId)) {
         if (IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_RIGHT_FACE_DOWN))
             interact = true;
     }
@@ -849,20 +884,17 @@ void Game::handlePlayingInput(float dt)
         tryManualPickup();
 
     // --------------------------------------------------------
-    // 3. DASH (ESQUIVA)
+    // 3. Dash (Esquiva)
     // --------------------------------------------------------
     bool dashPressed = IsKeyPressed(KEY_LEFT_SHIFT) || IsKeyPressed(KEY_RIGHT_SHIFT);
-    if (IsGamepadAvailable(gpId))
-    {
+    if (IsGamepadAvailable(gpId)) {
         if (IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_LEFT_TRIGGER_1) ||
-            IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_LEFT_TRIGGER_2))
-        {
+            IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_LEFT_TRIGGER_2)) {
             dashPressed = true;
         }
     }
 
-    if (dashPressed && !isDashing && dashCooldownTimer <= 0.0f)
-    {
+    if (dashPressed && !isDashing && dashCooldownTimer <= 0.0f) {
         int ddx = 0, ddy = 0;
         // Prioridad: Dirección pulsada ahora
         if (IsKeyDown(KEY_W) || IsKeyDown(KEY_UP))
@@ -875,20 +907,17 @@ void Game::handlePlayingInput(float dt)
             ddx = 1;
 
         // Si no, última dirección
-        if (ddx == 0 && ddy == 0)
-        {
+        if (ddx == 0 && ddy == 0) {
             ddx = gAttack.lastDir.x;
             ddy = gAttack.lastDir.y;
         }
 
-        if (ddx != 0 || ddy != 0)
-        {
+        if (ddx != 0 || ddy != 0) {
             int targetX = px;
             int targetY = py;
 
             // Calcular destino (hasta DASH_DISTANCE)
-            for (int i = 1; i <= DASH_DISTANCE; i++)
-            {
+            for (int i = 1; i <= DASH_DISTANCE; i++) {
                 int nextX = px + ddx * i;
                 int nextY = py + ddy * i;
                 if (!map.isWalkable(nextX, nextY))
@@ -905,8 +934,7 @@ void Game::handlePlayingInput(float dt)
                 targetY = nextY;
             }
 
-            if (targetX != px || targetY != py)
-            {
+            if (targetX != px || targetY != py) {
                 // Configurar estado Dash
                 isDashing = true;
                 dashTimer = DASH_DURATION;
@@ -928,7 +956,7 @@ void Game::handlePlayingInput(float dt)
     }
 
     // --------------------------------------------------------
-    // 4. MOVIMIENTO NORMAL
+    // 4. Movimiento normal
     // --------------------------------------------------------
     int dx = 0, dy = 0;
     bool moved = false;
@@ -937,14 +965,12 @@ void Game::handlePlayingInput(float dt)
     bool gpDpadPressed = false;
     bool gpAnalogActive = false;
 
-    if (IsGamepadAvailable(gpId))
-    {
+    if (IsGamepadAvailable(gpId)) {
         float axisX = GetGamepadAxisMovement(gpId, GAMEPAD_AXIS_LEFT_X);
         float axisY = GetGamepadAxisMovement(gpId, GAMEPAD_AXIS_LEFT_Y);
         const float thr = 0.5f;
 
-        if (axisX < -thr || axisX > thr || axisY < -thr || axisY > thr)
-        {
+        if (axisX < -thr || axisX > thr || axisY < -thr || axisY > thr) {
             gpAnalogActive = true;
             if (axisY < -thr)
                 gpDy = -1;
@@ -956,26 +982,22 @@ void Game::handlePlayingInput(float dt)
                 gpDx = +1;
         }
 
-        if (IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_LEFT_FACE_UP))
-        {
+        if (IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_LEFT_FACE_UP)) {
             gpDx = 0;
             gpDy = -1;
             gpDpadPressed = true;
         }
-        if (IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_LEFT_FACE_DOWN))
-        {
+        if (IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_LEFT_FACE_DOWN)) {
             gpDx = 0;
             gpDy = +1;
             gpDpadPressed = true;
         }
-        if (IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_LEFT_FACE_LEFT))
-        {
+        if (IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_LEFT_FACE_LEFT)) {
             gpDx = -1;
             gpDy = 0;
             gpDpadPressed = true;
         }
-        if (IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_LEFT_FACE_RIGHT))
-        {
+        if (IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_LEFT_FACE_RIGHT)) {
             gpDx = +1;
             gpDy = 0;
             gpDpadPressed = true;
@@ -987,8 +1009,7 @@ void Game::handlePlayingInput(float dt)
             moveMode = MovementMode::StepByStep;
     }
 
-    if (moveMode == MovementMode::StepByStep)
-    {
+    if (moveMode == MovementMode::StepByStep) {
         if (IsKeyPressed(KEY_W) || IsKeyPressed(KEY_UP))
             dy = -1;
         if (IsKeyPressed(KEY_S) || IsKeyPressed(KEY_DOWN))
@@ -998,14 +1019,12 @@ void Game::handlePlayingInput(float dt)
         if (IsKeyPressed(KEY_D) || IsKeyPressed(KEY_RIGHT))
             dx = +1;
 
-        if (dx == 0 && dy == 0 && (gpDx != 0 || gpDy != 0))
-        {
+        if (dx == 0 && dy == 0 && (gpDx != 0 || gpDy != 0)) {
             dx = gpDx;
             dy = gpDy;
         }
 
-        if (dx != 0 || dy != 0)
-        {
+        if (dx != 0 || dy != 0) {
             gAttack.lastDir = {dx, dy};
             player.setDirectionFromDelta(dx, dy);
             int oldx = px, oldy = py;
@@ -1016,8 +1035,7 @@ void Game::handlePlayingInput(float dt)
         }
         player.update(dt, moved);
     }
-    else
-    {
+    else {
         moveCooldown -= dt;
         bool pressedNow = IsKeyPressed(KEY_W) || IsKeyPressed(KEY_S) ||
                           IsKeyPressed(KEY_A) || IsKeyPressed(KEY_D) ||
@@ -1039,14 +1057,12 @@ void Game::handlePlayingInput(float dt)
         if (dy == 0 && gpDy != 0)
             dy = gpDy;
 
-        if (dx != 0 || dy != 0)
-        {
+        if (dx != 0 || dy != 0) {
             gAttack.lastDir = {dx, dy};
             player.setDirectionFromDelta(dx, dy);
         }
 
-        if (pressedNow)
-        {
+        if (pressedNow) {
             int oldx = px, oldy = py;
             tryMove(dx, dy);
             moved = (px != oldx || py != oldy);
@@ -1054,8 +1070,7 @@ void Game::handlePlayingInput(float dt)
                 onSuccessfulStep(dx, dy);
             moveCooldown = MOVE_INTERVAL;
         }
-        else if ((dx != 0 || dy != 0) && moveCooldown <= 0.0f)
-        {
+        else if ((dx != 0 || dy != 0) && moveCooldown <= 0.0f) {
             int oldx = px, oldy = py;
             tryMove(dx, dy);
             moved = (px != oldx || py != oldy);
@@ -1067,22 +1082,20 @@ void Game::handlePlayingInput(float dt)
     }
 
     // --------------------------------------------------------
-    // 5. SISTEMA DE COMBATE (INPUT)
+    // 5. Sistema de combate (Input)
     // --------------------------------------------------------
     gAttack.cdTimer = std::max(0.f, gAttack.cdTimer - dt);
     plasmaCooldown = std::max(0.f, plasmaCooldown - dt);
 
-    if (gAttack.swinging)
-    {
+    if (gAttack.swinging) {
         gAttack.swingTimer = std::max(0.f, gAttack.swingTimer - dt);
-        if (gAttack.swingTimer <= 0.f)
-        {
+        if (gAttack.swingTimer <= 0.f) {
             gAttack.swinging = false;
             gAttack.lastTiles.clear();
         }
     }
 
-    // A) MANOS
+    // A) Puños
     bool attackHands = IsKeyPressed(KEY_SPACE);
     if (IsGamepadAvailable(gpId) && IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_RIGHT_FACE_LEFT))
         attackHands = true;
@@ -1090,41 +1103,34 @@ void Game::handlePlayingInput(float dt)
     if (attackHands && gAttack.cdTimer <= 0.f)
         performMeleeAttack();
 
-    // B) ESPADA
+    // B) Espada
     bool attackSword = IsKeyPressed(KEY_ONE);
     if (IsGamepadAvailable(gpId) && IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_RIGHT_TRIGGER_1))
         attackSword = true;
 
-    if (attackSword)
-    {
-        if (swordTier > 0)
-        {
+    if (attackSword) {
+        if (swordTier > 0) {
             if (gAttack.cdTimer <= 0.f)
                 performSwordAttack();
         }
-        else
-        {
-            // std::cout << "No tienes espada\n";
+        else {
+            std::cout << "No tienes espada\n";
         }
     }
 
-    // C) PLASMA
+    // C) Pistola Plasma
     bool attackPlasma = IsKeyPressed(KEY_TWO);
-    if (IsGamepadAvailable(gpId))
-    {
+    if (IsGamepadAvailable(gpId)) {
         if (IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_RIGHT_TRIGGER_2))
             attackPlasma = true;
     }
-    if (attackPlasma)
-    {
-        if (plasmaTier > 0)
-        {
+    if (attackPlasma) {
+        if (plasmaTier > 0) {
             if (plasmaCooldown <= 0.f)
                 performPlasmaAttack();
         }
-        else
-        {
-            // std::cout << "No tienes plasma\n";
+        else {
+            std::cout << "No tienes plasma\n";
         }
     }
 }

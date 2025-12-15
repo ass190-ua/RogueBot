@@ -26,12 +26,14 @@ void Game::drawProjectiles() const {
 }
 
 void Game::render() {
+    // --------------------------------------------------------
+    // 1. Menús de pantalla (Salida anticipada)
+    // --------------------------------------------------------
     if (state == GameState::MainMenu) {
         renderMainMenu();
         return;
     }
 
-    // 2) Menú de opciones (nuevo)
     if (state == GameState::OptionsMenu) {
         renderOptionsMenu();
         return;
@@ -40,99 +42,104 @@ void Game::render() {
     BeginDrawing();
     ClearBackground(BLACK);
 
+    // ----------------------------------------------------------
+    // 2. Mundo de juego (Capa 2D)
+    // Se dibuja siempre (Jugando, Tutorial, Pausa, GameOver...)
+    // ----------------------------------------------------------
     BeginMode2D(camera);
 
-    // 1. Dibujar Mapa
-    map.draw(tileSize, px, py, getFovRadius(), itemSprites.wall, itemSprites.floor);
-    
-    // 2. Dibujar Enemigos
-    drawEnemies();
-
-    // Dibujar Boss
-    drawBoss();
-    
-    // 3. Dibujar Jugador
-    player.draw(tileSize, px, py);
-    
-    // 4. Dibujar Items
-    drawItems();
-    
-    // 5. Efectos Visuales
-    drawSlash();        // Estela de la espada
-    drawProjectiles();  // Balas de plasma
-    drawFloatingTexts(); // Números de daño
-    drawParticles();    // Sangre y explosiones
+        // 2.1 Mapa (Suelo y Paredes con iluminación)
+        map.draw(tileSize, px, py, getFovRadius(), itemSprites.wall, itemSprites.floor);
+        
+        // 2.2 Entidades
+        drawItems();
+        drawEnemies(); // Dibuja enemigos normales
+        drawBoss();    // Dibuja al Boss (si está activo)
+        
+        // 2.3 Jugador
+        player.draw(tileSize, px, py);
+        
+        // 2.4 Efectos Visuales y Partículas
+        if (slashActive) drawSlash(); // Estela del ataque melee
+        drawProjectiles();            // Balas de plasma
+        drawParticles();              // Explosiones y sangre
+        drawFloatingTexts();          // Números de daño flotantes
 
     EndMode2D();
 
-    // 6. HUD y OVERLAYS
-    if (state == GameState::Playing) {
+    // --------------------------------------------------------
+    // 3. Interfaz de usuario (HUD y Menús superpuestos)
+    // --------------------------------------------------------
+
+    // Caso A: Tutorial
+    if (state == GameState::Tutorial) {
+        hud.drawPlaying(*this); // Mostramos vida para ver efecto de pociones
+        renderTutorialUI();     // Instrucciones amarillas arriba
+    }
+    // Caso B: Jugando normal
+    else if (state == GameState::Playing) {
         hud.drawPlaying(*this);
     }
-    else if (state == GameState::Paused) { // <--- NUEVO: Caso de Pausa
-        hud.drawPlaying(*this); // Dibujamos el HUD de fondo para contexto
-        renderPauseMenu();      // Dibujamos el menú de pausa encima
+    // Caso C: Pausa (Juego congelado de fondo + Menú)
+    else if (state == GameState::Paused) {
+        hud.drawPlaying(*this); // Mantenemos el HUD visible
+        renderPauseMenu();
     }
-    else if (state == GameState::Victory) hud.drawVictory(*this);
-    else if (state == GameState::GameOver) hud.drawGameOver(*this);
+    // Caso D: Pantallas finales
+    else if (state == GameState::Victory) {
+        hud.drawVictory(*this);
+    }
+    else if (state == GameState::GameOver) {
+        hud.drawGameOver(*this);
+    }
 
-    // 7. GOD MODE UI (Dibujado al final para que quede encima de todo)
+    // --------------------------------------------------------
+    // 4. Overlays globales (Siempre encima de todo)
+    // --------------------------------------------------------
+    
+    // Consola modo Dios (Terminal Hacker)
     if (showGodModeInput) {
-        // --- 1. Fondo de Pantalla Oscurecido (Dimmer) ---
+        // Fondo Dimmer
         DrawRectangle(0, 0, screenW, screenH, Fade(BLACK, 0.85f)); 
 
-        // --- 2. Configuración del Panel ---
         int panelW = 500;
         int panelH = 200;
         int cx = (screenW - panelW) / 2;
         int cy = (screenH - panelH) / 2;
 
-        // --- 3. Animación de "Respiración" para el borde ---
         float time = (float)GetTime();
-        float pulse = (sinf(time * 4.0f) + 1.0f) * 0.5f; // Va de 0.0 a 1.0
-        // Color oscila entre Verde Oscuro y Verde Neón
+        float pulse = (sinf(time * 4.0f) + 1.0f) * 0.5f;
         Color borderColor = ColorAlpha(LIME, 0.6f + (0.4f * pulse)); 
         Color glowColor   = ColorAlpha(LIME, 0.2f * pulse);
 
-        // --- 4. Dibujado del Panel Principal ---
-        // Sombra sólida estilo retro (offset)
-        DrawRectangle(cx + 10, cy + 10, panelW, panelH, Color{0, 0, 0, 200});
-        
-        // Fondo del terminal (Verde muy oscuro)
-        DrawRectangle(cx, cy, panelW, panelH, Color{10, 30, 10, 255});
-        
-        // Resplandor interior (Glow)
+        // Panel estilo retro
+        DrawRectangle(cx + 10, cy + 10, panelW, panelH, Color{0, 0, 0, 200}); // Sombra
+        DrawRectangle(cx, cy, panelW, panelH, Color{10, 30, 10, 255});        // Fondo
         DrawRectangleLinesEx({(float)cx, (float)cy, (float)panelW, (float)panelH}, 4, borderColor);
         DrawRectangle(cx, cy, panelW, panelH, glowColor);
 
-        // --- 5. Decoración "Scanlines" (Líneas de monitor viejo) ---
+        // Scanlines
         for (int i = 0; i < panelH; i += 4) {
             DrawRectangle(cx, cy + i, panelW, 1, Fade(LIME, 0.1f));
         }
 
-        // --- 6. Cabecera del Sistema ---
+        // Título
         const char* title = "/// SYSTEM OVERRIDE ///";
         int titleW = MeasureText(title, 20);
-        DrawRectangle(cx, cy, panelW, 30, borderColor); // Barra superior
-        DrawText(title, cx + (panelW - titleW) / 2, cy + 5, 20, BLACK); // Texto en negro sobre verde
+        DrawRectangle(cx, cy, panelW, 30, borderColor);
+        DrawText(title, cx + (panelW - titleW) / 2, cy + 5, 20, BLACK);
 
-        // --- 7. Campo de Contraseña ---
+        // Input Box
         DrawText("ENTER ACCESS CODE:", cx + 30, cy + 50, 20, LIME);
-        
-        // Caja de input
         DrawRectangle(cx + 30, cy + 80, panelW - 60, 40, BLACK);
         DrawRectangleLines(cx + 30, cy + 80, panelW - 60, 40, borderColor);
 
-        // --- 8. Texto con Cursor Parpadeante ---
+        // Texto con cursor
         std::string displayTxt = godModeInput;
-        // El cursor aparece cada medio segundo
-        if ((int)(time * 2.0f) % 2 == 0) {
-            displayTxt += "_"; 
-        }
-        
+        if ((int)(time * 2.0f) % 2 == 0) displayTxt += "_"; 
         DrawText(displayTxt.c_str(), cx + 45, cy + 90, 20, LIME);
 
-        // --- 9. Pie de página ---
+        // Footer
         DrawText("STATUS: WAITING FOR INPUT...", cx + 30, cy + 140, 10, Fade(LIME, 0.7f));
         DrawText("[ENTER] EXECUTE   [ESC] ABORT", cx + panelW - 180, cy + 170, 10, Fade(LIME, 0.5f));
     }

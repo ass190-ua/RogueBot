@@ -1,7 +1,7 @@
 #include "Game.hpp"
 #include "raylib.h"
-#include <algorithm> // para std::min y std::clamp
-#include <cmath>     // para std::floor
+#include <algorithm>
+#include <cmath>
 #include <ctime>
 #include <iostream>
 #include <climits>
@@ -33,23 +33,22 @@ static Texture2D loadTex(const char *path) {
 void ItemSprites::load() {
     if (loaded) return;
 
-    // 1. GENERACIÓN PROCEDURAL "ESTILO RETRO CLEAN"
+    // 1. Generación procedural
     
-    // A) SUELO: Losas de cemento limpias
+    // A) Suelo: Losas de cemento limpias
     Image imgFloor = GenImageColor(32, 32, Color{30, 30, 35, 255});
     
-    // CORRECCIÓN 1: Usamos Rectangle para el borde del suelo
+    // Usamos Rectangle para el borde del suelo
     ImageDrawRectangleLines(&imgFloor, Rectangle{0, 0, 32, 32}, 1, Color{15, 15, 20, 255});
     
     floor = LoadTextureFromImage(imgFloor);
     UnloadImage(imgFloor);
 
-    // B) PARED: Bloque Biselado (Efecto 3D clásico)
+    // B) Pared: Bloque Biselado (Efecto 3D clásico)
     // 1. Base del bloque
     Image imgWall = GenImageColor(32, 32, Color{70, 70, 80, 255});
     
     // 2. Iluminación (Borde Superior e Izquierdo -> Color Claro)
-    // ImageDrawRectangle SÍ acepta coordenadas sueltas, así que estas están bien:
     ImageDrawRectangle(&imgWall, 0, 0, 32, 2, Color{110, 110, 120, 255}); // Borde Arriba
     ImageDrawRectangle(&imgWall, 0, 0, 2, 32, Color{110, 110, 120, 255}); // Borde Izquierda
     
@@ -58,13 +57,13 @@ void ItemSprites::load() {
     ImageDrawRectangle(&imgWall, 30, 0, 2, 32, Color{40, 40, 50, 255});  // Borde Derecha
     
     // 4. Detalle interior (Un cuadrado grabado en el centro)
-    // CORRECCIÓN 2: Usamos Rectangle para el detalle interior
+    // Usamos Rectangle para el detalle interior
     ImageDrawRectangleLines(&imgWall, Rectangle{8, 8, 16, 16}, 1, Color{50, 50, 60, 255});
 
     wall = LoadTextureFromImage(imgWall);
     UnloadImage(imgWall);
 
-    // 2. CARGA DE SPRITES (Archivos reales)
+    // 2. Carga de sprites (Archivos reales)
     keycard    = ResourceManager::getInstance().getTexture("assets/sprites/items/item_keycard.png");
     shield     = ResourceManager::getInstance().getTexture("assets/sprites/items/item_shield.png");
     pila       = ResourceManager::getInstance().getTexture("assets/sprites/items/item_healthbattery.png");
@@ -115,11 +114,11 @@ Game::Game(unsigned seed) : fixedSeed(seed) {
     InitWindow(0, 0, "RogueBot"); 
     SetExitKey(KEY_NULL);
 
-    // 1. INICIAR AUDIO (¡Vital!)
+    // 1. Iniciar audio
     InitAudioDevice();
     SetMasterVolume(0.2f); // Volumen general al 20%
 
-    // 2. GENERAR SONIDOS
+    // 2. Generar sonidos
     sfxHit       = generateSound(SND_HIT);
     sfxExplosion = generateSound(SND_EXPLOSION);
     sfxPickup    = generateSound(SND_PICKUP);
@@ -164,27 +163,28 @@ void Game::newRun() {
     currentLevel = 1;
     state = GameState::Playing;
     moveCooldown = 0.0f;
-    hp = 10; // O el valor inicial que desees
+    hp = 10; 
+    hpMax = 10;
 
-    // --- REINICIAR INVENTARIO Y POWER-UPS ---
+    // Reiniciar Inventario y Power-Ups 
     hasKey = false;
     
     // Escudo
     hasShield = false;
-    shieldTimer = 0.0f; // ¡Importante resetear el tiempo!
+    shieldTimer = 0.0f; // Resetear el tiempo
 
     // Batería (Vida extra)
     hasBattery = false;
 
     // Gafas 3D (Visión)
-    glassesTimer = 0.0f; // ¡Importante! Si no es 0, el juego cree que siguen activas
+    glassesTimer = 0.0f; // Si no es 0, el juego cree que siguen activas
     glassesFovMod = 0;   // Resetear el modificador de visión extra
 
     // Armas
     swordTier = 0;
     plasmaTier = 0;
 
-    // --- REINICIAR MODO DIOS (Seguridad) ---
+    // Reiniciar modo Dios (Seguridad)
     godMode = false;
     showGodModeInput = false;
     map.setRevealAll(false); // Apagar la luz del modo dios
@@ -209,7 +209,7 @@ void Game::newRun() {
 }
 
 void Game::newLevel(int level) {
-    // MODIFICADO: Lógica especial para Nivel 4 (Boss)
+    // Lógica especial para Nivel 4 (Boss)
     
     projectiles.clear(); // Limpiar balas
     enemies.clear();     // Limpiar enemigos anteriores
@@ -218,10 +218,10 @@ void Game::newLevel(int level) {
     levelSeed = seedForLevel(runSeed, level);
     rng = std::mt19937(levelSeed);
     
-    if (level == maxLevels) { // NIVEL FINAL
+    if (level == maxLevels) { // Nivel Final
         std::cout << "[Level] FINAL BOSS LEVEL Initializing...\n";
         
-        // 1. Generar Arena A PANTALLA COMPLETA
+        // 1. Generar Arena a pantalla completa
         // Calculamos cuántos tiles caben en la pantalla
         int arenaW = screenW / tileSize;
         int arenaH = screenH / tileSize;
@@ -249,7 +249,7 @@ void Game::newLevel(int level) {
         
     } 
     else {
-        // NIVELES NORMALES (1, 2, 3)
+        // Niveles normales (1, 2, 3)
         const float WORLD_SCALE = 1.2f;
         int tilesX = (int)std::ceil((screenW / (float)tileSize) * WORLD_SCALE);
         int tilesY = (int)std::ceil((screenH / (float)tileSize) * WORLD_SCALE);
@@ -305,7 +305,7 @@ void Game::spawnBoss() {
     boss.x = map.width() / 2;
     boss.y = 4; 
     
-    // NUEVO: Guardamos dónde está el jugador al entrar
+    // Guardamos dónde está el jugador al entrar
     boss.playerStartX = px;
     boss.playerStartY = py;
 
@@ -337,9 +337,8 @@ void Game::updateBoss(float dt) {
     boss.animTime += dt * 3.0f; 
     boss.flashTimer = std::max(0.0f, boss.flashTimer - dt);
 
-    // 1. MECÁNICA DE DESPERTAR (CORREGIDA)
-    // Ahora detecta si tu posición (px, py) es distinta a la inicial.
-    // Esto funciona con teclado, mando o cualquier input.
+    // 1. Mecánica de despertar
+    // Si tu posición (px, py) es distinta a la inicial.
     if (!boss.awakened) {
         if (px != boss.playerStartX || py != boss.playerStartY) {
             boss.awakened = true;
@@ -353,26 +352,26 @@ void Game::updateBoss(float dt) {
         }
     }
 
-    // 2. CONFIGURACIÓN DE FASES
+    // 2. Configuración de fases
     float hpPercent = (float)boss.hp / (float)boss.maxHp;
     
     float phaseMoveDelay = 1.0f; 
     float phaseFireDelay = 2.0f; 
     int   phaseDmg       = 1;
 
-    // FASE 1 (100-75%)
+    // Fase 1 (100-75%)
     if (hpPercent > 0.75f) {
         boss.phase = 1; phaseMoveDelay = 0.8f; phaseFireDelay = 2.0f; phaseDmg = 1;
     } 
-    // FASE 2 (75-50%)
+    // Fase 2 (75-50%)
     else if (hpPercent > 0.50f) {
         boss.phase = 2; phaseMoveDelay = 0.6f; phaseFireDelay = 1.5f; phaseDmg = 2;
     }
-    // FASE 3 (50-25%)
+    // Fase 3 (50-25%)
     else if (hpPercent > 0.25f) {
         boss.phase = 3; phaseMoveDelay = 0.4f; phaseFireDelay = 1.0f; phaseDmg = 3;
     }
-    // FASE 4 (<25%)
+    // Fase 4 (<25%)
     else {
         boss.phase = 4; phaseMoveDelay = 0.25f; phaseFireDelay = 0.6f; phaseDmg = 4;
         if (GetRandomValue(0, 10) < 2) spawnExplosion({(float)boss.x*tileSize, (float)boss.y*tileSize}, 1, RED);
@@ -387,7 +386,7 @@ void Game::updateBoss(float dt) {
     float finalFireDelay = phaseFireDelay * diffFireMult;
     int   finalDmg       = phaseDmg + diffDmgBonus;
 
-    // 3. MOVIMIENTO
+    // 3. Movimiento
     boss.moveTimer -= dt;
     if (boss.moveTimer <= 0.0f) {
         boss.moveTimer = finalMoveDelay;
@@ -411,7 +410,7 @@ void Game::updateBoss(float dt) {
         else boss.facing = (dy > 0) ? Boss::DOWN : Boss::UP;
     }
 
-    // 4. ATAQUE (DISPARO)
+    // 4. Ataque (Disparo)
     boss.actionCooldown -= dt;
     if (boss.actionCooldown <= 0.0f) {
         boss.actionCooldown = finalFireDelay;
@@ -440,7 +439,7 @@ void Game::updateBoss(float dt) {
         if (boss.phase == 4) { shoot(vy, vx); shoot(-vy, -vx); PlaySound(sfxExplosion); }
     }
 
-    // 5. COLISIÓN MELEE
+    // 5. Colisión Melee
     if (std::abs(px - boss.x) <= 1 && std::abs(py - boss.y) <= 1) {
         if (damageCooldown <= 0.0f) {
             takeDamage(finalDmg + 1);
@@ -486,18 +485,18 @@ void Game::run() {
         update();
         render();
 
-        // --- GESTIÓN DE MÚSICA AMBIENTE ---
+        // Gestión de música ambiente
         // Solo suena si estamos jugando. Si salimos al menú, se calla.
         if (state == GameState::Playing || state == GameState::Paused) {
             if (!IsSoundPlaying(sfxAmbient)) {
                 PlaySound(sfxAmbient);
             }
             
-            // Truco: Si está en pausa, pausamos el stream de audio
+            // Si está en pausa, pausamos el stream de audio
             if (state == GameState::Paused) ResumeSound(sfxAmbient);
             // Mejor lógica:
             if (state == GameState::Paused) {
-                 // ilencio total:
+                 // Silencio total:
                  if (IsSoundPlaying(sfxAmbient)) PauseSound(sfxAmbient);
             } else {
                  if (!IsSoundPlaying(sfxAmbient)) ResumeSound(sfxAmbient);
@@ -511,7 +510,7 @@ void Game::run() {
         }
     }
 
-    // DESCARGAR SONIDOS
+    // Descargar sonidos
     UnloadSound(sfxHit);
     UnloadSound(sfxExplosion);
     UnloadSound(sfxPickup);
@@ -535,7 +534,7 @@ void Game::update() {
 
     float dt = GetFrameTime();
 
-    // --- CORRECCIÓN BUG DASH ---
+    // Dash
     if (isDashing) {
         dashTimer -= dt;
         
@@ -551,7 +550,6 @@ void Game::update() {
 
         if (dashTimer <= 0.0f) isDashing = false;
         
-        // CORRECCIÓN CLAVE: 
         // Solo movemos la cámara si NO estamos en el nivel del boss.
         // Si es el boss, la cámara se queda quieta.
         if (currentLevel != maxLevels) {
@@ -562,9 +560,8 @@ void Game::update() {
             clampCameraToMap();
         }
         
-        return; // Salimos mientras dashea
+        return;
     }
-    // ---------------------------
 
     dashCooldownTimer = std::max(0.0f, dashCooldownTimer - dt);
     tryAutoPickup();
@@ -667,8 +664,6 @@ void Game::drawBoss() const {
         case Boss::LEFT:  tex = itemSprites.bossLeftIdle; break;
         case Boss::RIGHT: tex = itemSprites.bossRightIdle; break;
     }
-
-    // --- LÓGICA DE RESPIRACIÓN (Basada en Player.cpp) ---
     
     // 1. Configuración de escala
     float scale = 3.0f;
@@ -692,10 +687,10 @@ void Game::drawBoss() const {
     
     // El destino se dibuja en la posición de los pies del Boss
     Rectangle dest = {
-        centerPos.x,            // Centro X
+        centerPos.x,                // Centro X
         centerPos.y + (baseH/2.0f), // Pies Y (ajustamos porque centerPos está en el centro del tile)
-        baseW,                  // Ancho fijo
-        baseH * breathe         // ALTO VARIABLE (Aquí ocurre la magia)
+        baseW,                      // Ancho fijo
+        baseH * breathe             // Alto variable (Aquí ocurre la magia)
     };
 
     // El origen es el punto dentro de la textura que coincidirá con (dest.x, dest.y)
@@ -705,8 +700,7 @@ void Game::drawBoss() const {
         baseH // Los pies de la textura
     };
 
-    // --- DIBUJADO ---
-    
+    // Dibujado
     Color tint = WHITE;
     if (boss.flashTimer > 0.0f) tint = RED;
     else if (boss.phase == 2) tint = {255, 200, 200, 255};
@@ -714,7 +708,7 @@ void Game::drawBoss() const {
 
     DrawTexturePro(tex, {0,0,(float)tex.width,(float)tex.height}, dest, origin, 0.0f, tint);
 
-    // --- BARRA DE VIDA (Ajustada para seguir la respiración o quedarse fija) ---
+    // Barra de vida (Ajustada para seguir la respiración o quedarse fija)
     // La dibujamos fija relativa al centro lógico para que no "baile" con la respiración
     float barW = 100.0f;
     float barH = 10.0f;
@@ -726,4 +720,464 @@ void Game::drawBoss() const {
     float fill = ((float)boss.hp / (float)boss.maxHp) * barW;
     DrawRectangle(barX, barY, fill, barH, PURPLE);
     DrawRectangleLines(barX, barY, barW, barH, WHITE);
+}
+
+const char* Game::getInputText(const char* kb, const char* gp) const {
+    return (lastInput == InputDevice::Gamepad) ? gp : kb;
+}
+
+// -----------------------
+// Inicio del tutorial
+// -----------------------
+void Game::startTutorial() {
+    std::cout << "[TUTORIAL] Iniciando Instalacion de Entrenamiento...\n";
+    state = GameState::Tutorial;
+    tutorialStep = TutorialStep::Intro;
+    tutorialTimer = 4.0f; 
+    tutorialFlag = false;
+    tutorialMenuSelection = 0;
+
+    hpMax = 8; hp = 4;
+    hasKey = false; hasShield = false; hasBattery = false;
+    swordTier = 0; plasmaTier = 0;
+    
+    enemies.clear(); items.clear(); projectiles.clear(); 
+    floatingTexts.clear(); particles.clear();
+    
+    enemyHP.clear(); enemyMaxHP.clear(); enemyAtkCD.clear(); 
+    enemyShootCD.clear(); enemyFlashTimer.clear(); enemyFacing.clear();
+
+    // Generar mapa
+    map.generateTutorialMap(50, 25); 
+    map.setFogEnabled(false); 
+
+    // Posición Jugador (Centro del Lobby)
+    px = 5; 
+    py = map.height() / 2;
+    player.setGridPos(px, py);
+    
+    centerCameraOnPlayer();
+}
+
+// ------------------------
+// Bucle del tutorial
+// ------------------------
+void Game::updateTutorial(float dt) {
+    // 1. Lógica core
+    player.update(dt, false);
+    updateFloatingTexts(dt);
+    updateParticles(dt);
+    updateProjectiles(dt);
+    tryAutoPickup(); 
+
+    // 2. Físicas
+    if (slashActive) { slashTimer -= dt; if (slashTimer <= 0.0f) slashActive = false; }
+    if (isDashing) {
+        dashTimer -= dt;
+        if (dashTimer <= 0.0f) isDashing = false;
+        if ((int)(dashTimer * 20) % 2 == 0) {
+             Vector2 centerPos = { (float)px * tileSize + tileSize/2.0f, (float)py * tileSize + tileSize/2.0f };
+             spawnExplosion(centerPos, 1, SKYBLUE);
+        }
+    }
+    dashCooldownTimer = std::max(0.0f, dashCooldownTimer - dt);
+    damageCooldown = std::max(0.0f, damageCooldown - dt);
+    if(hasShield) shieldTimer -= dt; 
+    if(glassesTimer > 0.0f) glassesTimer -= dt;
+
+    // Centro vertical del mapa
+    int cy = map.height() / 2; 
+
+    switch (tutorialStep) {
+        case TutorialStep::Intro:
+            tutorialTimer -= dt;
+            if (tutorialTimer <= 0) tutorialStep = TutorialStep::Movement;
+            break;
+
+        case TutorialStep::Movement:
+            // Esperamos a que salga del Lobby (x > 8)
+            if (px > 8) { tutorialStep = TutorialStep::Dash; tutorialTimer = 1.0f; }
+            break;
+
+        case TutorialStep::Dash:
+            if (tutorialTimer > 0) tutorialTimer -= dt;
+            else if (isDashing) { tutorialStep = TutorialStep::MoveMode; tutorialTimer = 1.0f; }
+            break;
+
+        case TutorialStep::MoveMode:
+            if (tutorialTimer > 0) tutorialTimer -= dt;
+            else {
+                 static MovementMode lastMode = moveMode;
+                 if (moveMode != lastMode) { lastMode = moveMode; tutorialStep = TutorialStep::CameraZoom; }
+            }
+            break;
+
+        case TutorialStep::CameraZoom:
+            if (std::abs(cameraZoom - 1.0f) > 0.2f) tutorialStep = TutorialStep::CameraReset;
+            break;
+
+        case TutorialStep::CameraReset:
+            if (std::abs(cameraZoom - 1.0f) < 0.05f && camera.rotation == 0.0f) {
+                tutorialStep = TutorialStep::ItemPilaBuena;
+                ItemSpawn it; it.type = ItemType::PilaBuena; it.tile = {11, cy}; it.nivel = 1; it.tierSugerido=0;
+                items.push_back(it);
+            }
+            break;
+
+        case TutorialStep::ItemPilaBuena:
+            if (items.empty()) { 
+                PlaySound(sfxPickup); 
+                tutorialStep = TutorialStep::ItemPilaMala;
+                tutorialTimer = 4.0f; 
+                ItemSpawn it; it.type = ItemType::PilaMala; it.tile = {13, cy}; it.nivel = 1; it.tierSugerido=0;
+                items.push_back(it);
+            }
+            break;
+
+        case TutorialStep::ItemPilaMala:
+            if (items.empty()) {
+                PlaySound(sfxHurt); 
+                tutorialStep = TutorialStep::ItemEscudo;
+                tutorialTimer = 2.0f;
+                ItemSpawn it; it.type = ItemType::Escudo; it.tile = {15, cy}; it.nivel = 1; it.tierSugerido=0;
+                items.push_back(it);
+            }
+            break;
+
+        case TutorialStep::ItemEscudo:
+            if (items.empty()) {
+                PlaySound(sfxPowerUp);
+                hasShield = true;
+                shieldTimer = 3.0f;
+                tutorialStep = TutorialStep::PreGafas;
+                tutorialTimer = 3.0f;
+                map.setFogEnabled(true);
+                map.setRevealAll(false); 
+                map.computeVisibility(px, py, getFovRadius());
+            }
+            break;
+
+        case TutorialStep::PreGafas:
+            tutorialTimer -= dt;
+            if (tutorialTimer <= 0) {
+                tutorialStep = TutorialStep::ItemGafasBuenas;
+                ItemSpawn it; it.type = ItemType::Gafas3DBuenas; it.tile = {17, cy}; it.nivel = 1; it.tierSugerido=0;
+                items.push_back(it);
+            }
+            break;
+
+        case TutorialStep::ItemGafasBuenas:
+            if (items.empty()) {
+                PlaySound(sfxPickup);
+                glassesFovMod = 5; 
+                recomputeFovIfNeeded();
+                tutorialStep = TutorialStep::ItemGafasMalas;
+                // x=19
+                ItemSpawn it; it.type = ItemType::Gafas3DMalas; it.tile = {19, cy}; it.nivel = 1; it.tierSugerido=0;
+                items.push_back(it);
+            }
+            break;
+
+        case TutorialStep::ItemGafasMalas:
+            if (items.empty()) {
+                PlaySound(sfxLoose);
+                glassesFovMod = -5;
+                recomputeFovIfNeeded();
+                tutorialStep = TutorialStep::BadGlassesEffect;
+                tutorialTimer = 3.0f;
+            }
+            break;
+
+        case TutorialStep::BadGlassesEffect:
+            tutorialTimer -= dt;
+            if (tutorialTimer <= 0.0f) {
+                tutorialStep = TutorialStep::PostGafas;
+                glassesFovMod = 0; 
+                map.setFogEnabled(false); 
+                map.setRevealAll(true);
+                recomputeFovIfNeeded();
+            }
+            break;
+
+        case TutorialStep::PostGafas:
+            tutorialStep = TutorialStep::ItemVidaExtra; {
+                ItemSpawn it; it.type = ItemType::BateriaVidaExtra; it.tile = {21, cy}; it.nivel = 1; it.tierSugerido=0;
+                items.push_back(it);
+            }
+            break;
+
+        case TutorialStep::ItemVidaExtra:
+            if (items.empty()) {
+                PlaySound(sfxPowerUp);
+                tutorialStep = TutorialStep::SwordT1;
+                tutorialTimer = 1.0f;
+                // Zona de Armería: x=23
+                ItemSpawn it; it.type = ItemType::EspadaPickup; it.tile = {23, cy}; it.nivel = 1; it.tierSugerido=1;
+                items.push_back(it);
+            }
+            break;
+
+        // Secuencia Rápida de Armas (x=25, 27, 29, 31)
+        case TutorialStep::SwordT1:
+            if (items.empty()) {
+                PlaySound(sfxPowerUp);
+                tutorialStep = TutorialStep::SwordT2;
+                ItemSpawn it; it.type = ItemType::EspadaPickup; it.tile = {25, cy}; it.nivel = 1; it.tierSugerido=2;
+                items.push_back(it);
+            }
+            break;
+        case TutorialStep::SwordT2:
+            if (items.empty()) {
+                PlaySound(sfxPowerUp);
+                tutorialStep = TutorialStep::SwordT3;
+                ItemSpawn it; it.type = ItemType::EspadaPickup; it.tile = {27, cy}; it.nivel = 1; it.tierSugerido=3;
+                items.push_back(it);
+            }
+            break;
+        case TutorialStep::SwordT3:
+            if (items.empty()) {
+                PlaySound(sfxPowerUp);
+                tutorialStep = TutorialStep::PlasmaT1;
+                ItemSpawn it; it.type = ItemType::PistolaPlasmaPickup; it.tile = {29, cy}; it.nivel = 1; it.tierSugerido=1;
+                items.push_back(it);
+            }
+            break;
+        case TutorialStep::PlasmaT1:
+            if (items.empty()) {
+                PlaySound(sfxPowerUp);
+                tutorialStep = TutorialStep::PlasmaT2;
+                ItemSpawn it; it.type = ItemType::PistolaPlasmaPickup; it.tile = {31, cy}; it.nivel = 1; it.tierSugerido=2;
+                items.push_back(it);
+            }
+            break;
+
+        case TutorialStep::PlasmaT2:
+             if (items.empty()) {
+                 PlaySound(sfxPowerUp);
+                 tutorialStep = TutorialStep::Combat;
+                 
+                 // Enemigo en el centro de la Arena (x=42)
+                 Enemy dummy; dummy.setPos(42, cy); 
+                 enemies.push_back(dummy);
+                 
+                 enemyHP.push_back(60); enemyMaxHP.push_back(60);
+                 enemyAtkCD.push_back(0); enemyShootCD.push_back(0);
+                 enemyFlashTimer.push_back(0); enemyFacing.push_back(EnemyFacing::Down);
+            }
+            break;
+
+        case TutorialStep::Combat:
+            if (enemies.empty()) {
+                tutorialStep = TutorialStep::Exit;
+                // Llave donde murió el enemigo
+                ItemSpawn it; it.type = ItemType::LlaveMaestra; it.tile = {42, cy}; it.nivel = 1; it.tierSugerido=0;
+                items.push_back(it);
+                
+                map.setTile(46, cy, EXIT); 
+                PlaySound(sfxWin);
+            }
+            break;
+
+        case TutorialStep::Exit:
+            if (hasKey && px == 46 && py == cy) {
+                tutorialStep = TutorialStep::FinishedMenu;
+                PlaySound(sfxWin);
+            }
+            break;
+
+        case TutorialStep::FinishedMenu:
+            break;
+    }
+}
+
+void Game::renderTutorialUI() {
+    // ---------------------------------------------------------
+    // Menú final interactivo
+    // ---------------------------------------------------------
+    if (tutorialStep == TutorialStep::FinishedMenu) {
+        // Fondo oscurecido
+        DrawRectangle(0, 0, screenW, screenH, Fade(BLACK, 0.85f));
+        
+        int boxW = 500, boxH = 350;
+        int cx = (screenW - boxW)/2;
+        int cy = (screenH - boxH)/2;
+        
+        // Panel de fondo
+        DrawRectangle(cx, cy, boxW, boxH, Color{20, 20, 25, 255});
+        DrawRectangleLinesEx({(float)cx, (float)cy, (float)boxW, (float)boxH}, 2, WHITE);
+        
+        // Título
+        const char* title = "ENTRENAMIENTO COMPLETADO";
+        int titleW = MeasureText(title, 30);
+        DrawText(title, cx + (boxW - titleW)/2, cy + 30, 30, LIME);
+        
+        // Botones
+        const char* options[] = { "REPETIR TUTORIAL", "JUGAR PARTIDA", "VOLVER AL MENU" };
+        int startY = cy + 100;
+        int btnH = 50;
+        int gap = 20;
+
+        for (int i = 0; i < 3; i++) {
+            Rectangle btnRect = { (float)cx + 50, (float)startY + i * (btnH + gap), (float)boxW - 100, (float)btnH };
+            
+            // Check hover del ratón para actualizar selección
+            if (CheckCollisionPointRec(GetMousePosition(), btnRect)) {
+                if (GetMouseDelta().x != 0 || GetMouseDelta().y != 0) tutorialMenuSelection = i;
+            }
+
+            bool selected = (tutorialMenuSelection == i);
+            
+            // Colores
+            Color bg = selected ? Color{60, 60, 80, 255} : Color{40, 40, 40, 255};
+            Color border = selected ? SKYBLUE : GRAY;
+            
+            DrawRectangleRec(btnRect, bg);
+            DrawRectangleLinesEx(btnRect, 2, border);
+            
+            int txtSize = 20;
+            int txtW = MeasureText(options[i], txtSize);
+            DrawText(options[i], btnRect.x + (btnRect.width - txtW)/2, btnRect.y + (btnRect.height - txtSize)/2, txtSize, WHITE);
+            
+            // Icono de selección
+            if (selected) {
+                DrawText(">", btnRect.x - 20, btnRect.y + 15, 20, YELLOW);
+            }
+        }
+        return;
+    }
+
+    // ---------------------------------------------------------
+    // Barra inferior (Instrucciones)
+    // ---------------------------------------------------------
+    float boxH = 110.0f;
+    float yPos = screenH - boxH;
+    
+    DrawRectangle(0, (int)yPos, screenW, (int)boxH, Color{0,0,0, 230});
+    DrawRectangleLines(0, (int)yPos, screenW, (int)boxH, WHITE);
+
+    const char* msg = "";
+    const char* subMsg = "";
+    Color msgColor = YELLOW;
+
+    switch (tutorialStep) {
+        case TutorialStep::Intro: 
+            msg = "BIENVENIDO AL HANGAR DE ENTRENAMIENTO"; 
+            subMsg = getInputText("NOTA: [R] reinicia la partida, desactivado aqui.", "NOTA: [Y]/[Triangulo] reinicia, desactivado aqui.");
+            break;
+        case TutorialStep::Movement: 
+            msg = getInputText("MOVIMIENTO BASICO", "MOVIMIENTO BASICO"); 
+            subMsg = getInputText("Usa [W,A,S,D] o Flechas.", "Usa [CRUCETA] o [JOYSTICK IZQ]."); 
+            break;
+        case TutorialStep::Dash:
+            msg = "MANIOBRA EVASIVA (DASH)";
+            subMsg = getInputText("Pulsa [SHIFT] mientras te mueves.", "Pulsa [LB] o [LT].");
+            break;
+        case TutorialStep::MoveMode:
+            msg = "MODOS DE MOTOR";
+            subMsg = getInputText("Pulsa [T] para alternar Pasos/Continuo.", "Usa [CRUCETA] (Tactico) o [JOYSTICK IZQ] (Continuo).");
+            break;
+        case TutorialStep::CameraZoom:
+            msg = "CONTROL DE CAMARA";
+            subMsg = getInputText("Usa la [RUEDA DEL RATON].", "Mueve el [JOYSTICK DERECHO].");
+            break;
+        case TutorialStep::CameraReset:
+            msg = "RESTABLECER CAMARA";
+            subMsg = getInputText("Pulsa [C] para centrar.", "Pulsa [R3] (Click Joystick Derecho).");
+            break;
+
+        case TutorialStep::ItemPilaBuena:
+            msg = "OBJETO: PILA DE ENERGIA";
+            subMsg = getInputText("Recupera salud. Acercate y pulsa [E] para recoger.", "Recupera salud. Acercate y pulsa [A]/[X].");
+            msgColor = GREEN;
+            break;
+        case TutorialStep::ItemPilaMala:
+            msg = "PELIGRO: PILA OXIDADA";
+            subMsg = "Este objeto DAÑA la salud (-1 Corazon). ¡Ten cuidado!";
+            msgColor = RED; 
+            break;
+
+        case TutorialStep::ItemEscudo:
+            msg = "OBJETO: ESCUDO DE FUERZA";
+            subMsg = "Otorga INVULNERABILIDAD temporal. Se desactiva al recibir el primer golpe";
+            msgColor = SKYBLUE;
+            break;
+
+        case TutorialStep::PreGafas:
+            msg = "FALLO DE SENSORES";
+            subMsg = "Niebla densa detectada. Visibilidad reducida.";
+            msgColor = ORANGE;
+            break;
+        case TutorialStep::ItemGafasBuenas:
+            msg = "OBJETO: GAFAS 3D";
+            subMsg = "Restauran visibilidad en niebla.";
+            msgColor = BLUE;
+            break;
+        case TutorialStep::ItemGafasMalas:
+            msg = "PELIGRO: GAFAS ROTAS";
+            subMsg = "Reducen tu campo de vision.";
+            msgColor = RED;
+            break;
+        case TutorialStep::BadGlassesEffect:
+            msg = "¡SISTEMAS VISUALES DAÑADOS!";
+            subMsg = "Esto ocurre al recoger items en mal estado. Esperando reinicio...";
+            msgColor = RED;
+            break;
+        case TutorialStep::PostGafas:
+            msg = "SENSORES RESTAURADOS";
+            subMsg = "Calibrando sistemas...";
+            break;
+
+        case TutorialStep::ItemVidaExtra:
+            msg = "OBJETO RARO: BATERIA";
+            subMsg = "Otorga una VIDA EXTRA (Resurreccion).";
+            msgColor = GOLD;
+            break;
+
+        case TutorialStep::SwordT1:
+            msg = "ARMA: ESPADA DE ACERO (TIER 1)";
+            subMsg = getInputText("Ataque basico melee [1].", "Ataque basico melee [RB]/[R1].");
+            break;
+        case TutorialStep::SwordT2:
+            msg = "ARMA: ESPADA DE IONES (TIER 2)";
+            subMsg = "Hoja Verde. Mayor daño y velocidad.";
+            msgColor = GREEN;
+            break;
+        case TutorialStep::SwordT3:
+            msg = "ARMA: ESPADA DE PLASMA (TIER 3)";
+            subMsg = "Hoja Roja. Daño maximo letal.";
+            msgColor = RED;
+            break;
+
+        case TutorialStep::PlasmaT1:
+            msg = "ARMA: CAÑON DE PLASMA (TIER 1)";
+            subMsg = getInputText("Disparo a distancia [2].", "Disparo a distancia [RT]/[R2].");
+            msgColor = SKYBLUE;
+            break;
+        case TutorialStep::PlasmaT2:
+            msg = "ARMA: CAÑON DE PLASMA V2 (TIER 2)";
+            subMsg = "Lanza 2 ráfagas con un solo disparo.";
+            msgColor = PURPLE;
+            break;
+
+        case TutorialStep::Combat:
+            msg = "SIMULACION DE COMBATE";
+            subMsg = "El objetivo esta al final del Hangar. Destruyelo.";
+            msgColor = ORANGE;
+            break;
+        case TutorialStep::Exit:
+            msg = "OBJETIVO CUMPLIDO";
+            subMsg = "Recoge la LLAVE MAESTRA y ve a la SALIDA.";
+            msgColor = GREEN;
+            break;
+
+        default: break;
+    }
+
+    int fs = 30;
+    int fsSub = 20;
+    int w = MeasureText(msg, fs);
+    int w2 = MeasureText(subMsg, fsSub);
+    
+    DrawText(msg, (screenW - w)/2, (int)yPos + 25, fs, msgColor);
+    DrawText(subMsg, (screenW - w2)/2, (int)yPos + 65, fsSub, WHITE);
 }
