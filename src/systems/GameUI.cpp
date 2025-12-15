@@ -188,7 +188,7 @@ void Game::renderMainMenu()
 
     // 4. Dibujado de elementos
     drawPixelButton(playBtn, "JUGAR", 0);
-    drawPixelButton(readBtn, "LEER ANTES DE JUGAR", 1);
+    drawPixelButton(readBtn, "TUTORIAL", 1);
     drawPixelButton(quitBtn, "SALIR", 2);
 
     // 5. Botón de ajustes en la esquina inferior derecha

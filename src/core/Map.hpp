@@ -4,7 +4,7 @@
 #include <vector>
 #include <cstdint>
 #include "raylib.h"
-#include <utility> // std::pair
+#include <utility>
 
 // Tipos de celda. Usamos uint8_t para ahorrar memoria (1 byte por tile).
 enum Tile : uint8_t { 
@@ -23,8 +23,13 @@ public:
     // Generación y dibujado
     // Crea un nuevo nivel procedimental (algoritmo BSP o aleatorio).
     void generate(int width, int height, unsigned seed = 0);
+
+    // Genera un mapa lineal sencillo para el tutorial
+    void generateTutorialMap(int W, int H);
+
+    void setTile(int x, int y, Tile t);
     
-    // --- NUEVO: Genera la arena del Boss (espacio abierto) ---
+    // Genera la arena del Boss (espacio abierto)
     void generateBossArena(int width, int height);
 
     // Renderiza el mapa usando Raylib (Tile por tile).

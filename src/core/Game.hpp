@@ -62,7 +62,46 @@ enum class GameState
     Paused,
     Victory,
     GameOver,
-    OptionsMenu
+    OptionsMenu,
+    Tutorial
+};
+
+enum class TutorialStep
+{
+    Intro,
+    Movement,
+    Dash,
+    MoveMode,
+    CameraZoom,
+    CameraReset,
+    
+    // Secuencia de Objetos (Vida)
+    ItemPilaBuena, // Cura
+    ItemPilaMala,  // Daña
+
+    ItemEscudo,   // Protege
+    
+    // Secuencia de Visión
+    PreGafas,      // Activar niebla
+    ItemGafasBuenas,
+    ItemGafasMalas,
+    BadGlassesEffect,
+    PostGafas,     // Quitar niebla
+    
+    // Items Especiales
+    ItemVidaExtra, // Batería extra
+    
+    // Secuencia de Armas (Progresión)
+    SwordT1,
+    SwordT2,
+    SwordT3,
+    PlasmaT1,
+    PlasmaT2,
+    
+    // Combate Final
+    Combat,
+    Exit,
+    FinishedMenu
 };
 
 // Para mostrar prompts correctos ("Presiona E" vs "Presiona A")
@@ -271,7 +310,21 @@ private:
         }
     }
 
-    // --- VARIABLES CHEAT CODE (MANDO) ---
+    // Variables del tutorial
+    TutorialStep tutorialStep = TutorialStep::Intro;
+    float tutorialTimer = 0.0f; 
+    bool tutorialFlag = false; 
+    int tutorialMenuSelection = 0; 
+    
+    // Función auxiliar para texto dinámico (Teclado vs Mando)
+    // Devuelve el texto 'kb' si usa teclado, o 'gp' si usa gamepad
+    const char* getInputText(const char* kb, const char* gp) const;
+
+    void startTutorial();
+    void updateTutorial(float dt);
+    void renderTutorialUI();
+
+    // Variables de Cheat Mode (Mando)
     // Secuencia: Arriba, Arriba, Abajo, Abajo, Izq, Der, Izq, Der, B, A
     const std::vector<int> konamiCode = {
         GAMEPAD_BUTTON_LEFT_FACE_UP,
@@ -282,8 +335,8 @@ private:
         GAMEPAD_BUTTON_LEFT_FACE_RIGHT,
         GAMEPAD_BUTTON_LEFT_FACE_LEFT,
         GAMEPAD_BUTTON_LEFT_FACE_RIGHT,
-        GAMEPAD_BUTTON_RIGHT_FACE_RIGHT, // B (Círculo)
-        GAMEPAD_BUTTON_RIGHT_FACE_DOWN   // A (Cruz)
+        GAMEPAD_BUTTON_RIGHT_FACE_RIGHT,
+        GAMEPAD_BUTTON_RIGHT_FACE_DOWN 
     };
     
     // Índice actual de la secuencia (cuántos has acertado seguidos)
@@ -381,6 +434,7 @@ private:
     int mainMenuSelection = 0;
     int pauseSelection = 0;  
     GameState previousState = GameState::MainMenu;
+    GameState pauseOrigin = GameState::Playing;
 
     void handleMenuInput();
     void handlePlayingInput(float dt);
