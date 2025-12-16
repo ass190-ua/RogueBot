@@ -202,7 +202,7 @@ endif()
 # En Linux, si raylib se construye estática y no es externa,
 # hay que enlazar manualmente varias librerías del sistema
 # (X11, GL, pthread, etc.).
-if(UNIX AND NOT APPLE AND PREFER_RAYLIB_STATIC AND NOT USE_EXTERNAL_RAYLIB)
+if(UNIX AND NOT APPLE AND NOT EMSCRIPTEN AND PREFER_RAYLIB_STATIC AND NOT USE_EXTERNAL_RAYLIB)
   target_link_libraries(${PROJECT_NAME} PRIVATE
     m pthread dl rt
     X11 Xrandr Xi Xxf86vm Xinerama Xcursor GL X11)
@@ -329,6 +329,41 @@ else()
   if(USE_EXTERNAL_RAYLIB AND NOT PREFER_RAYLIB_STATIC)
     set(CPACK_DEBIAN_PACKAGE_DEPENDS "libraylib5 (>= 5.0)")
   endif()
+endif()
+
+# Para version web
+if(EMSCRIPTEN)
+    set(CMAKE_EXECUTABLE_SUFFIX ".html")
+    
+    # 1. GENERAR PARCHE AUTOMÁTICO
+    # Creamos un archivo .hpp temporal que corrige el código al vuelo
+    set(WEB_FIX_FILE "${CMAKE_BINARY_DIR}/web_fix.hpp")
+    file(WRITE ${WEB_FIX_FILE} "
+// Este archivo se inyecta automáticamente antes de compilar
+#pragma once
+#include <raylib.h>
+
+// 1. Desactivamos SetConfigFlags para que no intente ponerse en pantalla completa
+#undef SetConfigFlags
+#define SetConfigFlags(flags) ((void)0)
+
+// 2. Interceptamos InitWindow: Si el juego pide (0,0), le damos (800,600)
+#undef InitWindow
+#define InitWindow(w, h, t) InitWindow(800, 600, t)
+")
+
+    # 2. INYECTAR EL PARCHE
+    # Le decimos al compilador que incluya este archivo a la fuerza en cada .cpp
+    target_compile_options(${PROJECT_NAME} PRIVATE "-include" "${WEB_FIX_FILE}")
+
+    # 3. CONFIGURACIÓN DE ENLACE WEB
+    target_link_options(${PROJECT_NAME} PRIVATE
+        "-sUSE_GLFW=3"
+        "-sASYNCIFY"
+        "-sALLOW_MEMORY_GROWTH=1"
+        "--preload-file" 
+        "${CMAKE_SOURCE_DIR}/assets@/assets"
+    )
 endif()
 
 # Incluir CPack y activar los targets "package" / "package_source"
