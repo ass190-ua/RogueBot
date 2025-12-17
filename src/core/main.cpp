@@ -2,6 +2,8 @@
 #include <cstdlib> // strtoul (String to Unsigned Long)
 #include <iostream>
 #include <filesystem> // C++17: Manejo moderno de rutas y directorios
+#include <libintl.h>
+#include <locale.h>
 
 // Helper: Verificación segura de directorios
 // Comprueba si una ruta existe y es una carpeta.
@@ -49,6 +51,13 @@ int main(int argc, char** argv) {
         // Si fallan los permisos, avisamos pero intentamos arrancar igual
         std::cerr << "[ERR] No se pudo fijar cwd a RB_ASSET_ROOT: " << e.what() << "\n";
     }
+
+    setlocale(LC_ALL, "");
+    
+    bindtextdomain("roguebot", "assets/locales"); 
+    
+    bind_textdomain_codeset("roguebot", "UTF-8");
+    textdomain("roguebot");
 
     // 2. Gestión de la semilla (Seed)
     // Esto es vital para depurar generación procedural.
