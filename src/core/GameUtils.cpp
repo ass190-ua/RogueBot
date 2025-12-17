@@ -2,6 +2,9 @@
 #include "raylib.h"
 #include <algorithm>
 #include <cmath>
+#include <libintl.h>
+
+#define _(String) gettext(String)
 
 // Definición de estado global
 // En el .hpp pusimos 'extern AttackRuntime gAttack;', que solo "promete" que existe.
