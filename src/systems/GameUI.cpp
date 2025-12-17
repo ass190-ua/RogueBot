@@ -411,6 +411,54 @@ void Game::renderOptionsMenu()
         }
     }
 
+    // ---------- BARRA DE VOLUMEN ----------
+    float sliderMarginY = screenH * 0.09f;          // separación entre botón dificultad y barra
+    float sliderW       = (float)btnW;
+    float sliderH       = btnH / 8.0f;              // pista finita
+    float sliderX       = (float)(centerX - btnW / 2);
+    float sliderY       = diffRect.y + diffRect.height + sliderMarginY;
+
+    Rectangle sliderRect = { sliderX, sliderY, sliderW, sliderH };
+
+    // Fondo de la pista
+    DrawRectangle(sliderRect.x, sliderRect.y,
+                  sliderRect.width, sliderRect.height,
+                  Color{25, 25, 30, 255});
+
+    // Porción rellena según audioVolume
+    int fillW = (int)std::round(sliderRect.width * audioVolume);
+    DrawRectangle(sliderRect.x, sliderRect.y,
+                  fillW, sliderRect.height,
+                  Color{210, 45, 45, 255});
+
+    // Borde de la pista
+    DrawRectangleLines(sliderRect.x, sliderRect.y,
+                       sliderRect.width, sliderRect.height,
+                       Color{150, 25, 25, 255});
+
+    // Manejador (handle) del slider
+    int handleW  = (int)std::round(sliderRect.height * 1.8f);
+    int handleH  = (int)std::round(sliderRect.height * 2.5f);
+    float handleX = sliderRect.x + fillW - handleW / 2.0f;
+    float handleY = sliderRect.y - (handleH - sliderRect.height) / 2.0f;
+    handleX = std::clamp(handleX,
+                         sliderRect.x - handleW / 2.0f,
+                         sliderRect.x + sliderRect.width - handleW / 2.0f);
+
+    DrawRectangle(handleX, handleY, handleW, handleH, Color{60, 60, 80, 255});
+    DrawRectangleLines(handleX, handleY, handleW, handleH, Color{200, 40, 40, 255});
+
+    // Texto "Volumen: XX%" encima de la barra
+    std::string volStr = getVolumeLabel();
+    int volFs = (int)std::round(btnH * 0.40f);
+    if (volFs < 16) volFs = 16;
+    int volW = MeasureText(volStr.c_str(), volFs);
+    int volX = centerX - volW / 2;
+    int volY = (int)(sliderRect.y - volFs - 8);
+
+    DrawText(volStr.c_str(), volX + 1, volY + 1, volFs, Color{0, 0, 0, 160});
+    DrawText(volStr.c_str(), volX, volY, volFs, RAYWHITE);
+
     EndDrawing();
 }
 
