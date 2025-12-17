@@ -905,156 +905,48 @@ void Game::handleOptionsInput()
         return;
     }
 
-    // Ratón
-    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) ||
-        IsMouseButtonDown(MOUSE_LEFT_BUTTON)) // permite arrastrar
-    {
-        Vector2 mp = GetMousePosition();
+    // --------------------------------------------------------
+    // 3. Lógica de RATÓN
+    // --------------------------------------------------------
+    Vector2 mp = GetMousePosition();
+    int btnW = screenW / 3;
+    int btnH = screenH / 12;
+    int centerX = screenW / 2;
 
-        int btnW = screenW / 3;
-        int btnH = screenH / 12;
-        int centerX = screenW / 2;
+    // Rectángulos de botones
+    Rectangle diffRect = { (float)(centerX - btnW / 2), (float)(screenH / 3), (float)btnW, (float)btnH };
+    Rectangle backRect = { (float)(centerX - btnW / 2), (float)(screenH - screenH / 4), (float)btnW, (float)btnH };
 
-        Rectangle diffRect = {
-            (float)(centerX - btnW / 2),
-            (float)(screenH / 3),
-            (float)btnW,
-            (float)btnH};
+    // --- CÁLCULO EXACTO DEL SLIDER (Copiado de tu GameUI.cpp) ---
+    float sliderMarginY = screenH * 0.09f; // <--- AQUÍ ESTABA EL ERROR (usabas 0.05f o 0.09f aleatoriamente)
+    float sliderX = (float)(centerX - btnW / 2);
+    float sliderY = diffRect.y + diffRect.height + sliderMarginY;
+    
+    // Definimos un área de colisión más alta (40px) para que sea fácil "agarrar" la barra
+    Rectangle sliderRect = { sliderX, sliderY - 15, (float)btnW, 40.0f };
 
-        Rectangle backRect = {
-            (float)(centerX - btnW / 2),
-            (float)(screenH - screenH / 4),
-            (float)btnW,
-            (float)btnH};
-
-        float sliderMarginY = screenH * 0.05f;
-        float sliderW = (float)btnW;
-        float sliderH = btnH / 8.0f;
-        float sliderX = (float)(centerX - btnW / 2);
-        float sliderY = diffRect.y + diffRect.height + sliderMarginY;
-
-        Rectangle sliderRect = {sliderX, sliderY, sliderW, sliderH};
-
-        // 1) Cambiar dificultad
-        if (CheckCollisionPointRec(mp, diffRect))
-        {
-            cycleDifficulty();
-            return;
+    // A) CLICK EN BOTONES
+    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+        if (CheckCollisionPointRec(mp, diffRect)) {
+            pendingDifficulty = (Difficulty)(((int)pendingDifficulty + 1) % 3);
         }
+        else if (CheckCollisionPointRec(mp, backRect)) {
+            if (pendingDifficulty != difficulty && previousState == GameState::Paused) showDifficultyWarning = true;
+            else { difficulty = pendingDifficulty; state = previousState; }
+        }
+    }
 
-        // 2) Volver al menú principal
-        if (CheckCollisionPointRec(mp, backRect))
-        {
-            state = GameState::MainMenu;
-            return;
-
-            // Input normal
-            bool up = IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W);
-            bool down = IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S);
-            bool enter = IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE);
-
-            if (IsGamepadAvailable(gp0))
-            {
-                if (IsGamepadButtonPressed(gp0, GAMEPAD_BUTTON_LEFT_FACE_UP))
-                    up = true;
-                if (IsGamepadButtonPressed(gp0, GAMEPAD_BUTTON_LEFT_FACE_DOWN))
-                    down = true;
-                if (IsGamepadButtonPressed(gp0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN))
-                    enter = true;
-
-                static bool stickNeutral = true;
-                float ay = GetGamepadAxisMovement(gp0, GAMEPAD_AXIS_LEFT_Y);
-                if (std::fabs(ay) < 0.35f)
-                    stickNeutral = true;
-                else if (stickNeutral)
-                {
-                    if (ay < 0.0f)
-                        up = true;
-                    else
-                        down = true;
-                    stickNeutral = false;
-                }
-            }
-
-            if (up)
-                mainMenuSelection = (mainMenuSelection + 2 - 1) % 2;
-            if (down)
-                mainMenuSelection = (mainMenuSelection + 1) % 2;
-
-            // Acción
-            if (enter)
-            {
-                if (mainMenuSelection == 0)
-                {
-                    // Ciclar dificultad pendiente (No la real)
-                    // Lógica simple de enum: Easy(0) -> Medium(1) -> Hard(2) -> Easy(0)
-                    int d = (int)pendingDifficulty;
-                    d = (d + 1) % 3;
-                    pendingDifficulty = (Difficulty)d;
-                }
-                else
-                {
-                    // Botón Volver (Misma lógica que Back)
-                    if (pendingDifficulty != difficulty && previousState == GameState::Paused)
-                    {
-                        showDifficultyWarning = true;
-                    }
-                    else
-                    {
-                        difficulty = pendingDifficulty; // Aplicar si es menu principal
-                        state = previousState;
-                        if (state == GameState::MainMenu)
-                            mainMenuSelection = 0;
-                    }
-                }
-            }
-
-            // Ratón
-            if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
-            {
-                Vector2 mp = GetMousePosition();
-                int btnW = screenW / 3;
-                int btnH = screenH / 12;
-                int centerX = screenW / 2;
-                Rectangle diffRect = {(float)(centerX - btnW / 2), (float)(screenH / 3), (float)btnW, (float)btnH};
-                Rectangle backRect = {(float)(centerX - btnW / 2), (float)(screenH - screenH / 4), (float)btnW, (float)btnH};
-
-                if (CheckCollisionPointRec(mp, diffRect))
-                {
-                    // Ciclar pendiente
-                    int d = (int)pendingDifficulty;
-                    d = (d + 1) % 3;
-                    pendingDifficulty = (Difficulty)d;
-                }
-                else if (CheckCollisionPointRec(mp, backRect))
-                {
-                    // Volver
-                    if (pendingDifficulty != difficulty && previousState == GameState::Paused)
-                    {
-                        showDifficultyWarning = true;
-                    }
-                    else
-                    {
-                        difficulty = pendingDifficulty;
-                        state = previousState;
-                        if (state == GameState::MainMenu)
-                            mainMenuSelection = 0;
-                    }
-                }
-
-                // 3) Ajustar volumen con el slider
-                if (CheckCollisionPointRec(mp, sliderRect))
-                {
-                    float rel = (mp.x - sliderRect.x) / sliderRect.width;
-                    rel = std::clamp(rel, 0.0f, 1.0f);
-                    audioVolume = rel;
-                    SetMasterVolume(audioVolume); // aquí actualizamos el volumen global del juego
-                    return;
-                }
-            }
+    // B) ARRASTRAR VOLUMEN (Down para fluidez)
+    if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
+        if (CheckCollisionPointRec(mp, sliderRect)) {
+            // Calculamos cuánto se ha movido el ratón dentro de la barra
+            float rel = (mp.x - sliderRect.x) / sliderRect.width;
+            audioVolume = std::clamp(rel, 0.0f, 1.0f);
+            SetMasterVolume(audioVolume); // Aplicamos el cambio al sistema de sonido
         }
     }
 }
+
 // ----------------------------------------------------------------------------------
 // Input Juego (Combate y Movimiento)
 // ----------------------------------------------------------------------------------

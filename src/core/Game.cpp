@@ -733,9 +733,6 @@ const char* Game::getInputText(const char* kb, const char* gp) const {
     return (lastInput == InputDevice::Gamepad) ? gp : kb;
 }
 
-// -----------------------
-// Inicio del tutorial
-// -----------------------
 void Game::startTutorial() {
     std::cout << "[TUTORIAL] Iniciando Instalacion de Entrenamiento...\n";
     state = GameState::Tutorial;
@@ -766,9 +763,6 @@ void Game::startTutorial() {
     centerCameraOnPlayer();
 }
 
-// ------------------------
-// Bucle del tutorial
-// ------------------------
 void Game::updateTutorial(float dt) {
     // 1. Lógica core
     player.update(dt, false);

@@ -412,7 +412,7 @@ void Game::renderOptionsMenu()
     }
 
     // ---------- BARRA DE VOLUMEN ----------
-    float sliderMarginY = screenH * 0.05f;          // separación entre botón dificultad y barra
+    float sliderMarginY = screenH * 0.09f;          // separación entre botón dificultad y barra
     float sliderW       = (float)btnW;
     float sliderH       = btnH / 8.0f;              // pista finita
     float sliderX       = (float)(centerX - btnW / 2);
