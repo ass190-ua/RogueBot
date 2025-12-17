@@ -907,20 +907,19 @@ void Game::handleOptionsInput()
     }
 
     // --------------------------------------------------------
-    // [MODIFICADO] LÓGICA DEL MANDO Y JOYSTICK DERECHO
+    // 3. Lógica de Mando y Selección
     // --------------------------------------------------------
-    
     bool up = IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W);
     bool down = IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S);
+    
+    // Definimos 'enter' (Botón A / X / Espacio)
     bool enter = IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE) || 
                  (IsGamepadAvailable(gpId) && IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_RIGHT_FACE_DOWN));
 
     if (IsGamepadAvailable(gpId)) {
-        // Navegación Vertical (Cruceta)
         if (IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_LEFT_FACE_UP)) up = true;
         if (IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_LEFT_FACE_DOWN)) down = true;
         
-        // Navegación Vertical (Stick Izquierdo) con detección de rebote
         static bool stickLNeutral = true;
         float ayL = GetGamepadAxisMovement(gpId, GAMEPAD_AXIS_LEFT_Y);
         if (std::fabs(ayL) < 0.5f) stickLNeutral = true;
@@ -929,38 +928,35 @@ void Game::handleOptionsInput()
             stickLNeutral = false;
         }
 
-        
-        // Esto funciona INDEPENDIENTEMENTE de dónde esté el cursor (mainMenuSelection)
         float stickRX = GetGamepadAxisMovement(gpId, GAMEPAD_AXIS_RIGHT_X);
         if (std::fabs(stickRX) > 0.2f) { 
             audioVolume = std::clamp(audioVolume + (stickRX * 0.01f), 0.0f, 1.0f);
             SetMasterVolume(audioVolume);
-            // Si el usuario toca el stick derecho, forzamos a que el cursor visual 
-            // salte a la barra de volumen para que sepa qué está tocando.
             mainMenuSelection = 1; 
         }
     }
 
-    // Lógica para que el mando nos detecte el nivel donde se encuentra el volumen.
-    if (up) {
-        mainMenuSelection--;
-        if (mainMenuSelection < 0) mainMenuSelection = 2;
-    }
-    if (down) {
-        mainMenuSelection++;
-        if (mainMenuSelection > 2) mainMenuSelection = 0;
-    }
+    // Mover cursor
+    if (up) { mainMenuSelection--; if (mainMenuSelection < 0) mainMenuSelection = 2; }
+    if (down) { mainMenuSelection++; if (mainMenuSelection > 2) mainMenuSelection = 0; }
 
-    // Acción de Enter
+    
     if (enter) {
-        if (mainMenuSelection == 0) pendingDifficulty = (Difficulty)(((int)pendingDifficulty + 1) % 3);
+        if (mainMenuSelection == 0) {
+            pendingDifficulty = (Difficulty)(((int)pendingDifficulty + 1) % 3);
+        }
         else if (mainMenuSelection == 2) {
-             if (pendingDifficulty != difficulty && previousState == GameState::Paused) showDifficultyWarning = true;
-             else { difficulty = pendingDifficulty; state = previousState; }
+            // Aquí es donde el botón 'A' ejecuta la salida
+            if (pendingDifficulty != difficulty && previousState == GameState::Paused) {
+                showDifficultyWarning = true;
+            } else { 
+                difficulty = pendingDifficulty; 
+                state = previousState;
+            }
         }
     }
 
-    // Control de volumen con D-Pad/Teclado cuando el cursor está en el índice 1
+    // Volumen con flechas/D-Pad
     if (mainMenuSelection == 1) {
         float step = 0.01f;
         if (IsKeyDown(KEY_LEFT) || (IsGamepadAvailable(gpId) && IsGamepadButtonDown(gpId, GAMEPAD_BUTTON_LEFT_FACE_LEFT))) {
