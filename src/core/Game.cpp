@@ -657,6 +657,8 @@ std::string Game::getVolumeLabel() const {
     int pct = (int)std::round(audioVolume * 100.0f);
     pct = std::clamp(pct, 0, 100);
     return "Volumen: " + std::to_string(pct) + "%";
+}
+
 void Game::drawBoss() const {
     if (!boss.active) return;
 
