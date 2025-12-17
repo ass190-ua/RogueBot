@@ -59,9 +59,49 @@ enum class GameState
 {
     MainMenu,
     Playing,
+    Paused,
     Victory,
     GameOver,
-    OptionsMenu
+    OptionsMenu,
+    Tutorial
+};
+
+enum class TutorialStep
+{
+    Intro,
+    Movement,
+    Dash,
+    MoveMode,
+    CameraZoom,
+    CameraReset,
+    
+    // Secuencia de Objetos (Vida)
+    ItemPilaBuena, // Cura
+    ItemPilaMala,  // Daña
+
+    ItemEscudo,   // Protege
+    
+    // Secuencia de Visión
+    PreGafas,      // Activar niebla
+    ItemGafasBuenas,
+    ItemGafasMalas,
+    BadGlassesEffect,
+    PostGafas,     // Quitar niebla
+    
+    // Items Especiales
+    ItemVidaExtra, // Batería extra
+    
+    // Secuencia de Armas (Progresión)
+    SwordT1,
+    SwordT2,
+    SwordT3,
+    PlasmaT1,
+    PlasmaT2,
+    
+    // Combate Final
+    Combat,
+    Exit,
+    FinishedMenu
 };
 
 // Para mostrar prompts correctos ("Presiona E" vs "Presiona A")
@@ -105,9 +145,46 @@ struct ItemSprites
     Texture2D enemyLeft{};
     Texture2D enemyRight{};
 
+    // Texturas del Boss
+    Texture2D bossUpIdle{};
+    Texture2D bossDownIdle{};
+    Texture2D bossLeftIdle{};
+    Texture2D bossRightIdle{};
+    Texture2D bossUpWalk1{};
+    Texture2D bossUpWalk2{};
+    Texture2D bossDownWalk1{};
+    Texture2D bossDownWalk2{};
+    Texture2D bossLeftWalk1{};
+    Texture2D bossLeftWalk2{};
+    Texture2D bossRightWalk1{};
+    Texture2D bossRightWalk2{};
+
     bool loaded = false;
     void load();   // Carga todo
     void unload(); // Libera todo
+};
+
+struct Boss {
+    bool active = false;
+    bool awakened = false; // ¿Se ha despertado ya?
+    int x = 0, y = 0;      // Posición lógica del Boss
+    
+    // Para detectar si el jugador se ha movido
+    int playerStartX = 0;
+    int playerStartY = 0;
+
+    int hp = 0;
+    int maxHp = 0;
+    int phase = 1;         // Fase 1, 2, 3, 4
+
+    // Dirección
+    enum Facing { UP, DOWN, LEFT, RIGHT } facing = DOWN;
+
+    // Temporizadores de Combate
+    float actionCooldown = 0.0f; // Tiempo para disparar
+    float moveTimer = 0.0f;      // Tiempo para dar el siguiente paso
+    float flashTimer = 0.0f;     // Feedback de daño rojo
+    float animTime = 0.0f;       // Animación
 };
 
 // Clase principal del juego (Game Loop)
@@ -125,6 +202,7 @@ public:
 
     const std::vector<Enemy> &getEnemies() const { return enemies; }
     const std::vector<ItemSpawn> &getItems() const { return items; }
+    const Boss& getBoss() const { return boss; }
 
     int getScreenW() const { return screenW; }
     int getScreenH() const { return screenH; }
@@ -153,6 +231,11 @@ public:
     float getShieldTime() const { return shieldTimer; }
     float getGlassesTime() const { return glassesTimer; }
     float getDashCooldown() const { return dashCooldownTimer; }
+
+    // Modo Dios
+    bool isGodMode() const { return godMode; }
+    bool isInputtingGodPassword() const { return showGodModeInput; }
+    const std::string& getGodPasswordInput() const { return godModeInput; }
 
     // Dirección del Enemigo (para saber qué sprite dibujar)
     enum class EnemyFacing
@@ -227,6 +310,38 @@ private:
         }
     }
 
+    // Variables del tutorial
+    TutorialStep tutorialStep = TutorialStep::Intro;
+    float tutorialTimer = 0.0f; 
+    bool tutorialFlag = false; 
+    int tutorialMenuSelection = 0; 
+    
+    // Función auxiliar para texto dinámico (Teclado vs Mando)
+    // Devuelve el texto 'kb' si usa teclado, o 'gp' si usa gamepad
+    const char* getInputText(const char* kb, const char* gp) const;
+
+    void startTutorial();
+    void updateTutorial(float dt);
+    void renderTutorialUI();
+
+    // Variables de Cheat Mode (Mando)
+    // Secuencia: Arriba, Arriba, Abajo, Abajo, Izq, Der, Izq, Der, B, A
+    const std::vector<int> konamiCode = {
+        GAMEPAD_BUTTON_LEFT_FACE_UP,
+        GAMEPAD_BUTTON_LEFT_FACE_UP,
+        GAMEPAD_BUTTON_LEFT_FACE_DOWN,
+        GAMEPAD_BUTTON_LEFT_FACE_DOWN,
+        GAMEPAD_BUTTON_LEFT_FACE_LEFT,
+        GAMEPAD_BUTTON_LEFT_FACE_RIGHT,
+        GAMEPAD_BUTTON_LEFT_FACE_LEFT,
+        GAMEPAD_BUTTON_LEFT_FACE_RIGHT,
+        GAMEPAD_BUTTON_RIGHT_FACE_RIGHT,
+        GAMEPAD_BUTTON_RIGHT_FACE_DOWN 
+    };
+    
+    // Índice actual de la secuencia (cuántos has acertado seguidos)
+    size_t cheatCodeIndex = 0;
+
     // IA: Mueve a los enemigos cuando el jugador se mueve
     void updateEnemiesAfterPlayerMove(bool moved);
     void enemyTryAttackFacing(); // IA: Intenta atacar si tiene rango
@@ -243,7 +358,7 @@ private:
 
     // Niveles
     int currentLevel = 1;
-    const int maxLevels = 3;
+    const int maxLevels = 4;
 
     // Transiciones de Nivel/Juego
     void newRun();
@@ -277,6 +392,15 @@ private:
     int defaultFovFromViewport() const; // Calcula FOV según tamaño de ventana
     void recomputeFovIfNeeded();        // Raycasting de visión
 
+    // Gestión del Boss
+    Boss boss; // Instancia del jefe
+    void spawnBoss();
+    void updateBoss(float dt);
+    void drawBoss() const;
+    
+    // Helpers colisión Boss (como es grande, necesitamos saber si un punto toca su "área")
+    bool isBossCell(int x, int y) const;
+
     // Lógica de movimiento
     void tryMove(int dx, int dy);          // Intenta mover, gestiona colisiones
     void onSuccessfulStep(int dx, int dy); // Se llama si el movimiento fue válido
@@ -308,9 +432,14 @@ private:
     int helpScroll = 0;
     std::string helpText;
     int mainMenuSelection = 0;
+    int pauseSelection = 0;  
+    GameState previousState = GameState::MainMenu;
+    GameState pauseOrigin = GameState::Playing;
 
     void handleMenuInput();
     void handlePlayingInput(float dt);
+    void renderPauseMenu();
+    void handlePauseInput();
 
     // Sistema de combate avanzado (Proyectiles & Skills)
     std::vector<Projectile> projectiles;
@@ -353,14 +482,24 @@ private:
     // ---------------------------------------------------------------------
     // Si es true, se muestra el panel de ajustes en el menú principal
     bool showSettingsMenu = false;
+    bool showDifficultyWarning = false;
     // Dificultad actual seleccionada. Por defecto empezamos en modo Difícil para
     // mantener el comportamiento original si el usuario no cambia nada.
-    Difficulty difficulty = Difficulty::Hard;
+    Difficulty difficulty = Difficulty::Medium;
+    Difficulty pendingDifficulty = Difficulty::Medium;
 
     // Cambia la dificultad de forma cíclica (Easy → Medium → Hard → Easy)
     void cycleDifficulty();
     // Devuelve un texto descriptivo de la dificultad actual para la UI
-    const char *getDifficultyLabel() const;
+    const char *getDifficultyLabel(Difficulty d) const;
+
+    // Variables del Modo Dios
+    bool godMode = false;           // ¿Está activo el modo dios?
+    bool showGodModeInput = false;  // ¿Mostrando el cuadro de contraseña?
+    std::string godModeInput = "";  // Texto que el usuario está escribiendo
+    
+    // Método auxiliar para activar/desactivar
+    void toggleGodMode(bool enable);
 
     // Sistema de audio (Procedural)
     // Generamos sonidos con código si no hay archivos .wav

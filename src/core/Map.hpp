@@ -4,7 +4,7 @@
 #include <vector>
 #include <cstdint>
 #include "raylib.h"
-#include <utility> // std::pair
+#include <utility>
 
 // Tipos de celda. Usamos uint8_t para ahorrar memoria (1 byte por tile).
 enum Tile : uint8_t { 
@@ -23,7 +23,15 @@ public:
     // Generación y dibujado
     // Crea un nuevo nivel procedimental (algoritmo BSP o aleatorio).
     void generate(int width, int height, unsigned seed = 0);
+
+    // Genera un mapa lineal sencillo para el tutorial
+    void generateTutorialMap(int W, int H);
+
+    void setTile(int x, int y, Tile t);
     
+    // Genera la arena del Boss (espacio abierto)
+    void generateBossArena(int width, int height);
+
     // Renderiza el mapa usando Raylib (Tile por tile).
     void draw(int tileSize, int px, int py, int radius, 
               const Texture2D& wallTex, const Texture2D& floorTex) const;    // Sistema de visión (FOV, "FOG OF WAR")
@@ -35,11 +43,13 @@ public:
     // Activa/Desactiva la niebla (útil para debug o modos fáciles).
     void setFogEnabled(bool enabled) { m_fogEnabled = enabled; }
 
+    void setRevealAll(bool reveal) { m_revealAll = reveal; }
+
     // Consultas de visión:
     // isVisible: ¿Lo veo AHORA mismo? (Iluminado)
     // isDiscovered: ¿Lo he visto ALGUNA vez? (Grisáceo/Memoria)
-    bool isVisible(int x, int y) const { return m_visible[y * m_w + x] != 0; }
-    bool isDiscovered(int x, int y) const { return m_discovered[y * m_w + x] != 0; }
+    bool isVisible(int x, int y) const { return m_revealAll || m_visible[y * m_w + x] != 0; }
+    bool isDiscovered(int x, int y) const { return m_revealAll || m_discovered[y * m_w + x] != 0; }
     bool fogEnabled() const { return m_fogEnabled; }
 
     // Acceso a datos (Geometría)
@@ -94,6 +104,7 @@ private:
     // Verifica si dos habitaciones se superponen (con margen de padding)
     static bool overlaps(const Room& a, const Room& b, int padding = 1);
 
+    bool m_revealAll = false; 
     bool m_fogEnabled = true;
 };
 
