@@ -1,0 +1,76 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Roguebot\n"
+"POT-Creation-Date: 2025-12-19 19:34+0100\n"
+"PO-Revision-Date: 2025-12-19 19:34+0100\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: en_GB\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Poedit 3.0.1\n"
+"X-Poedit-Basepath: ../../../../src\n"
+"X-Poedit-KeywordsList: _;N_\n"
+"X-Poedit-SearchPath-0: .\n"
+
+#: systems/GameUI.cpp:191
+msgid "JUGAR"
+msgstr ""
+
+#: systems/GameUI.cpp:192
+msgid "TUTORIAL"
+msgstr ""
+
+#: systems/GameUI.cpp:193
+msgid "SALIR"
+msgstr ""
+
+#: systems/GameUI.cpp:204 systems/GameUI.cpp:511
+msgid "AJUSTES"
+msgstr ""
+
+#: systems/GameUI.cpp:235
+msgid "Guia de objetos"
+msgstr ""
+
+#: systems/GameUI.cpp:289 systems/GameUI.cpp:375
+msgid "VOLVER"
+msgstr ""
+
+#: systems/GameUI.cpp:319
+msgid "OPCIONES"
+msgstr ""
+
+#: systems/GameUI.cpp:390
+msgid "ADVERTENCIA"
+msgstr ""
+
+#: systems/GameUI.cpp:391
+msgid "Cambiar la dificultad reiniciara la partida."
+msgstr ""
+
+#: systems/GameUI.cpp:392
+msgid "Se perdera todo el progreso actual."
+msgstr ""
+
+#: systems/GameUI.cpp:397
+msgid "(A) ACEPTAR      (B) CANCELAR"
+msgstr ""
+
+#: systems/GameUI.cpp:399
+msgid "[ENTER] ACEPTAR      [ESC] CANCELAR"
+msgstr ""
+
+#: systems/GameUI.cpp:471
+msgid "PAUSA"
+msgstr ""
+
+#: systems/GameUI.cpp:510
+msgid "REANUDAR"
+msgstr ""
+
+#: systems/GameUI.cpp:512
+msgid "SALIR AL MENU"
+msgstr ""
