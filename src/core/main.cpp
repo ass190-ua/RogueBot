@@ -52,12 +52,28 @@ int main(int argc, char** argv) {
         std::cerr << "[ERR] No se pudo fijar cwd a RB_ASSET_ROOT: " << e.what() << "\n";
     }
 
+    // i18n (gettext)
     setlocale(LC_ALL, "");
-    
-    bindtextdomain("roguebot", "assets/locales"); 
-    
+
+    namespace fs = std::filesystem;
+    fs::path localesDir;
+
+    if (dirExists(fs::current_path() / "locales")) {
+        localesDir = fs::current_path() / "locales";
+    }
+    else if (dirExists(fs::current_path() / "assets" / "locales")) {
+        localesDir = fs::current_path() / "assets" / "locales";
+    }
+    else {
+        localesDir = fs::current_path() / "locales";
+    }
+
+    const std::string localesDirStr = localesDir.string();
+    bindtextdomain("roguebot", localesDirStr.c_str());
     bind_textdomain_codeset("roguebot", "UTF-8");
     textdomain("roguebot");
+
+    std::cout << "[I18N] locales = " << localesDirStr << "\n";
 
     // 2. Gestión de la semilla (Seed)
     // Esto es vital para depurar generación procedural.
