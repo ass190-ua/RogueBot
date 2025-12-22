@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: RogueBot\n"
 "POT-Creation-Date: 2025-12-19 19:21+0100\n"
-"PO-Revision-Date: 2025-12-19 19:39+0100\n"
+"PO-Revision-Date: 2025-12-22 18:28+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: es_ES\n"
@@ -17,68 +17,68 @@ msgstr ""
 
 #: packaging/roguebot.desktop:3
 msgid "RogueBot"
-msgstr ""
+msgstr "RogueBot"
 
 #: packaging/roguebot.desktop:4
 msgid "Roguelike hecho con raylib"
-msgstr ""
+msgstr "Roguelike hecho con raylib"
 
 #: src/systems/GameUI.cpp:191
 msgid "JUGAR"
-msgstr ""
+msgstr "JUGAR"
 
 #: src/systems/GameUI.cpp:192
 msgid "TUTORIAL"
-msgstr ""
+msgstr "TUTORIAL"
 
 #: src/systems/GameUI.cpp:193
 msgid "SALIR"
-msgstr ""
+msgstr "SALIR"
 
 #: src/systems/GameUI.cpp:204 src/systems/GameUI.cpp:511
 msgid "AJUSTES"
-msgstr ""
+msgstr "AJUSTES"
 
 #: src/systems/GameUI.cpp:235
 msgid "Guia de objetos"
-msgstr ""
+msgstr "Guia de objetos"
 
 #: src/systems/GameUI.cpp:289 src/systems/GameUI.cpp:375
 msgid "VOLVER"
-msgstr ""
+msgstr "VOLVER"
 
 #: src/systems/GameUI.cpp:319
 msgid "OPCIONES"
-msgstr ""
+msgstr "OPCIONES"
 
 #: src/systems/GameUI.cpp:390
 msgid "ADVERTENCIA"
-msgstr ""
+msgstr "ADVERTENCIA"
 
 #: src/systems/GameUI.cpp:391
 msgid "Cambiar la dificultad reiniciara la partida."
-msgstr ""
+msgstr "Cambiar la dificultad reiniciara la partida."
 
 #: src/systems/GameUI.cpp:392
 msgid "Se perdera todo el progreso actual."
-msgstr ""
+msgstr "Se perdera todo el progreso actual."
 
 #: src/systems/GameUI.cpp:397
 msgid "(A) ACEPTAR      (B) CANCELAR"
-msgstr ""
+msgstr "(A) ACEPTAR      (B) CANCELAR"
 
 #: src/systems/GameUI.cpp:399
 msgid "[ENTER] ACEPTAR      [ESC] CANCELAR"
-msgstr ""
+msgstr "[ENTER] ACEPTAR      [ESC] CANCELAR"
 
 #: src/systems/GameUI.cpp:471
 msgid "PAUSA"
-msgstr ""
+msgstr "PAUSA"
 
 #: src/systems/GameUI.cpp:510
 msgid "REANUDAR"
-msgstr ""
+msgstr "REANUDAR"
 
 #: src/systems/GameUI.cpp:512
 msgid "SALIR AL MENU"
-msgstr ""
+msgstr "SALIR AL MENU"

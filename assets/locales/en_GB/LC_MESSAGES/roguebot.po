@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Roguebot\n"
 "POT-Creation-Date: 2025-12-19 21:10+0100\n"
-"PO-Revision-Date: 2025-12-22 18:20+0100\n"
+"PO-Revision-Date: 2025-12-22 18:29+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: en_GB\n"
@@ -57,11 +57,11 @@ msgstr "All current progess will be lost."
 
 #: systems/GameUI.cpp:397
 msgid "(A) ACEPTAR      (B) CANCELAR"
-msgstr "(A) CONFIRM (B) CANCELAR"
+msgstr "(A) CONFIRM      (B) CANCEL"
 
 #: systems/GameUI.cpp:399
 msgid "[ENTER] ACEPTAR      [ESC] CANCELAR"
-msgstr "[ENTER] CONFIRM  ÈSC] CANCEL"
+msgstr "[ENTER] CONFIRM      [ESC] CANCEL"
 
 #: systems/GameUI.cpp:471
 msgid "PAUSA"
