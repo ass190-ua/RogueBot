@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Roguebot\n"
-"POT-Creation-Date: 2025-12-19 19:34+0100\n"
-"PO-Revision-Date: 2025-12-19 19:39+0100\n"
+"POT-Creation-Date: 2025-12-19 21:10+0100\n"
+"PO-Revision-Date: 2025-12-22 18:20+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: en_GB\n"
@@ -17,60 +17,60 @@ msgstr ""
 
 #: systems/GameUI.cpp:191
 msgid "JUGAR"
-msgstr ""
+msgstr "PLAY"
 
 #: systems/GameUI.cpp:192
 msgid "TUTORIAL"
-msgstr ""
+msgstr "TUTORIAL"
 
 #: systems/GameUI.cpp:193
 msgid "SALIR"
-msgstr ""
+msgstr "EXIT"
 
 #: systems/GameUI.cpp:204 systems/GameUI.cpp:511
 msgid "AJUSTES"
-msgstr ""
+msgstr "SETTINGS"
 
 #: systems/GameUI.cpp:235
 msgid "Guia de objetos"
-msgstr ""
+msgstr "Item guide"
 
 #: systems/GameUI.cpp:289 systems/GameUI.cpp:375
 msgid "VOLVER"
-msgstr ""
+msgstr "BACK"
 
 #: systems/GameUI.cpp:319
 msgid "OPCIONES"
-msgstr ""
+msgstr "OPTIONS"
 
 #: systems/GameUI.cpp:390
 msgid "ADVERTENCIA"
-msgstr ""
+msgstr "WARNING"
 
 #: systems/GameUI.cpp:391
 msgid "Cambiar la dificultad reiniciara la partida."
-msgstr ""
+msgstr "Changing the difficulty will restart the game."
 
 #: systems/GameUI.cpp:392
 msgid "Se perdera todo el progreso actual."
-msgstr ""
+msgstr "All current progess will be lost."
 
 #: systems/GameUI.cpp:397
 msgid "(A) ACEPTAR      (B) CANCELAR"
-msgstr ""
+msgstr "(A) CONFIRM (B) CANCELAR"
 
 #: systems/GameUI.cpp:399
 msgid "[ENTER] ACEPTAR      [ESC] CANCELAR"
-msgstr ""
+msgstr "[ENTER] CONFIRM  ÈSC] CANCEL"
 
 #: systems/GameUI.cpp:471
 msgid "PAUSA"
-msgstr ""
+msgstr "PAUSED"
 
 #: systems/GameUI.cpp:510
 msgid "REANUDAR"
-msgstr ""
+msgstr "RESUME"
 
 #: systems/GameUI.cpp:512
 msgid "SALIR AL MENU"
-msgstr ""
+msgstr "EXIT TO MENU"
