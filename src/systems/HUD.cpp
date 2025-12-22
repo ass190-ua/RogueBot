@@ -3,6 +3,7 @@
 #include "raylib.h"
 #include <algorithm>
 #include <cmath>
+#include "I18n.hpp"
 
 // Constantes de diseño UI
 static constexpr int kSlotSize = 20;        // Tamaño en px de cada corazón
@@ -100,9 +101,9 @@ static void DrawCenteredOverlay(const Game &g, const char *title,
 // Bucle principal de dibujo del HUD durante el juego
 void HUD::drawPlaying(const Game &game) const {
     // 1. Texto informativo (Esquina superior izquierda)
-    DrawText("WASD mover | I/O Zoom | E/(A) Recoger | T Toggle mode", 10, 10, 20, RAYWHITE);
-    DrawText("1/(RB) Espada | 2/(RT) Plasma | SHIFT/(LB/LT) Dash", 10, 35, 20, RAYWHITE);
-    DrawText(TextFormat("Level: %d/%d", game.getCurrentLevel(), game.getMaxLevels()),
+    DrawText(_("WASD mover | I/O Zoom | E/(A) Recoger | T Toggle mode"), 10, 10, 20, RAYWHITE);
+    DrawText(_("1/(RB) Espada | 2/(RT) Plasma | SHIFT/(LB/LT) Dash"), 10, 35, 20, RAYWHITE);
+    DrawText(TextFormat(_("Level: %d/%d"), game.getCurrentLevel(), game.getMaxLevels()),
              10, 60, 20, GRAY);
 
     // 2. Sistema de vida (Corazones) - (Esquina superior derecha)
@@ -239,13 +240,13 @@ void HUD::drawPlaying(const Game &game) const {
         float cd = game.getDashCooldown();
         if (cd > 0.0f) {
             // En enfriamiento (Barra Naranja disminuyendo)
-            DrawText("DASH", statusX, statusY, 10, GRAY);
+            DrawText(_("DASH"), statusX, statusY, 10, GRAY);
             DrawRectangleLines(statusX, statusY + 12, 60, 6, GRAY);
             float pct = 1.0f - (cd / 2.0f); // Asumiendo 2.0s de CD total
             DrawRectangle(statusX + 1, statusY + 13, (int)(58 * pct), 4, ORANGE);
         } else {
             // Disponible (Caja Amarilla brillante)
-            DrawText("DASH LISTO", statusX, statusY + 5, 10, YELLOW);
+            DrawText(_("DASH LISTO"), statusX, statusY + 5, 10, YELLOW);
             DrawRectangleLines(statusX, statusY + 16, 60, 2, YELLOW);
         }
         statusY += statusGap; // Mover cursor abajo
@@ -253,7 +254,7 @@ void HUD::drawPlaying(const Game &game) const {
 
     // B) Escudo (Solo si activo)
     if (game.isShieldActive()) {
-        DrawText("ESCUDO", statusX, statusY, 10, SKYBLUE);
+        DrawText(_("ESCUDO"), statusX, statusY, 10, SKYBLUE);
         DrawRectangleLines(statusX, statusY + 12, 60, 6, GRAY);
         // Calcula porcentaje de tiempo restante (60.0f segundos de duración base)
         float pct = std::clamp(game.getShieldTime() / 60.0f, 0.0f, 1.0f);
@@ -264,7 +265,7 @@ void HUD::drawPlaying(const Game &game) const {
     
     // C) Gafas 3D (Solo si activo)
     if (game.getGlassesTime() > 0.0f) {
-        DrawText("GAFAS 3D", statusX, statusY, 10, PURPLE);
+        DrawText(_("GAFAS 3D"), statusX, statusY, 10, PURPLE);
         DrawRectangleLines(statusX, statusY + 12, 60, 6, GRAY);
         float pct = std::clamp(game.getGlassesTime() / 20.0f, 0.0f, 1.0f);
         DrawRectangle(statusX + 1, statusY + 13, (int)(58 * pct), 4, PURPLE);
@@ -274,7 +275,7 @@ void HUD::drawPlaying(const Game &game) const {
 
     if (game.isGodMode()) {
         // Dibujarlo centrado arriba o cerca de la vida
-        const char* text = "- GOD MODE -";
+        const char* text = _("GOD MODE");
         int w = MeasureText(text, 20);
         int x = (GetScreenWidth() - w) / 2;
         
@@ -287,10 +288,10 @@ void HUD::drawPlaying(const Game &game) const {
 
 // Pantalla de Victoria
 void HUD::drawVictory(const Game &game) const {
-    DrawCenteredOverlay(game, "VICTORIA", LIME, "Pulsa R para comenzar de nuevo");
+    DrawCenteredOverlay(game, _("VICTORIA"), LIME, _("Pulsa R para comenzar de nuevo"));
 }
 
 // Pantalla de Derrota
 void HUD::drawGameOver(const Game &game) const {
-    DrawCenteredOverlay(game, "GAME OVER", RED, "Pulsa R para comenzar de nuevo");
+    DrawCenteredOverlay(game, _("GAME OVER"), RED, _("Pulsa R para comenzar de nuevo"));
 }

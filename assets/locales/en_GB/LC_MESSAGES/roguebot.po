@@ -2,8 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Roguebot\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-12-19 19:47+0100\n"
-"PO-Revision-Date: 2025-12-22 18:29+0100\n"
+"POT-Creation-Date: 2025-12-22 18:40+0100\n"
+"PO-Revision-Date: 2025-12-22 18:43+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: en_GB\n"
@@ -15,6 +15,51 @@ msgstr ""
 "X-Poedit-Basepath: ../../../../src\n"
 "X-Poedit-KeywordsList: _;N_\n"
 "X-Poedit-SearchPath-0: .\n"
+
+#: src/systems/HUD.cpp:104
+msgid "WASD mover | I/O Zoom | E/(A) Recoger | T Toggle mode"
+msgstr "WASD move | I/O Zoom | E/(A) Pick up | TToggle mode"
+
+#: src/systems/HUD.cpp:105
+msgid "1/(RB) Espada | 2/(RT) Plasma | SHIFT/(LB/LT) Dash"
+msgstr "1/(RB) Sword | 2/(RT) Plasma | SHIFT/(LB/LT)Dash"
+
+#: src/systems/HUD.cpp:106
+#, c-format
+msgid "Level: %d/%d"
+msgstr "Level: %d/%d"
+
+#: src/systems/HUD.cpp:243
+msgid "DASH"
+msgstr "DASH"
+
+#: src/systems/HUD.cpp:249
+msgid "DASH LISTO"
+msgstr "DASH READY"
+
+#: src/systems/HUD.cpp:257
+msgid "ESCUDO"
+msgstr "SHIELD"
+
+#: src/systems/HUD.cpp:268
+msgid "GAFAS 3D"
+msgstr "GAFAS 3D"
+
+#: src/systems/HUD.cpp:278
+msgid "GOD MODE"
+msgstr "GOD MODE"
+
+#: src/systems/HUD.cpp:291
+msgid "VICTORIA"
+msgstr "VICTORY"
+
+#: src/systems/HUD.cpp:291 src/systems/HUD.cpp:296
+msgid "Pulsa R para comenzar de nuevo"
+msgstr "Press R to start again"
+
+#: src/systems/HUD.cpp:296
+msgid "GAME OVER"
+msgstr "GAME OVER"
 
 #: src/systems/GameUI.cpp:191
 msgid "JUGAR"
