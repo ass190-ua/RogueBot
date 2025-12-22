@@ -932,20 +932,19 @@ void Game::handleOptionsInput()
         if (std::fabs(stickRX) > 0.2f) { 
             audioVolume = std::clamp(audioVolume + (stickRX * 0.01f), 0.0f, 1.0f);
             SetMasterVolume(audioVolume);
-            mainMenuSelection = 1; 
         }
     }
 
     // Mover cursor
-    if (up) { mainMenuSelection--; if (mainMenuSelection < 0) mainMenuSelection = 2; }
-    if (down) { mainMenuSelection++; if (mainMenuSelection > 2) mainMenuSelection = 0; }
+    if (up) { mainMenuSelection--; if (mainMenuSelection < 0) mainMenuSelection = 1; }
+    if (down) { mainMenuSelection++; if (mainMenuSelection > 1) mainMenuSelection = 0; }
 
     
     if (enter) {
         if (mainMenuSelection == 0) {
             pendingDifficulty = (Difficulty)(((int)pendingDifficulty + 1) % 3);
         }
-        else if (mainMenuSelection == 2) {
+        else if (mainMenuSelection == 1) {
             // Aquí es donde el botón 'A' ejecuta la salida
             if (pendingDifficulty != difficulty && previousState == GameState::Paused) {
                 showDifficultyWarning = true;
@@ -956,18 +955,17 @@ void Game::handleOptionsInput()
         }
     }
 
-    // Volumen con flechas/D-Pad
-    if (mainMenuSelection == 1) {
-        float step = 0.01f;
-        if (IsKeyDown(KEY_LEFT) || (IsGamepadAvailable(gpId) && IsGamepadButtonDown(gpId, GAMEPAD_BUTTON_LEFT_FACE_LEFT))) {
-            audioVolume = std::clamp(audioVolume - step, 0.0f, 1.0f);
-            SetMasterVolume(audioVolume);
-        }
-        if (IsKeyDown(KEY_RIGHT) || (IsGamepadAvailable(gpId) && IsGamepadButtonDown(gpId, GAMEPAD_BUTTON_LEFT_FACE_RIGHT))) {
-            audioVolume = std::clamp(audioVolume + step, 0.0f, 1.0f);
-            SetMasterVolume(audioVolume);
-        }
+    float step = 0.01f;
+    if (IsKeyDown(KEY_LEFT) || (IsGamepadAvailable(gpId) && IsGamepadButtonDown(gpId, GAMEPAD_BUTTON_LEFT_FACE_LEFT))) {
+        audioVolume = std::clamp(audioVolume - step, 0.0f, 1.0f);
+        SetMasterVolume(audioVolume);
     }
+    if (IsKeyDown(KEY_RIGHT) || (IsGamepadAvailable(gpId) && IsGamepadButtonDown(gpId, GAMEPAD_BUTTON_LEFT_FACE_RIGHT))) {
+        audioVolume = std::clamp(audioVolume + step, 0.0f, 1.0f);
+        SetMasterVolume(audioVolume);
+    }
+        
+    
 
     // --------------------------------------------------------
     // 3. Lógica de RATÓN
