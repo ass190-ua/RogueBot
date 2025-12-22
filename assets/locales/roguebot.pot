@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-12-22 18:40+0100\n"
+"POT-Creation-Date: 2025-12-22 18:48+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -120,4 +120,20 @@ msgstr ""
 
 #: src/systems/GameUI.cpp:512
 msgid "SALIR AL MENU"
+msgstr ""
+
+#: src/core/GameRender.cpp:128
+msgid "/// SYSTEM OVERRIDE ///"
+msgstr ""
+
+#: src/core/GameRender.cpp:134
+msgid "ENTER ACCESS CODE:"
+msgstr ""
+
+#: src/core/GameRender.cpp:144
+msgid "STATUS: WAITING FOR INPUT..."
+msgstr ""
+
+#: src/core/GameRender.cpp:145
+msgid "[ENTER] EXECUTE   [ESC] ABORT"
 msgstr ""

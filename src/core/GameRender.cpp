@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
+#include "I18n.hpp"
 
 
 Rectangle Game::uiCenterRect(float w, float h) const {
@@ -124,13 +125,13 @@ void Game::render() {
         }
 
         // Título
-        const char* title = "/// SYSTEM OVERRIDE ///";
+        const char* title = _("/// SYSTEM OVERRIDE ///");
         int titleW = MeasureText(title, 20);
         DrawRectangle(cx, cy, panelW, 30, borderColor);
         DrawText(title, cx + (panelW - titleW) / 2, cy + 5, 20, BLACK);
 
         // Input Box
-        DrawText("ENTER ACCESS CODE:", cx + 30, cy + 50, 20, LIME);
+        DrawText(_("ENTER ACCESS CODE:"), cx + 30, cy + 50, 20, LIME);
         DrawRectangle(cx + 30, cy + 80, panelW - 60, 40, BLACK);
         DrawRectangleLines(cx + 30, cy + 80, panelW - 60, 40, borderColor);
 
@@ -140,8 +141,8 @@ void Game::render() {
         DrawText(displayTxt.c_str(), cx + 45, cy + 90, 20, LIME);
 
         // Footer
-        DrawText("STATUS: WAITING FOR INPUT...", cx + 30, cy + 140, 10, Fade(LIME, 0.7f));
-        DrawText("[ENTER] EXECUTE   [ESC] ABORT", cx + panelW - 180, cy + 170, 10, Fade(LIME, 0.5f));
+        DrawText(_("STATUS: WAITING FOR INPUT..."), cx + 30, cy + 140, 10, Fade(LIME, 0.7f));
+        DrawText(_("[ENTER] EXECUTE   [ESC] ABORT"), cx + panelW - 180, cy + 170, 10, Fade(LIME, 0.5f));
     }
 
     EndDrawing();
