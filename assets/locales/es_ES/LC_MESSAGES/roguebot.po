@@ -1,7 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: RogueBot\n"
-"POT-Creation-Date: 2025-12-19 19:21+0100\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-12-19 19:47+0100\n"
 "PO-Revision-Date: 2025-12-22 18:28+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -14,14 +15,6 @@ msgstr ""
 "X-Poedit-Basepath: ../../../..\n"
 "X-Poedit-KeywordsList: _;N_\n"
 "X-Poedit-SearchPath-0: .\n"
-
-#: packaging/roguebot.desktop:3
-msgid "RogueBot"
-msgstr "RogueBot"
-
-#: packaging/roguebot.desktop:4
-msgid "Roguelike hecho con raylib"
-msgstr "Roguelike hecho con raylib"
 
 #: src/systems/GameUI.cpp:191
 msgid "JUGAR"
@@ -82,3 +75,9 @@ msgstr "REANUDAR"
 #: src/systems/GameUI.cpp:512
 msgid "SALIR AL MENU"
 msgstr "SALIR AL MENU"
+
+#~ msgid "RogueBot"
+#~ msgstr "RogueBot"
+
+#~ msgid "Roguelike hecho con raylib"
+#~ msgstr "Roguelike hecho con raylib"

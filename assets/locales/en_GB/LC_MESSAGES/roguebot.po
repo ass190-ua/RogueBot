@@ -1,7 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Roguebot\n"
-"POT-Creation-Date: 2025-12-19 21:10+0100\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-12-19 19:47+0100\n"
 "PO-Revision-Date: 2025-12-22 18:29+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -15,62 +16,62 @@ msgstr ""
 "X-Poedit-KeywordsList: _;N_\n"
 "X-Poedit-SearchPath-0: .\n"
 
-#: systems/GameUI.cpp:191
+#: src/systems/GameUI.cpp:191
 msgid "JUGAR"
 msgstr "PLAY"
 
-#: systems/GameUI.cpp:192
+#: src/systems/GameUI.cpp:192
 msgid "TUTORIAL"
 msgstr "TUTORIAL"
 
-#: systems/GameUI.cpp:193
+#: src/systems/GameUI.cpp:193
 msgid "SALIR"
 msgstr "EXIT"
 
-#: systems/GameUI.cpp:204 systems/GameUI.cpp:511
+#: src/systems/GameUI.cpp:204 src/systems/GameUI.cpp:511
 msgid "AJUSTES"
 msgstr "SETTINGS"
 
-#: systems/GameUI.cpp:235
+#: src/systems/GameUI.cpp:235
 msgid "Guia de objetos"
 msgstr "Item guide"
 
-#: systems/GameUI.cpp:289 systems/GameUI.cpp:375
+#: src/systems/GameUI.cpp:289 src/systems/GameUI.cpp:375
 msgid "VOLVER"
 msgstr "BACK"
 
-#: systems/GameUI.cpp:319
+#: src/systems/GameUI.cpp:319
 msgid "OPCIONES"
 msgstr "OPTIONS"
 
-#: systems/GameUI.cpp:390
+#: src/systems/GameUI.cpp:390
 msgid "ADVERTENCIA"
 msgstr "WARNING"
 
-#: systems/GameUI.cpp:391
+#: src/systems/GameUI.cpp:391
 msgid "Cambiar la dificultad reiniciara la partida."
 msgstr "Changing the difficulty will restart the game."
 
-#: systems/GameUI.cpp:392
+#: src/systems/GameUI.cpp:392
 msgid "Se perdera todo el progreso actual."
 msgstr "All current progess will be lost."
 
-#: systems/GameUI.cpp:397
+#: src/systems/GameUI.cpp:397
 msgid "(A) ACEPTAR      (B) CANCELAR"
 msgstr "(A) CONFIRM      (B) CANCEL"
 
-#: systems/GameUI.cpp:399
+#: src/systems/GameUI.cpp:399
 msgid "[ENTER] ACEPTAR      [ESC] CANCELAR"
 msgstr "[ENTER] CONFIRM      [ESC] CANCEL"
 
-#: systems/GameUI.cpp:471
+#: src/systems/GameUI.cpp:471
 msgid "PAUSA"
 msgstr "PAUSED"
 
-#: systems/GameUI.cpp:510
+#: src/systems/GameUI.cpp:510
 msgid "REANUDAR"
 msgstr "RESUME"
 
-#: systems/GameUI.cpp:512
+#: src/systems/GameUI.cpp:512
 msgid "SALIR AL MENU"
 msgstr "EXIT TO MENU"
