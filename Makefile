@@ -45,6 +45,20 @@ DEFINES      := -DRB_ASSET_ROOT=\"$(ASSET_ROOT)\"
 
 CXXFLAGS     := $(CXXSTANDARD) $(OPTFLAGS) $(WARNFLAGS) $(DEPFLAGS) $(DEFINES) $(INCLUDES)
 
+# ========================= #
+# Traducciones (GNU gettext) #
+# ========================= #
+LOCALES_DIR := assets/locales
+I18N_SRCS   := $(shell find $(SRC_DIRS) -type f \( -name '*.cpp' -o -name '*.hpp' -o -name '*.h' \))
+POT_FILE    := $(LOCALES_DIR)/$(PROJECT).pot
+
+PO_FILES := \
+  $(LOCALES_DIR)/es_ES/LC_MESSAGES/$(PROJECT).po \
+  $(LOCALES_DIR)/en_GB/LC_MESSAGES/$(PROJECT).po
+
+MO_FILES := $(PO_FILES:.po=.mo)
+MERGED_PO_FILES := $(PO_FILES:.po=.po.merged)
+
 # =============================== #
 # raylib (estática por defecto)   #
 # =============================== #
@@ -112,11 +126,11 @@ APP_ICON     ?= packaging/icons/roguebot.png
 
 .PHONY: all clean distclean run print-vars help \
         bench bench-nocache ccache-zero ccache-clear ccache-stats \
-        install uninstall dist
+        install uninstall dist traducciones
 
 all: $(TARGET)
 
-$(TARGET): $(OBJS) | $(BIN_DIR)
+$(TARGET): traducciones $(OBJS) | $(BIN_DIR)
 	@echo "\033[1;34m [LINK]\033[0m $@"
 	$(CXX) $(LDFLAGS) -o $@ $(OBJS) $(RAYLIB_LIBS)
 
@@ -182,7 +196,40 @@ help:
 	@echo "\033[1;35m make install [DESTDIR=staging]\033[0m  -> instala en árbol de empaquetado"
 	@echo "\033[1;33m make uninstall\033[0m                  -> desinstala (útil en dev)"
 	@echo "\033[1;35m make dist\033[0m                       -> genera paquete .deb en ./dist"
+	@echo "\033[1;36m make traducciones\033[0m              -> genera .pot y compila .mo"
+	@echo "\033[1;36m make actualizar-po\033[0m             -> actualiza .po desde el .pot"
 	@echo ""
+
+
+# ====================== #
+# Traducciones (gettext) #
+# ====================== #
+
+traducciones: $(POT_FILE) actualizar-po $(MO_FILES)
+	@echo "\033[1;35m [I18N]\033[0m .pot y .mo generados"
+
+actualizar-po: $(POT_FILE)
+	@echo "\033[1;35m [I18N]\033[0m Actualizando catálogos .po con msgmerge"
+	@for po in $(PO_FILES); do \
+	  if [ -f "$$po" ]; then \
+	    msgmerge --update --backup=none "$$po" "$(POT_FILE)"; \
+	  fi; \
+	done
+
+$(POT_FILE): $(I18N_SRCS)
+	@echo "\033[1;35m [I18N]\033[0m Generando $@"
+	@mkdir -p "$(LOCALES_DIR)"
+	xgettext \
+	  --language=C++ \
+	  --from-code=UTF-8 \
+	  --keyword=_ \
+	  --keyword=N_ \
+	  --output="$@" \
+	  $(I18N_SRCS)
+
+%.mo: %.po
+	@echo "\033[1;35m [I18N]\033[0m Compilando $@"
+	msgfmt -o "$@" "$<"
 
 # ======================= #
 # Benchmarks -jN y ccache #

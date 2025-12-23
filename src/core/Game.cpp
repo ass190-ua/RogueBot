@@ -8,6 +8,7 @@
 #include "GameUtils.hpp"
 #include "AssetPath.hpp"
 #include "ResourceManager.hpp"
+#include "I18n.hpp"
 
 static inline unsigned now_seed() {
     return static_cast<unsigned>(time(nullptr));
@@ -22,7 +23,7 @@ static Texture2D loadTex(const char *path) {
         Image white = GenImageColor(32, 32, WHITE);
         Texture2D t = LoadTextureFromImage(white);
         UnloadImage(white);
-        std::cerr << "[ASSETS] FALLBACK tex para: " << full << "\n";
+        std::cerr << _("[ASSETS] FALLBACK tex para: ") << full << "\n";
         return t;
     }
     Texture2D t = LoadTextureFromImage(img);
@@ -111,7 +112,7 @@ void ItemSprites::unload() {
 
 Game::Game(unsigned seed) : fixedSeed(seed) {
     SetConfigFlags(FLAG_FULLSCREEN_MODE);
-    InitWindow(0, 0, "RogueBot"); 
+    InitWindow(0, 0, _("RogueBot")); 
     SetExitKey(KEY_NULL);
 
     // 1. Iniciar audio
@@ -158,7 +159,7 @@ unsigned Game::seedForLevel(unsigned base, int level) const {
 
 void Game::newRun() {
     runSeed = nextRunSeed();
-    std::cout << "[Run] Seed base del run: " << runSeed << "\n";
+    std::cout << _("[Run] Seed base del run: ") << runSeed << "\n";
 
     // Reiniciar estado básico
     currentLevel = 1;
@@ -220,7 +221,7 @@ void Game::newLevel(int level) {
     rng = std::mt19937(levelSeed);
     
     if (level == maxLevels) { // Nivel Final
-        std::cout << "[Level] FINAL BOSS LEVEL Initializing...\n";
+        std::cout << _("[Level] FINAL BOSS LEVEL Initializing...\n");
         
         // 1. Generar Arena a pantalla completa
         // Calculamos cuántos tiles caben en la pantalla
@@ -255,8 +256,8 @@ void Game::newLevel(int level) {
         int tilesX = (int)std::ceil((screenW / (float)tileSize) * WORLD_SCALE);
         int tilesY = (int)std::ceil((screenH / (float)tileSize) * WORLD_SCALE);
 
-        std::cout << "[Level] " << level << "/" << maxLevels
-                  << " (seed nivel: " << levelSeed << ")\n";
+        std::cout << _("[Level] ") << level << "/" << maxLevels
+                  << _(" (seed nivel: ") << levelSeed << ")\n";
 
         map.generate(tilesX, tilesY, levelSeed);
         map.setFogEnabled(true); // Asegurar niebla activada
@@ -322,7 +323,7 @@ void Game::spawnBoss() {
     boss.moveTimer = 1.0f; 
     boss.facing = Boss::DOWN;
     
-    std::cout << "[BOSS] SPAWNED. Waiting for movement...\n";
+    std::cout << _("[BOSS] SPAWNED. Waiting for movement...\n");
 }
 
 void Game::updateBoss(float dt) {
@@ -345,7 +346,7 @@ void Game::updateBoss(float dt) {
             boss.awakened = true;
             PlaySound(sfxExplosion); // Rugido
             spawnFloatingText({(float)boss.x*tileSize, (float)boss.y*tileSize - 20}, 0, RED); 
-            std::cout << "[BOSS] AWAKENED! TIEMBLA MORTAL!\n";
+            std::cout << _("[BOSS] AWAKENED! TIEMBLA MORTAL!\n");
         } else {
             // Si el jugador dispara al boss dormido, lo despierta también
             if (boss.hp < boss.maxHp) boss.awakened = true;
@@ -462,7 +463,7 @@ void Game::toggleGodMode(bool enable) {
     map.setRevealAll(godMode);
 
     if (godMode) {
-        std::cout << "[GOD MODE] ACTIVADO - IDDQD\n";
+        std::cout << _("[GOD MODE] ACTIVADO - IDDQD\n");
 
          PlaySound(sfxPowerUp); 
         // Mensaje visual (puedes usar tu sistema de texto flotante)
@@ -471,7 +472,7 @@ void Game::toggleGodMode(bool enable) {
         // Opcional: Curar al jugador
         hp = hpMax; 
     } else {
-        std::cout << "[GOD MODE] DESACTIVADO\n";
+        std::cout << _("[GOD MODE] DESACTIVADO\n");
         // Al desactivar, forzamos un recálculo de visión para que
         // la niebla vuelva a aparecer correctamente alrededor del jugador.
         // Sonido de error/apagado (ej. Hurt o Loose)
@@ -609,7 +610,7 @@ void Game::update() {
     if (hp <= 0) {
         if (hasBattery) {
             hasBattery = false; hp = hpMax / 2; if (hp < 1) hp = 1;
-            std::cout << "[Bateria] Resucitado.\n";
+            std::cout << _("[Bateria] Resucitado.\n");
             damageCooldown = 2.0f; shakeTimer = 0.5f; PlaySound(sfxPowerUp);
         } else {
             state = GameState::GameOver; gAttack.swinging = false; gAttack.lastTiles.clear();
@@ -647,16 +648,16 @@ void Game::cycleDifficulty() {
 // Devuelve una cadena estática con el nombre de la dificultad, usada en el menú.
 const char *Game::getDifficultyLabel(Difficulty d) const {
     switch (d) {
-        case Difficulty::Easy:   return "Dificultad: Fácil";
-        case Difficulty::Medium: return "Dificultad: Normal";
-        default:                 return "Dificultad: Difícil";
+        case Difficulty::Easy:   return _("Dificultad: Fácil");
+        case Difficulty::Medium: return _("Dificultad: Normal");
+        default:                 return _("Dificultad: Difícil");
     }
 }
 
 std::string Game::getVolumeLabel() const {
     int pct = (int)std::round(audioVolume * 100.0f);
     pct = std::clamp(pct, 0, 100);
-    return "Volumen: " + std::to_string(pct) + "%";
+    return _("Volumen: ") + std::to_string(pct) + "%";
 }
 
 void Game::drawBoss() const {
@@ -734,7 +735,7 @@ const char* Game::getInputText(const char* kb, const char* gp) const {
 }
 
 void Game::startTutorial() {
-    std::cout << "[TUTORIAL] Iniciando Instalacion de Entrenamiento...\n";
+    std::cout << _("[TUTORIAL] Iniciando Instalacion de Entrenamiento...\n");
     state = GameState::Tutorial;
     tutorialStep = TutorialStep::Intro;
     tutorialTimer = 4.0f; 
@@ -1008,12 +1009,12 @@ void Game::renderTutorialUI() {
         DrawRectangleLinesEx({(float)cx, (float)cy, (float)boxW, (float)boxH}, 2, WHITE);
         
         // Título
-        const char* title = "ENTRENAMIENTO COMPLETADO";
+        const char* title = _("ENTRENAMIENTO COMPLETADO");
         int titleW = MeasureText(title, 30);
         DrawText(title, cx + (boxW - titleW)/2, cy + 30, 30, LIME);
         
         // Botones
-        const char* options[] = { "REPETIR TUTORIAL", "JUGAR PARTIDA", "VOLVER AL MENU" };
+        const char* options[] = { _("REPETIR TUTORIAL"), _("JUGAR PARTIDA"), _("VOLVER AL MENU") };
         int startY = cy + 100;
         int btnH = 50;
         int gap = 20;
@@ -1062,112 +1063,112 @@ void Game::renderTutorialUI() {
 
     switch (tutorialStep) {
         case TutorialStep::Intro: 
-            msg = "BIENVENIDO AL HANGAR DE ENTRENAMIENTO"; 
-            subMsg = getInputText("NOTA: [R] reinicia la partida, desactivado aqui.", "NOTA: [Y]/[Triangulo] reinicia, desactivado aqui.");
+            msg = _("BIENVENIDO AL HANGAR DE ENTRENAMIENTO"); 
+            subMsg = getInputText(_("NOTA: [R] reinicia la partida, desactivado aqui."), _("NOTA: [Y]/[Triangulo] reinicia, desactivado aqui."));
             break;
         case TutorialStep::Movement: 
-            msg = getInputText("MOVIMIENTO BASICO", "MOVIMIENTO BASICO"); 
-            subMsg = getInputText("Usa [W,A,S,D] o Flechas.", "Usa [CRUCETA] o [JOYSTICK IZQ]."); 
+            msg = getInputText(_("MOVIMIENTO BASICO"), _("MOVIMIENTO BASICO")); 
+            subMsg = getInputText(_("Usa [W,A,S,D] o Flechas."), _("Usa [CRUCETA] o [JOYSTICK IZQ].")); 
             break;
         case TutorialStep::Dash:
-            msg = "MANIOBRA EVASIVA (DASH)";
-            subMsg = getInputText("Pulsa [SHIFT] mientras te mueves.", "Pulsa [LB] o [LT].");
+            msg = _("MANIOBRA EVASIVA (DASH)");
+            subMsg = getInputText(_("Pulsa [SHIFT] mientras te mueves."), _("Pulsa [LB] o [LT]."));
             break;
         case TutorialStep::MoveMode:
-            msg = "MODOS DE MOTOR";
-            subMsg = getInputText("Pulsa [T] para alternar Pasos/Continuo.", "Usa [CRUCETA] (Tactico) o [JOYSTICK IZQ] (Continuo).");
+            msg = _("MODOS DE MOTOR");
+            subMsg = getInputText(_("Pulsa [T] para alternar Pasos/Continuo."), _("Usa [CRUCETA] (Tactico) o [JOYSTICK IZQ] (Continuo)."));
             break;
         case TutorialStep::CameraZoom:
-            msg = "CONTROL DE CAMARA";
-            subMsg = getInputText("Usa la [RUEDA DEL RATON].", "Mueve el [JOYSTICK DERECHO].");
+            msg = _("CONTROL DE CAMARA");
+            subMsg = getInputText(_("Usa la [RUEDA DEL RATON]."), _("Mueve el [JOYSTICK DERECHO]."));
             break;
         case TutorialStep::CameraReset:
-            msg = "RESTABLECER CAMARA";
-            subMsg = getInputText("Pulsa [C] para centrar.", "Pulsa [R3] (Click Joystick Derecho).");
+            msg = _("RESTABLECER CAMARA");
+            subMsg = getInputText(_("Pulsa [C] para centrar."), _("Pulsa [R3] (Click Joystick Derecho)."));
             break;
 
         case TutorialStep::ItemPilaBuena:
-            msg = "OBJETO: PILA DE ENERGIA";
-            subMsg = getInputText("Recupera salud. Acercate y pulsa [E] para recoger.", "Recupera salud. Acercate y pulsa [A]/[X].");
+            msg = _("OBJETO: PILA DE ENERGIA");
+            subMsg = getInputText(_("Recupera salud. Acercate y pulsa [E] para recoger."), _("Recupera salud. Acercate y pulsa [A]/[X]."));
             msgColor = GREEN;
             break;
         case TutorialStep::ItemPilaMala:
-            msg = "PELIGRO: PILA OXIDADA";
-            subMsg = "Este objeto DAÑA la salud (-1 Corazon). ¡Ten cuidado!";
+            msg = _("PELIGRO: PILA OXIDADA");
+            subMsg = _("Este objeto DAÑA la salud (-1 Corazon). ¡Ten cuidado!");
             msgColor = RED; 
             break;
 
         case TutorialStep::ItemEscudo:
-            msg = "OBJETO: ESCUDO DE FUERZA";
-            subMsg = "Otorga INVULNERABILIDAD temporal. Se desactiva al recibir el primer golpe";
+            msg = _("OBJETO: ESCUDO DE FUERZA");
+            subMsg = _("Otorga INVULNERABILIDAD temporal. Se desactiva al recibir el primer golpe");
             msgColor = SKYBLUE;
             break;
 
         case TutorialStep::PreGafas:
-            msg = "FALLO DE SENSORES";
-            subMsg = "Niebla densa detectada. Visibilidad reducida.";
+            msg = _("FALLO DE SENSORES");
+            subMsg = _("Niebla densa detectada. Visibilidad reducida.");
             msgColor = ORANGE;
             break;
         case TutorialStep::ItemGafasBuenas:
-            msg = "OBJETO: GAFAS 3D";
-            subMsg = "Restauran visibilidad en niebla.";
+            msg = _("OBJETO: GAFAS 3D");
+            subMsg = _("Restauran visibilidad en niebla.");
             msgColor = BLUE;
             break;
         case TutorialStep::ItemGafasMalas:
-            msg = "PELIGRO: GAFAS ROTAS";
-            subMsg = "Reducen tu campo de vision.";
+            msg = _("PELIGRO: GAFAS ROTAS");
+            subMsg = _("Reducen tu campo de vision.");
             msgColor = RED;
             break;
         case TutorialStep::BadGlassesEffect:
-            msg = "¡SISTEMAS VISUALES DAÑADOS!";
-            subMsg = "Esto ocurre al recoger items en mal estado. Esperando reinicio...";
+            msg = _("¡SISTEMAS VISUALES DAÑADOS!");
+            subMsg = _("Esto ocurre al recoger items en mal estado. Esperando reinicio...");
             msgColor = RED;
             break;
         case TutorialStep::PostGafas:
-            msg = "SENSORES RESTAURADOS";
-            subMsg = "Calibrando sistemas...";
+            msg = _("SENSORES RESTAURADOS");
+            subMsg = _("Calibrando sistemas...");
             break;
 
         case TutorialStep::ItemVidaExtra:
-            msg = "OBJETO RARO: BATERIA";
-            subMsg = "Otorga una VIDA EXTRA (Resurreccion).";
+            msg = _("OBJETO RARO: BATERIA");
+            subMsg = _("Otorga una VIDA EXTRA (Resurreccion).");
             msgColor = GOLD;
             break;
 
         case TutorialStep::SwordT1:
-            msg = "ARMA: ESPADA DE ACERO (TIER 1)";
-            subMsg = getInputText("Ataque basico melee [1].", "Ataque basico melee [RB]/[R1].");
+            msg = _("ARMA: ESPADA DE ACERO (TIER 1)");
+            subMsg = getInputText(_("Ataque basico melee [1]."), _("Ataque basico melee [RB]/[R1]."));
             break;
         case TutorialStep::SwordT2:
-            msg = "ARMA: ESPADA DE IONES (TIER 2)";
-            subMsg = "Hoja Verde. Mayor daño y velocidad.";
+            msg = _("ARMA: ESPADA DE IONES (TIER 2)");
+            subMsg = _("Hoja Verde. Mayor daño y velocidad.");
             msgColor = GREEN;
             break;
         case TutorialStep::SwordT3:
-            msg = "ARMA: ESPADA DE PLASMA (TIER 3)";
-            subMsg = "Hoja Roja. Daño maximo letal.";
+            msg = _("ARMA: ESPADA DE PLASMA (TIER 3)");
+            subMsg = _("Hoja Roja. Daño maximo letal.");
             msgColor = RED;
             break;
 
         case TutorialStep::PlasmaT1:
-            msg = "ARMA: CAÑON DE PLASMA (TIER 1)";
-            subMsg = getInputText("Disparo a distancia [2].", "Disparo a distancia [RT]/[R2].");
+            msg = _("ARMA: CAÑON DE PLASMA (TIER 1)");
+            subMsg = getInputText(_("Disparo a distancia [2]."), _("Disparo a distancia [RT]/[R2]."));
             msgColor = SKYBLUE;
             break;
         case TutorialStep::PlasmaT2:
-            msg = "ARMA: CAÑON DE PLASMA V2 (TIER 2)";
-            subMsg = "Lanza 2 ráfagas con un solo disparo.";
+            msg = _("ARMA: CAÑON DE PLASMA V2 (TIER 2)");
+            subMsg = _("Lanza 2 ráfagas con un solo disparo.");
             msgColor = PURPLE;
             break;
 
         case TutorialStep::Combat:
-            msg = "SIMULACION DE COMBATE";
-            subMsg = "El objetivo esta al final del Hangar. Destruyelo.";
+            msg = _("SIMULACION DE COMBATE");
+            subMsg = _("El objetivo esta al final del Hangar. Destruyelo.");
             msgColor = ORANGE;
             break;
         case TutorialStep::Exit:
-            msg = "OBJETIVO CUMPLIDO";
-            subMsg = "Recoge la LLAVE MAESTRA y ve a la SALIDA.";
+            msg = _("OBJETIVO CUMPLIDO");
+            subMsg = _("Recoge la LLAVE MAESTRA y ve a la SALIDA.");
             msgColor = GREEN;
             break;
 

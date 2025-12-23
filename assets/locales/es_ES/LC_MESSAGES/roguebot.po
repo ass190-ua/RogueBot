@@ -1,0 +1,433 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: RogueBot\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-12-22 18:59+0100\n"
+"PO-Revision-Date: 2025-12-22 19:02+0100\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: es_ES\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Poedit 3.0.1\n"
+"X-Poedit-Basepath: ../../../..\n"
+"X-Poedit-KeywordsList: _;N_\n"
+"X-Poedit-SearchPath-0: .\n"
+
+#: src/systems/HUD.cpp:104
+msgid "WASD mover | I/O Zoom | E/(A) Recoger | T Toggle mode"
+msgstr "WASD mover | I/O Zoom | E/(A) Recoger | T Toggle mode"
+
+#: src/systems/HUD.cpp:105
+msgid "1/(RB) Espada | 2/(RT) Plasma | SHIFT/(LB/LT) Dash"
+msgstr "1/(RB) Espada | 2/(RT) Plasma | SHIFT/(LB/LT) Dash"
+
+#: src/systems/HUD.cpp:106
+#, c-format
+msgid "Level: %d/%d"
+msgstr "Level: %d/%d"
+
+#: src/systems/HUD.cpp:243
+msgid "DASH"
+msgstr "DASH"
+
+#: src/systems/HUD.cpp:249
+msgid "DASH LISTO"
+msgstr "DASH LISTO"
+
+#: src/systems/HUD.cpp:257
+msgid "ESCUDO"
+msgstr "ESCUDO"
+
+#: src/systems/HUD.cpp:268
+msgid "GAFAS 3D"
+msgstr "GAFAS 3D"
+
+#: src/systems/HUD.cpp:278
+msgid "GOD MODE"
+msgstr "GOD MODE"
+
+#: src/systems/HUD.cpp:291
+msgid "VICTORIA"
+msgstr "VICTORIA"
+
+#: src/systems/HUD.cpp:291 src/systems/HUD.cpp:296
+msgid "Pulsa R para comenzar de nuevo"
+msgstr "Pulsa R para comenzar de nuevo"
+
+#: src/systems/HUD.cpp:296
+msgid "GAME OVER"
+msgstr "GAME OVER"
+
+#: src/systems/GameUI.cpp:191
+msgid "JUGAR"
+msgstr "JUGAR"
+
+#: src/systems/GameUI.cpp:192
+msgid "TUTORIAL"
+msgstr "TUTORIAL"
+
+#: src/systems/GameUI.cpp:193
+msgid "SALIR"
+msgstr "SALIR"
+
+#: src/systems/GameUI.cpp:204 src/systems/GameUI.cpp:511
+msgid "AJUSTES"
+msgstr "AJUSTES"
+
+#: src/systems/GameUI.cpp:235
+msgid "Guia de objetos"
+msgstr "Guia de objetos"
+
+#: src/systems/GameUI.cpp:289 src/systems/GameUI.cpp:375
+msgid "VOLVER"
+msgstr "VOLVER"
+
+#: src/systems/GameUI.cpp:319
+msgid "OPCIONES"
+msgstr "OPCIONES"
+
+#: src/systems/GameUI.cpp:390
+msgid "ADVERTENCIA"
+msgstr "ADVERTENCIA"
+
+#: src/systems/GameUI.cpp:391
+msgid "Cambiar la dificultad reiniciara la partida."
+msgstr "Cambiar la dificultad reiniciara la partida."
+
+#: src/systems/GameUI.cpp:392
+msgid "Se perdera todo el progreso actual."
+msgstr "Se perdera todo el progreso actual."
+
+#: src/systems/GameUI.cpp:397
+msgid "(A) ACEPTAR      (B) CANCELAR"
+msgstr "(A) ACEPTAR      (B) CANCELAR"
+
+#: src/systems/GameUI.cpp:399
+msgid "[ENTER] ACEPTAR      [ESC] CANCELAR"
+msgstr "[ENTER] ACEPTAR      [ESC] CANCELAR"
+
+#: src/systems/GameUI.cpp:471
+msgid "PAUSA"
+msgstr "PAUSA"
+
+#: src/systems/GameUI.cpp:510
+msgid "REANUDAR"
+msgstr "REANUDAR"
+
+#: src/systems/GameUI.cpp:512
+msgid "SALIR AL MENU"
+msgstr "SALIR AL MENU"
+
+#: src/core/GameRender.cpp:128
+msgid "/// SYSTEM OVERRIDE ///"
+msgstr "/// SYSTEM OVERRIDE ///"
+
+#: src/core/GameRender.cpp:134
+msgid "ENTER ACCESS CODE:"
+msgstr "ENTER ACCESS CODE:"
+
+#: src/core/GameRender.cpp:144
+msgid "STATUS: WAITING FOR INPUT..."
+msgstr "STATUS: WAITING FOR INPUT..."
+
+#: src/core/GameRender.cpp:145
+msgid "[ENTER] EXECUTE   [ESC] ABORT"
+msgstr "ENTER] ACEPTAR      [ESC] CANCELAR"
+
+#: src/core/Game.cpp:26
+msgid "[ASSETS] FALLBACK tex para: "
+msgstr "[ASSETS] FALLBACK tex para: "
+
+#: src/core/Game.cpp:115
+msgid "RogueBot"
+msgstr "RogueBot"
+
+#: src/core/Game.cpp:162
+msgid "[Run] Seed base del run: "
+msgstr "[Run] Seed base del run: "
+
+#: src/core/Game.cpp:224
+msgid "[Level] FINAL BOSS LEVEL Initializing...\n"
+msgstr "[Level] FINAL BOSS LEVEL Initializing...\n"
+
+#: src/core/Game.cpp:259
+msgid "[Level] "
+msgstr "[Level] "
+
+#: src/core/Game.cpp:260
+msgid " (seed nivel: "
+msgstr " (seed nivel: "
+
+#: src/core/Game.cpp:326
+msgid "[BOSS] SPAWNED. Waiting for movement...\n"
+msgstr "[BOSS] SPAWNED. Waiting for movement...\n"
+
+#: src/core/Game.cpp:349
+msgid "[BOSS] AWAKENED! TIEMBLA MORTAL!\n"
+msgstr "[BOSS] AWAKENED! TIEMBLA MORTAL!\n"
+
+#: src/core/Game.cpp:466
+msgid "[GOD MODE] ACTIVADO - IDDQD\n"
+msgstr "[GOD MODE] ACTIVADO - IDDQD\n"
+
+#: src/core/Game.cpp:475
+msgid "[GOD MODE] DESACTIVADO\n"
+msgstr "[GOD MODE] DESACTIVADO\n"
+
+#: src/core/Game.cpp:613
+msgid "[Bateria] Resucitado.\n"
+msgstr "[Bateria] Resucitado.\n"
+
+#: src/core/Game.cpp:651
+msgid "Dificultad: Fácil"
+msgstr "Dificultad: Fácil"
+
+#: src/core/Game.cpp:652
+msgid "Dificultad: Normal"
+msgstr "Dificultad: Normal"
+
+#: src/core/Game.cpp:653
+msgid "Dificultad: Difícil"
+msgstr "Dificultad: Difícil"
+
+#: src/core/Game.cpp:660
+msgid "Volumen: "
+msgstr "Volumen: "
+
+#: src/core/Game.cpp:738
+msgid "[TUTORIAL] Iniciando Instalacion de Entrenamiento...\n"
+msgstr "[TUTORIAL] Iniciando Instalacion de Entrenamiento...\n"
+
+#: src/core/Game.cpp:1012
+msgid "ENTRENAMIENTO COMPLETADO"
+msgstr "ENTRENAMIENTO COMPLETADO"
+
+#: src/core/Game.cpp:1017
+msgid "REPETIR TUTORIAL"
+msgstr "REPETIR TUTORIAL"
+
+#: src/core/Game.cpp:1017
+msgid "JUGAR PARTIDA"
+msgstr "JUGAR PARTIDA"
+
+#: src/core/Game.cpp:1017
+msgid "VOLVER AL MENU"
+msgstr "VOLVER AL MENU"
+
+#: src/core/Game.cpp:1066
+msgid "BIENVENIDO AL HANGAR DE ENTRENAMIENTO"
+msgstr "BIENVENIDO AL HANGAR DE ENTRENAMIENTO"
+
+#: src/core/Game.cpp:1067
+msgid "NOTA: [R] reinicia la partida, desactivado aqui."
+msgstr "NOTA: [R] reinicia la partida, desactivado aqui."
+
+#: src/core/Game.cpp:1067
+msgid "NOTA: [Y]/[Triangulo] reinicia, desactivado aqui."
+msgstr "NOTA: [Y]/[Triangulo] reinicia, desactivado aqui."
+
+#: src/core/Game.cpp:1070
+msgid "MOVIMIENTO BASICO"
+msgstr "MOVIMIENTO BASICO"
+
+#: src/core/Game.cpp:1071
+msgid "Usa [W,A,S,D] o Flechas."
+msgstr "Usa [W,A,S,D] o Flechas."
+
+#: src/core/Game.cpp:1071
+msgid "Usa [CRUCETA] o [JOYSTICK IZQ]."
+msgstr "Usa [CRUCETA] o [JOYSTICK IZQ]."
+
+#: src/core/Game.cpp:1074
+msgid "MANIOBRA EVASIVA (DASH)"
+msgstr "MANIOBRA EVASIVA (DASH)"
+
+#: src/core/Game.cpp:1075
+msgid "Pulsa [SHIFT] mientras te mueves."
+msgstr "Pulsa [SHIFT] mientras te mueves."
+
+#: src/core/Game.cpp:1075
+msgid "Pulsa [LB] o [LT]."
+msgstr "Pulsa [LB] o [LT]."
+
+#: src/core/Game.cpp:1078
+msgid "MODOS DE MOTOR"
+msgstr "MODOS DE MOTOR"
+
+#: src/core/Game.cpp:1079
+msgid "Pulsa [T] para alternar Pasos/Continuo."
+msgstr "Pulsa [T] para alternar Pasos/Continuo."
+
+#: src/core/Game.cpp:1079
+msgid "Usa [CRUCETA] (Tactico) o [JOYSTICK IZQ] (Continuo)."
+msgstr "Usa [CRUCETA] (Tactico) o [JOYSTICK IZQ] (Continuo)."
+
+#: src/core/Game.cpp:1082
+msgid "CONTROL DE CAMARA"
+msgstr "CONTROL DE CAMARA"
+
+#: src/core/Game.cpp:1083
+msgid "Usa la [RUEDA DEL RATON]."
+msgstr "Usa la [RUEDA DEL RATON]."
+
+#: src/core/Game.cpp:1083
+msgid "Mueve el [JOYSTICK DERECHO]."
+msgstr "Mueve el [JOYSTICK DERECHO]."
+
+#: src/core/Game.cpp:1086
+msgid "RESTABLECER CAMARA"
+msgstr "RESTABLECER CAMARA"
+
+#: src/core/Game.cpp:1087
+msgid "Pulsa [C] para centrar."
+msgstr "Pulsa [C] para centrar."
+
+#: src/core/Game.cpp:1087
+msgid "Pulsa [R3] (Click Joystick Derecho)."
+msgstr "Pulsa [R3] (Click Joystick Derecho)."
+
+#: src/core/Game.cpp:1091
+msgid "OBJETO: PILA DE ENERGIA"
+msgstr "OBJETO: PILA DE ENERGIA"
+
+#: src/core/Game.cpp:1092
+msgid "Recupera salud. Acercate y pulsa [E] para recoger."
+msgstr "Recupera salud. Acercate y pulsa [E] para recoger."
+
+#: src/core/Game.cpp:1092
+msgid "Recupera salud. Acercate y pulsa [A]/[X]."
+msgstr "Recupera salud. Acercate y pulsa [A]/[X]."
+
+#: src/core/Game.cpp:1096
+msgid "PELIGRO: PILA OXIDADA"
+msgstr "PELIGRO: PILA OXIDADA"
+
+#: src/core/Game.cpp:1097
+msgid "Este objeto DAÑA la salud (-1 Corazon). ¡Ten cuidado!"
+msgstr "Este objeto DAÑA la salud (-1 Corazon). ¡Ten cuidado!"
+
+#: src/core/Game.cpp:1102
+msgid "OBJETO: ESCUDO DE FUERZA"
+msgstr "OBJETO: ESCUDO DE FUERZA"
+
+#: src/core/Game.cpp:1103
+msgid "Otorga INVULNERABILIDAD temporal. Se desactiva al recibir el primer golpe"
+msgstr "Otorga INVULNERABILIDAD temporal. Se desactiva al recibir el primer golpe"
+
+#: src/core/Game.cpp:1108
+msgid "FALLO DE SENSORES"
+msgstr "FALLO DE SENSORES"
+
+#: src/core/Game.cpp:1109
+msgid "Niebla densa detectada. Visibilidad reducida."
+msgstr "Niebla densa detectada. Visibilidad reducida."
+
+#: src/core/Game.cpp:1113
+msgid "OBJETO: GAFAS 3D"
+msgstr "GAFAS 3DOBJETO: GAFAS 3D"
+
+#: src/core/Game.cpp:1114
+msgid "Restauran visibilidad en niebla."
+msgstr "Restauran visibilidad en niebla."
+
+#: src/core/Game.cpp:1118
+msgid "PELIGRO: GAFAS ROTAS"
+msgstr "PELIGRO: GAFAS ROTAS"
+
+#: src/core/Game.cpp:1119
+msgid "Reducen tu campo de vision."
+msgstr "Reducen tu campo de vision."
+
+#: src/core/Game.cpp:1123
+msgid "¡SISTEMAS VISUALES DAÑADOS!"
+msgstr "¡SISTEMAS VISUALES DAÑADOS!"
+
+#: src/core/Game.cpp:1124
+msgid "Esto ocurre al recoger items en mal estado. Esperando reinicio..."
+msgstr "Esto ocurre al recoger items en mal estado. Esperando reinicio..."
+
+#: src/core/Game.cpp:1128
+msgid "SENSORES RESTAURADOS"
+msgstr "SENSORES RESTAURADOS"
+
+#: src/core/Game.cpp:1129
+msgid "Calibrando sistemas..."
+msgstr "Calibrando sistemas..."
+
+#: src/core/Game.cpp:1133
+msgid "OBJETO RARO: BATERIA"
+msgstr "OBJETO RARO: BATERIA"
+
+#: src/core/Game.cpp:1134
+msgid "Otorga una VIDA EXTRA (Resurreccion)."
+msgstr "Otorga una VIDA EXTRA (Resurreccion)."
+
+#: src/core/Game.cpp:1139
+msgid "ARMA: ESPADA DE ACERO (TIER 1)"
+msgstr "ARMA: ESPADA DE ACERO (TIER 1)"
+
+#: src/core/Game.cpp:1140
+msgid "Ataque basico melee [1]."
+msgstr "Ataque basico melee [1]."
+
+#: src/core/Game.cpp:1140
+msgid "Ataque basico melee [RB]/[R1]."
+msgstr "Ataque basico melee [RB]/[R1]."
+
+#: src/core/Game.cpp:1143
+msgid "ARMA: ESPADA DE IONES (TIER 2)"
+msgstr "ARMA: ESPADA DE IONES (TIER 2)"
+
+#: src/core/Game.cpp:1144
+msgid "Hoja Verde. Mayor daño y velocidad."
+msgstr "Hoja Verde. Mayor daño y velocidad."
+
+#: src/core/Game.cpp:1148
+msgid "ARMA: ESPADA DE PLASMA (TIER 3)"
+msgstr "ARMA: ESPADA DE PLASMA (TIER 3)"
+
+#: src/core/Game.cpp:1149
+msgid "Hoja Roja. Daño maximo letal."
+msgstr "Hoja Roja. Daño maximo letal."
+
+#: src/core/Game.cpp:1154
+msgid "ARMA: CAÑON DE PLASMA (TIER 1)"
+msgstr "ARMA: CAÑON DE PLASMA (TIER 1)"
+
+#: src/core/Game.cpp:1155
+msgid "Disparo a distancia [2]."
+msgstr "Disparo a distancia [2]."
+
+#: src/core/Game.cpp:1155
+msgid "Disparo a distancia [RT]/[R2]."
+msgstr "Disparo a distancia [RT]/[R2]."
+
+#: src/core/Game.cpp:1159
+msgid "ARMA: CAÑON DE PLASMA V2 (TIER 2)"
+msgstr "ARMA: CAÑON DE PLASMA V2 (TIER 2)"
+
+#: src/core/Game.cpp:1160
+msgid "Lanza 2 ráfagas con un solo disparo."
+msgstr "Lanza 2 ráfagas con un solo disparo."
+
+#: src/core/Game.cpp:1165
+msgid "SIMULACION DE COMBATE"
+msgstr "SIMULACION DE COMBATE"
+
+#: src/core/Game.cpp:1166
+msgid "El objetivo esta al final del Hangar. Destruyelo."
+msgstr "El objetivo esta al final del Hangar. Destruyelo."
+
+#: src/core/Game.cpp:1170
+msgid "OBJETIVO CUMPLIDO"
+msgstr "OBJETIVO CUMPLIDO"
+
+#: src/core/Game.cpp:1171
+msgid "Recoge la LLAVE MAESTRA y ve a la SALIDA."
+msgstr "Recoge la LLAVE MAESTRA y ve a la SALIDA."
+
+#~ msgid "Roguelike hecho con raylib"
+#~ msgstr "Roguelike hecho con raylib"

@@ -1,6 +1,7 @@
 #include "Game.hpp"
 #include "GameUtils.hpp"
 #include "raylib.h"
+#include "I18n.hpp"
 #include <algorithm>
 #include <cmath>
 #include <climits>
@@ -187,9 +188,9 @@ void Game::renderMainMenu()
     };
 
     // 4. Dibujado de elementos
-    drawPixelButton(playBtn, "JUGAR", 0);
-    drawPixelButton(readBtn, "TUTORIAL", 1);
-    drawPixelButton(quitBtn, "SALIR", 2);
+    drawPixelButton(playBtn, _("JUGAR"), 0);
+    drawPixelButton(readBtn, _("TUTORIAL"), 1);
+    drawPixelButton(quitBtn, _("SALIR"), 2);
 
     // 5. Botón de ajustes en la esquina inferior derecha
     // Calculamos un tamaño proporcional a la altura de la pantalla con límites para no desaparecer en resoluciones grandes o pequeñas.
@@ -200,7 +201,7 @@ void Game::renderMainMenu()
         settingsSize = 120;
     Rectangle settingsRect = {(float)(screenW - settingsSize - 20), (float)(screenH - settingsSize - 20), (float)settingsSize, (float)settingsSize};
     // Dibujamos el botón de ajustes usando el mismo estilo de botones. Como índice usamos 3 para que no interfiera con la selección de teclado.
-    drawPixelButton(settingsRect, "AJUSTES", 3);
+    drawPixelButton(settingsRect, _("AJUSTES"), 3);
 
     // Si el usuario abrió la guía, dibujamos el overlay encima de todo
     if (showHelp)
@@ -231,7 +232,7 @@ void Game::renderHelpOverlay()
     DrawRectangleLines(px, py, panelW, panelH, Color{220, 220, 220, 255});
 
     // Título del Panel
-    const char *title = "Guia de objetos";
+    const char *title = _("Guia de objetos");
     int titleSize = (int)std::round(panelH * 0.06f);
     int tW = MeasureText(title, titleSize);
     DrawText(title, px + (panelW - tW) / 2, py + 12, titleSize, RAYWHITE);
@@ -285,7 +286,7 @@ void Game::renderHelpOverlay()
     EndScissorMode(); // Fin del recorte
 
     // 4. Botón "VOLVER" (Footer)
-    const char *backTxt = "VOLVER";
+    const char *backTxt = _("VOLVER");
     int tw = MeasureText(backTxt, backFs);
     // Posicionado abajo a la derecha
     int tx = px + panelW - tw - 16;
@@ -315,7 +316,7 @@ void Game::renderOptionsMenu()
     ClearBackground(BLACK);
 
     // 1. Título "OPCIONES"
-    const char *title = "OPCIONES";
+    const char *title = _("OPCIONES");
     int titleFontSize = screenH / 10;
     int titleWidth    = MeasureText(title, titleFontSize);
     int titleX        = (screenW - titleWidth) / 2;
@@ -371,7 +372,7 @@ void Game::renderOptionsMenu()
 
     // Botón VOLVER
     Rectangle backRect = { (float)(centerX - btnW / 2), (float)(screenH - screenH / 4), (float)btnW, (float)btnH };
-    drawSimpleButton(backRect, "VOLVER", 1);
+    drawSimpleButton(backRect, _("VOLVER"), 1);
 
 
     // 3. OVERLAY DE ADVERTENCIA
@@ -386,16 +387,16 @@ void Game::renderOptionsMenu()
         DrawRectangle(boxX, boxY, boxW, boxH, Color{40, 10, 10, 255}); 
         DrawRectangleLinesEx({(float)boxX, (float)boxY, (float)boxW, (float)boxH}, 4, RED);
 
-        const char* h1 = "ADVERTENCIA";
-        const char* h2 = "Cambiar la dificultad reiniciara la partida.";
-        const char* h3 = "Se perdera todo el progreso actual.";
+        const char* h1 = _("ADVERTENCIA");
+        const char* h2 = _("Cambiar la dificultad reiniciara la partida.");
+        const char* h3 = _("Se perdera todo el progreso actual.");
 
         // CAMBIO 2: Texto dinámico según el último input
         const char* h4;
         if (lastInput == InputDevice::Gamepad) {
-            h4 = "(A) ACEPTAR      (B) CANCELAR";
+            h4 = _("(A) ACEPTAR      (B) CANCELAR");
         } else {
-            h4 = "[ENTER] ACEPTAR      [ESC] CANCELAR";
+            h4 = _("[ENTER] ACEPTAR      [ESC] CANCELAR");
         }
 
         int fs1 = 40, fs2 = 20, fs3 = 20, fs4 = 20;
@@ -467,7 +468,7 @@ void Game::renderPauseMenu() {
     DrawRectangle(0, 0, screenW, screenH, Color{0, 0, 0, 160});
 
     // 2. Título "PAUSA"
-    const char* title = "PAUSA";
+    const char* title = _("PAUSA");
     int tSize = 60;
     int tW = MeasureText(title, tSize);
     int centerX = screenW / 2;
@@ -506,7 +507,7 @@ void Game::renderPauseMenu() {
         DrawText(txt, r.x + (r.width - txtW)/2, r.y + (r.height - fs)/2, fs, RAYWHITE);
     };
 
-    drawBtn(btnResume, "REANUDAR", 0);
-    drawBtn(btnSettings, "AJUSTES", 1);
-    drawBtn(btnExit, "SALIR AL MENU", 2);
+    drawBtn(btnResume, _("REANUDAR"), 0);
+    drawBtn(btnSettings, _("AJUSTES"), 1);
+    drawBtn(btnExit, _("SALIR AL MENU"), 2);
 }
