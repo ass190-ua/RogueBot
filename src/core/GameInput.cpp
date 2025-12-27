@@ -1,13 +1,13 @@
 #include "Game.hpp"
 #include "GameUtils.hpp"
 #include "AssetPath.hpp"
+#include "I18n.hpp"
 #include <cmath>
 #include <algorithm>
 #include <iostream>
 #include <string>
 #include <clocale>
-#include <cstdlib> // setenv
-#include <locale.h>
+
 
 // Variable global definida en Game.cpp
 extern bool gQuitRequested;
@@ -528,7 +528,7 @@ void Game::handleMenuInput()
         if (helpScroll > maxScroll)
             helpScroll = maxScroll;
 
-        const char *backTxt = "VOLVER";
+        const char *backTxt = _("VOLVER");
         int tw = MeasureText(backTxt, backFs);
         int tx = pxl + panelW - tw - 16;
         int ty = pyl + panelH - backFs - 12;
@@ -881,7 +881,6 @@ void Game::handleOptionsInput()
             // Aplicar cambios y reiniciar
             difficulty = pendingDifficulty; // Confirmamos el cambio
             applyLanguageIfChanged();
-
             newRun();
             state = GameState::Playing;
             ResumeSound(sfxAmbient);
@@ -996,6 +995,7 @@ void Game::handleOptionsInput()
         {
             // Cambiar idioma
             cycleLanguage();
+            applyLanguageIfChanged();
         }
         else if (mainMenuSelection == 2)
         {
@@ -1060,6 +1060,7 @@ void Game::handleOptionsInput()
         else if (CheckCollisionPointRec(mp, langRect))
         {
             cycleLanguage();
+            applyLanguageIfChanged();
         }
         else if (CheckCollisionPointRec(mp, backRect))
         {
@@ -1077,10 +1078,8 @@ void Game::handleOptionsInput()
     }
 
     // B) ARRASTRAR VOLUMEN (Down para fluidez)
-    if (IsMouseButtonDown(MOUSE_LEFT_BUTTON))
-    {
-        if (CheckCollisionPointRec(mp, sliderRect))
-        {
+    if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
+        if (CheckCollisionPointRec(mp, sliderRect)) {
             // Calculamos cuánto se ha movido el ratón dentro de la barra
             float rel = (mp.x - sliderRect.x) / sliderRect.width;
             audioVolume = std::clamp(rel, 0.0f, 1.0f);
