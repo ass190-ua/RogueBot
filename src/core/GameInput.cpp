@@ -5,6 +5,9 @@
 #include <algorithm>
 #include <iostream>
 #include <string>
+#include <clocale>
+#include <cstdlib> // setenv
+#include <locale.h>
 
 // Variable global definida en Game.cpp
 extern bool gQuitRequested;
@@ -829,6 +832,28 @@ void Game::handlePauseInput()
 void Game::handleOptionsInput()
 {
     const int gpId = 0;
+
+    auto applyLanguageIfChanged = [&]()
+    {
+        if (pendingLanguage == language)
+            return;
+
+        language = pendingLanguage;
+
+        // Mejor usar UTF-8 (lo típico en Linux)
+        const char *localeStr = (language == Language::EN) ? "en_GB.UTF-8" : "es_ES.UTF-8";
+        const char *res = setlocale(LC_ALL, localeStr);
+
+        // Fallback por si tu sistema usa .utf8
+        if (!res)
+            res = setlocale(LC_ALL, (language == Language::EN) ? "en_GB.utf8" : "es_ES.utf8");
+
+        bind_textdomain_codeset("roguebot", "UTF-8");
+        textdomain("roguebot");
+
+        std::cout << "[I18N] setlocale -> " << (res ? res : "(FAILED)") << "\n";
+    };
+
     // --------------------------------------------------------
     // 1. Manejo de alerta de reinicio
     // --------------------------------------------------------
@@ -843,7 +868,6 @@ void Game::handleOptionsInput()
         if (IsKeyPressed(KEY_ESCAPE))
             cancel = true;
 
-        
         if (IsGamepadAvailable(gpId))
         {
             if (IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_RIGHT_FACE_DOWN))
@@ -856,6 +880,8 @@ void Game::handleOptionsInput()
         {
             // Aplicar cambios y reiniciar
             difficulty = pendingDifficulty; // Confirmamos el cambio
+            applyLanguageIfChanged();
+
             newRun();
             state = GameState::Playing;
             ResumeSound(sfxAmbient);
@@ -898,6 +924,7 @@ void Game::handleOptionsInput()
                 difficulty = pendingDifficulty;
             }
         }
+        applyLanguageIfChanged();
 
         // Salir normalmente
         state = previousState;
@@ -911,61 +938,93 @@ void Game::handleOptionsInput()
     // --------------------------------------------------------
     bool up = IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W);
     bool down = IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S);
-    
+
     // Definimos 'enter' (Botón A / X / Espacio)
-    bool enter = IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE) || 
+    bool enter = IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE) ||
                  (IsGamepadAvailable(gpId) && IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_RIGHT_FACE_DOWN));
 
-    if (IsGamepadAvailable(gpId)) {
-        if (IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_LEFT_FACE_UP)) up = true;
-        if (IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_LEFT_FACE_DOWN)) down = true;
-        
+    if (IsGamepadAvailable(gpId))
+    {
+        if (IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_LEFT_FACE_UP))
+            up = true;
+        if (IsGamepadButtonPressed(gpId, GAMEPAD_BUTTON_LEFT_FACE_DOWN))
+            down = true;
+
         static bool stickLNeutral = true;
         float ayL = GetGamepadAxisMovement(gpId, GAMEPAD_AXIS_LEFT_Y);
-        if (std::fabs(ayL) < 0.5f) stickLNeutral = true;
-        else if (stickLNeutral) {
-            if (ayL < 0.0f) up = true; else down = true;
+        if (std::fabs(ayL) < 0.5f)
+            stickLNeutral = true;
+        else if (stickLNeutral)
+        {
+            if (ayL < 0.0f)
+                up = true;
+            else
+                down = true;
             stickLNeutral = false;
         }
 
         float stickRX = GetGamepadAxisMovement(gpId, GAMEPAD_AXIS_RIGHT_X);
-        if (std::fabs(stickRX) > 0.2f) { 
+        if (std::fabs(stickRX) > 0.2f)
+        {
             audioVolume = std::clamp(audioVolume + (stickRX * 0.01f), 0.0f, 1.0f);
             SetMasterVolume(audioVolume);
         }
     }
 
     // Mover cursor
-    if (up) { mainMenuSelection--; if (mainMenuSelection < 0) mainMenuSelection = 1; }
-    if (down) { mainMenuSelection++; if (mainMenuSelection > 1) mainMenuSelection = 0; }
+    if (up)
+    {
+        mainMenuSelection--;
+        if (mainMenuSelection < 0)
+            mainMenuSelection = 2;
+    }
+    if (down)
+    {
+        mainMenuSelection++;
+        if (mainMenuSelection > 2)
+            mainMenuSelection = 0;
+    }
 
-    
-    if (enter) {
-        if (mainMenuSelection == 0) {
+    if (enter)
+    {
+        if (mainMenuSelection == 0)
+        {
+            // Cambiar dificultad
             pendingDifficulty = (Difficulty)(((int)pendingDifficulty + 1) % 3);
         }
-        else if (mainMenuSelection == 1) {
-            // Aquí es donde el botón 'A' ejecuta la salida
-            if (pendingDifficulty != difficulty && previousState == GameState::Paused) {
+        else if (mainMenuSelection == 1)
+        {
+            // Cambiar idioma
+            cycleLanguage();
+        }
+        else if (mainMenuSelection == 2)
+        {
+            // Salir del menú de opciones (igual que antes)
+            if (pendingDifficulty != difficulty && previousState == GameState::Paused)
+            {
                 showDifficultyWarning = true;
-            } else { 
-                difficulty = pendingDifficulty; 
+            }
+            else
+            {
+                // Aquí se aplicará también el cambio de idioma al salir
+                applyLanguageIfChanged();
+                difficulty = pendingDifficulty;
                 state = previousState;
             }
         }
     }
 
     float step = 0.01f;
-    if (IsKeyDown(KEY_LEFT) || (IsGamepadAvailable(gpId) && IsGamepadButtonDown(gpId, GAMEPAD_BUTTON_LEFT_FACE_LEFT))) {
+    if (IsKeyDown(KEY_LEFT) || (IsGamepadAvailable(gpId) && IsGamepadButtonDown(gpId, GAMEPAD_BUTTON_LEFT_FACE_LEFT)))
+    {
         audioVolume = std::clamp(audioVolume - step, 0.0f, 1.0f);
         SetMasterVolume(audioVolume);
     }
-    if (IsKeyDown(KEY_RIGHT) || (IsGamepadAvailable(gpId) && IsGamepadButtonDown(gpId, GAMEPAD_BUTTON_LEFT_FACE_RIGHT))) {
+    if (IsKeyDown(KEY_RIGHT) || (IsGamepadAvailable(gpId) && IsGamepadButtonDown(gpId, GAMEPAD_BUTTON_LEFT_FACE_RIGHT)))
+    {
         audioVolume = std::clamp(audioVolume + step, 0.0f, 1.0f);
         SetMasterVolume(audioVolume);
     }
-        
-    
 
     // --------------------------------------------------------
     // 3. Lógica de RATÓN
@@ -976,31 +1035,52 @@ void Game::handleOptionsInput()
     int centerX = screenW / 2;
 
     // Rectángulos de botones
-    Rectangle diffRect = { (float)(centerX - btnW / 2), (float)(screenH / 3), (float)btnW, (float)btnH };
-    Rectangle backRect = { (float)(centerX - btnW / 2), (float)(screenH - screenH / 4), (float)btnW, (float)btnH };
+    Rectangle diffRect = {(float)(centerX - btnW / 2), (float)(screenH / 3), (float)btnW, (float)btnH};
+    Rectangle langRect = {
+        (float)(centerX - btnW / 2),
+        diffRect.y + diffRect.height + btnH * 0.25f, // separación visual
+        (float)btnW,
+        (float)btnH};
+    Rectangle backRect = {(float)(centerX - btnW / 2), (float)(screenH - screenH / 4), (float)btnW, (float)btnH};
 
-    
-    float sliderMarginY = screenH * 0.09f; 
+    float sliderMarginY = screenH * 0.09f;
     float sliderX = (float)(centerX - btnW / 2);
-    float sliderY = diffRect.y + diffRect.height + sliderMarginY;
-    
+    float sliderY = langRect.y + langRect.height + sliderMarginY;
+
     // Definimos un área de colisión más alta (40px) para que sea fácil "agarrar" la barra
-    Rectangle sliderRect = { sliderX, sliderY - 15, (float)btnW, 40.0f };
+    Rectangle sliderRect = {sliderX, sliderY - 15.0f, (float)btnW, 40.0f};
 
     // A) CLICK EN BOTONES
-    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
-        if (CheckCollisionPointRec(mp, diffRect)) {
+    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
+    {
+        if (CheckCollisionPointRec(mp, diffRect))
+        {
             pendingDifficulty = (Difficulty)(((int)pendingDifficulty + 1) % 3);
         }
-        else if (CheckCollisionPointRec(mp, backRect)) {
-            if (pendingDifficulty != difficulty && previousState == GameState::Paused) showDifficultyWarning = true;
-            else { difficulty = pendingDifficulty; state = previousState; }
+        else if (CheckCollisionPointRec(mp, langRect))
+        {
+            cycleLanguage();
+        }
+        else if (CheckCollisionPointRec(mp, backRect))
+        {
+            if (pendingDifficulty != difficulty && previousState == GameState::Paused)
+            {
+                showDifficultyWarning = true;
+            }
+            else
+            {
+                applyLanguageIfChanged();
+                difficulty = pendingDifficulty;
+                state = previousState;
+            }
         }
     }
 
     // B) ARRASTRAR VOLUMEN (Down para fluidez)
-    if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
-        if (CheckCollisionPointRec(mp, sliderRect)) {
+    if (IsMouseButtonDown(MOUSE_LEFT_BUTTON))
+    {
+        if (CheckCollisionPointRec(mp, sliderRect))
+        {
             // Calculamos cuánto se ha movido el ratón dentro de la barra
             float rel = (mp.x - sliderRect.x) / sliderRect.width;
             audioVolume = std::clamp(rel, 0.0f, 1.0f);

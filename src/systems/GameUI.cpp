@@ -318,15 +318,15 @@ void Game::renderOptionsMenu()
     // 1. Título "OPCIONES"
     const char *title = _("OPCIONES");
     int titleFontSize = screenH / 10;
-    int titleWidth    = MeasureText(title, titleFontSize);
-    int titleX        = (screenW - titleWidth) / 2;
-    int titleY        = screenH / 8;
+    int titleWidth = MeasureText(title, titleFontSize);
+    int titleX = (screenW - titleWidth) / 2;
+    int titleY = screenH / 8;
 
     DrawText(title, titleX, titleY, titleFontSize, RED);
 
     // 2. Configuración de Botones
-    int btnW    = screenW / 3;
-    int btnH    = screenH / 12;
+    int btnW = screenW / 3;
+    int btnH = screenH / 12;
     int centerX = screenW / 2;
     Vector2 mp = GetMousePosition();
 
@@ -336,15 +336,17 @@ void Game::renderOptionsMenu()
         // IMPORTANTE: Si hay alerta (showDifficultyWarning), desactivamos el hover visual
         // de los botones de fondo para que no distraigan.
         bool hover = !showDifficultyWarning && CheckCollisionPointRec(mp, r);
-        bool selected = !showDifficultyWarning && (mainMenuSelection == index); 
+        bool selected = !showDifficultyWarning && (mainMenuSelection == index);
 
         // Sombra
         DrawRectangle((int)r.x + 3, (int)r.y + 3, (int)r.width, (int)r.height, Color{0, 0, 0, 120});
 
         // Colores dinámicos
         Color bg = Color{25, 25, 30, 255};
-        if (hover) bg = Color{40, 40, 46, 255};
-        if (selected) bg = Color{60, 60, 80, 255};
+        if (hover)
+            bg = Color{40, 40, 46, 255};
+        if (selected)
+            bg = Color{60, 60, 80, 255};
 
         Color outer = (hover || selected) ? Color{200, 40, 40, 255} : Color{150, 25, 25, 255};
         Color inner = (hover || selected) ? Color{255, 70, 70, 255} : Color{210, 45, 45, 255};
@@ -352,31 +354,40 @@ void Game::renderOptionsMenu()
         // Dibujado
         DrawRectangleRec(r, bg);
         DrawRectangleLinesEx(r, 4, outer);
-        Rectangle innerR = { r.x + 4, r.y + 4, r.width - 8, r.height - 8 };
+        Rectangle innerR = {r.x + 4, r.y + 4, r.width - 8, r.height - 8};
         DrawRectangleLinesEx(innerR, 2, inner);
 
         // Texto centrado
         int fs = (int)std::round(r.height * 0.40f);
-        if (fs < 18) fs = 18;
+        if (fs < 18)
+            fs = 18;
         int tw = MeasureText(label, fs);
-        int tx = (int)(r.x + (r.width  - tw) / 2);
+        int tx = (int)(r.x + (r.width - tw) / 2);
         int ty = (int)(r.y + (r.height - fs) / 2);
 
         DrawText(label, tx + 1, ty + 1, fs, BLACK);
         DrawText(label, tx, ty, fs, RAYWHITE);
     };
 
-    // Botón DIFICULTAD
-    Rectangle diffRect = { (float)(centerX - btnW / 2), (float)(screenH / 3), (float)btnW, (float)btnH };
+    // Botón DIFICULTAD (índice 0)
+    Rectangle diffRect = {(float)(centerX - btnW / 2), (float)(screenH / 3), (float)btnW, (float)btnH};
     drawSimpleButton(diffRect, getDifficultyLabel(pendingDifficulty), 0);
 
-    // Botón VOLVER
-    Rectangle backRect = { (float)(centerX - btnW / 2), (float)(screenH - screenH / 4), (float)btnW, (float)btnH };
-    drawSimpleButton(backRect, _("VOLVER"), 1);
+    // Botón IDIOMA (índice 1) -> Nuevo
+    Rectangle langRect = {(float)(centerX - btnW / 2),
+                          diffRect.y + diffRect.height + btnH * 0.2f, // separación vertical similar a la usada con el slider
+                          (float)btnW, (float)btnH};
+    drawSimpleButton(langRect, getLanguageLabel().c_str(), 1);
 
+    // Botón VOLVER (índice 2)
+    Rectangle backRect = {(float)(centerX - btnW / 2),
+                          (float)(screenH - screenH / 4),
+                          (float)btnW, (float)btnH};
+    drawSimpleButton(backRect, _("VOLVER"), 2);
 
     // 3. OVERLAY DE ADVERTENCIA
-    if (showDifficultyWarning) {
+    if (showDifficultyWarning)
+    {
         DrawRectangle(0, 0, screenW, screenH, Color{0, 0, 0, 220});
 
         int boxW = (int)(screenW * 0.65f); // Un poco más ancho para textos largos
@@ -384,42 +395,48 @@ void Game::renderOptionsMenu()
         int boxX = (screenW - boxW) / 2;
         int boxY = (screenH - boxH) / 2;
 
-        DrawRectangle(boxX, boxY, boxW, boxH, Color{40, 10, 10, 255}); 
+        DrawRectangle(boxX, boxY, boxW, boxH, Color{40, 10, 10, 255});
         DrawRectangleLinesEx({(float)boxX, (float)boxY, (float)boxW, (float)boxH}, 4, RED);
 
-        const char* h1 = _("ADVERTENCIA");
-        const char* h2 = _("Cambiar la dificultad reiniciara la partida.");
-        const char* h3 = _("Se perdera todo el progreso actual.");
+        const char *h1 = _("ADVERTENCIA");
+        const char *h2 = _("Cambiar la dificultad reiniciara la partida.");
+        const char *h3 = _("Se perdera todo el progreso actual.");
 
         // CAMBIO 2: Texto dinámico según el último input
-        const char* h4;
-        if (lastInput == InputDevice::Gamepad) {
+        const char *h4;
+        if (lastInput == InputDevice::Gamepad)
+        {
             h4 = _("(A) ACEPTAR      (B) CANCELAR");
-        } else {
+        }
+        else
+        {
             h4 = _("[ENTER] ACEPTAR      [ESC] CANCELAR");
         }
 
         int fs1 = 40, fs2 = 20, fs3 = 20, fs4 = 20;
 
-        DrawText(h1, boxX + (boxW - MeasureText(h1, fs1))/2, boxY + 40, fs1, RED);
-        DrawText(h2, boxX + (boxW - MeasureText(h2, fs2))/2, boxY + 110, fs2, RAYWHITE);
-        DrawText(h3, boxX + (boxW - MeasureText(h3, fs3))/2, boxY + 140, fs3, ORANGE);
-        
-        if ((int)(GetTime() * 2) % 2 == 0) {
-            DrawText(h4, boxX + (boxW - MeasureText(h4, fs4))/2, boxY + boxH - 50, fs4, YELLOW);
-        } else {
-            DrawText(h4, boxX + (boxW - MeasureText(h4, fs4))/2, boxY + boxH - 50, fs4, GRAY);
+        DrawText(h1, boxX + (boxW - MeasureText(h1, fs1)) / 2, boxY + 40, fs1, RED);
+        DrawText(h2, boxX + (boxW - MeasureText(h2, fs2)) / 2, boxY + 110, fs2, RAYWHITE);
+        DrawText(h3, boxX + (boxW - MeasureText(h3, fs3)) / 2, boxY + 140, fs3, ORANGE);
+
+        if ((int)(GetTime() * 2) % 2 == 0)
+        {
+            DrawText(h4, boxX + (boxW - MeasureText(h4, fs4)) / 2, boxY + boxH - 50, fs4, YELLOW);
+        }
+        else
+        {
+            DrawText(h4, boxX + (boxW - MeasureText(h4, fs4)) / 2, boxY + boxH - 50, fs4, GRAY);
         }
     }
 
     // ---------- BARRA DE VOLUMEN ----------
-    float sliderMarginY = screenH * 0.09f;          // separación entre botón dificultad y barra
-    float sliderW       = (float)btnW;
-    float sliderH       = btnH / 8.0f;              // pista finita
-    float sliderX       = (float)(centerX - btnW / 2);
-    float sliderY       = diffRect.y + diffRect.height + sliderMarginY;
+    float sliderMarginY = screenH * 0.09f; // separación entre botón dificultad y barra
+    float sliderW = (float)btnW;
+    float sliderH = btnH / 8.0f; // pista finita
+    float sliderX = (float)(centerX - btnW / 2);
+    float sliderY = langRect.y + langRect.height + sliderMarginY;
 
-    Rectangle sliderRect = { sliderX, sliderY, sliderW, sliderH };
+    Rectangle sliderRect = {sliderX, sliderY, sliderW, sliderH};
 
     // Fondo de la pista
     DrawRectangle(sliderRect.x, sliderRect.y,
@@ -438,8 +455,8 @@ void Game::renderOptionsMenu()
                        Color{150, 25, 25, 255});
 
     // Manejador (handle) del slider
-    int handleW  = (int)std::round(sliderRect.height * 1.8f);
-    int handleH  = (int)std::round(sliderRect.height * 2.5f);
+    int handleW = (int)std::round(sliderRect.height * 1.8f);
+    int handleH = (int)std::round(sliderRect.height * 2.5f);
     float handleX = sliderRect.x + fillW - handleW / 2.0f;
     float handleY = sliderRect.y - (handleH - sliderRect.height) / 2.0f;
     handleX = std::clamp(handleX,
@@ -452,7 +469,8 @@ void Game::renderOptionsMenu()
     // Texto "Volumen: XX%" encima de la barra
     std::string volStr = getVolumeLabel();
     int volFs = (int)std::round(btnH * 0.40f);
-    if (volFs < 16) volFs = 16;
+    if (volFs < 16)
+        volFs = 16;
     int volW = MeasureText(volStr.c_str(), volFs);
     int volX = centerX - volW / 2;
     int volY = (int)(sliderRect.y - volFs - 8);
@@ -463,18 +481,19 @@ void Game::renderOptionsMenu()
     EndDrawing();
 }
 
-void Game::renderPauseMenu() {
+void Game::renderPauseMenu()
+{
     // 1. Overlay Semitransparente (Oscurecer el juego)
     DrawRectangle(0, 0, screenW, screenH, Color{0, 0, 0, 160});
 
     // 2. Título "PAUSA"
-    const char* title = _("PAUSA");
+    const char *title = _("PAUSA");
     int tSize = 60;
     int tW = MeasureText(title, tSize);
     int centerX = screenW / 2;
     int centerY = screenH / 2;
 
-    DrawText(title, centerX - tW/2, centerY - 150, tSize, RAYWHITE);
+    DrawText(title, centerX - tW / 2, centerY - 150, tSize, RAYWHITE);
 
     // 3. Botones (Reutilizando lógica o haciendo simple)
     // Definir rectángulos
@@ -483,28 +502,30 @@ void Game::renderPauseMenu() {
     int gap = 20;
     int startY = centerY - 50;
 
-    Rectangle btnResume   = { (float)centerX - btnW/2, (float)startY, (float)btnW, (float)btnH };
-    Rectangle btnSettings = { (float)centerX - btnW/2, (float)startY + btnH + gap, (float)btnW, (float)btnH };
-    Rectangle btnExit     = { (float)centerX - btnW/2, (float)startY + (btnH + gap)*2, (float)btnW, (float)btnH };
+    Rectangle btnResume = {(float)centerX - btnW / 2, (float)startY, (float)btnW, (float)btnH};
+    Rectangle btnSettings = {(float)centerX - btnW / 2, (float)startY + btnH + gap, (float)btnW, (float)btnH};
+    Rectangle btnExit = {(float)centerX - btnW / 2, (float)startY + (btnH + gap) * 2, (float)btnW, (float)btnH};
 
     // Lambda simple de dibujado (puedes copiar la compleja de renderMainMenu si quieres consistencia total)
-    auto drawBtn = [&](Rectangle r, const char* txt, int idx) {
+    auto drawBtn = [&](Rectangle r, const char *txt, int idx)
+    {
         bool selected = (pauseSelection == idx);
         // Mouse Hover
-        if (CheckCollisionPointRec(GetMousePosition(), r)) {
+        if (CheckCollisionPointRec(GetMousePosition(), r))
+        {
             pauseSelection = idx; // El ratón toma prioridad visual
             selected = true;
         }
 
         Color col = selected ? Color{60, 60, 80, 255} : Color{25, 25, 30, 255};
         Color border = selected ? RED : MAROON;
-        
+
         DrawRectangleRec(r, col);
         DrawRectangleLinesEx(r, 3, border);
-        
+
         int fs = 30;
         int txtW = MeasureText(txt, fs);
-        DrawText(txt, r.x + (r.width - txtW)/2, r.y + (r.height - fs)/2, fs, RAYWHITE);
+        DrawText(txt, r.x + (r.width - txtW) / 2, r.y + (r.height - fs) / 2, fs, RAYWHITE);
     };
 
     drawBtn(btnResume, _("REANUDAR"), 0);
