@@ -527,7 +527,7 @@ void Game::handleMenuInput()
         if (helpScroll > maxScroll)
             helpScroll = maxScroll;
 
-        const char *backTxt = "VOLVER";
+        const char *backTxt = _("VOLVER");
         int tw = MeasureText(backTxt, backFs);
         int tx = pxl + panelW - tw - 16;
         int ty = pyl + panelH - backFs - 12;
