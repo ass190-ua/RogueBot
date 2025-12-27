@@ -120,6 +120,12 @@ enum class Difficulty
     Hard
 };
 
+enum class Language 
+{ 
+    ES, 
+    EN
+};
+
 // Contenedor de todas las texturas del juego para carga centralizada
 struct ItemSprites
 {
@@ -492,6 +498,13 @@ private:
     void cycleDifficulty();
     // Devuelve un texto descriptivo de la dificultad actual para la UI
     const char *getDifficultyLabel(Difficulty d) const;
+
+    Language language = Language::ES;
+    Language pendingLanguage = language;
+
+    void cycleLanguage();
+    std::string getLanguageLabel() const; 
+    
 
     // Variables del Modo Dios
     bool godMode = false;           // ¿Está activo el modo dios?

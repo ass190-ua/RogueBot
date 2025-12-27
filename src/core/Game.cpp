@@ -645,6 +645,19 @@ void Game::cycleDifficulty() {
     }
 }
 
+void Game::cycleLanguage() {
+    switch (pendingLanguage) {
+        case Language::ES:
+            pendingLanguage = Language::EN;
+            break;
+        // añadir casos para futuros idiomas
+        default:
+            pendingLanguage = Language::ES;
+            break;
+    }
+}
+
+
 // Devuelve una cadena estática con el nombre de la dificultad, usada en el menú.
 const char *Game::getDifficultyLabel(Difficulty d) const {
     switch (d) {
@@ -653,6 +666,22 @@ const char *Game::getDifficultyLabel(Difficulty d) const {
         default:                 return _("Dificultad: Difícil");
     }
 }
+
+std::string Game::getLanguageLabel() const {
+    std::string prefix = _("Idioma: "); // nueva cadena en el .po
+    std::string name;
+    switch (pendingLanguage) {
+        case Language::ES:
+            name = _("Español"); // cadena traducible
+            break;
+        case Language::EN:
+            name = _("English");
+            break;
+        // más idiomas...
+    }
+    return prefix + name;
+}
+
 
 std::string Game::getVolumeLabel() const {
     int pct = (int)std::round(audioVolume * 100.0f);

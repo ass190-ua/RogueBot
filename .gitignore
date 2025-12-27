@@ -89,3 +89,7 @@ dist/
 debian/debhelper-build-stamp
 debian/files
 debian/*.substvars
+
+
+assets/locales/**/*.mo
+assets/locales/roguebot.pot
