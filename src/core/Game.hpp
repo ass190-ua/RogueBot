@@ -74,30 +74,30 @@ enum class TutorialStep
     MoveMode,
     CameraZoom,
     CameraReset,
-    
+
     // Secuencia de Objetos (Vida)
     ItemPilaBuena, // Cura
     ItemPilaMala,  // Daña
 
-    ItemEscudo,   // Protege
-    
+    ItemEscudo, // Protege
+
     // Secuencia de Visión
-    PreGafas,      // Activar niebla
+    PreGafas, // Activar niebla
     ItemGafasBuenas,
     ItemGafasMalas,
     BadGlassesEffect,
-    PostGafas,     // Quitar niebla
-    
+    PostGafas, // Quitar niebla
+
     // Items Especiales
     ItemVidaExtra, // Batería extra
-    
+
     // Secuencia de Armas (Progresión)
     SwordT1,
     SwordT2,
     SwordT3,
     PlasmaT1,
     PlasmaT2,
-    
+
     // Combate Final
     Combat,
     Exit,
@@ -120,9 +120,9 @@ enum class Difficulty
     Hard
 };
 
-enum class Language 
-{ 
-    ES, 
+enum class Language
+{
+    ES,
     EN
 };
 
@@ -170,21 +170,28 @@ struct ItemSprites
     void unload(); // Libera todo
 };
 
-struct Boss {
+struct Boss
+{
     bool active = false;
     bool awakened = false; // ¿Se ha despertado ya?
     int x = 0, y = 0;      // Posición lógica del Boss
-    
+
     // Para detectar si el jugador se ha movido
     int playerStartX = 0;
     int playerStartY = 0;
 
     int hp = 0;
     int maxHp = 0;
-    int phase = 1;         // Fase 1, 2, 3, 4
+    int phase = 1; // Fase 1, 2, 3, 4
 
     // Dirección
-    enum Facing { UP, DOWN, LEFT, RIGHT } facing = DOWN;
+    enum Facing
+    {
+        UP,
+        DOWN,
+        LEFT,
+        RIGHT
+    } facing = DOWN;
 
     // Temporizadores de Combate
     float actionCooldown = 0.0f; // Tiempo para disparar
@@ -208,7 +215,7 @@ public:
 
     const std::vector<Enemy> &getEnemies() const { return enemies; }
     const std::vector<ItemSpawn> &getItems() const { return items; }
-    const Boss& getBoss() const { return boss; }
+    const Boss &getBoss() const { return boss; }
 
     int getScreenW() const { return screenW; }
     int getScreenH() const { return screenH; }
@@ -241,7 +248,7 @@ public:
     // Modo Dios
     bool isGodMode() const { return godMode; }
     bool isInputtingGodPassword() const { return showGodModeInput; }
-    const std::string& getGodPasswordInput() const { return godModeInput; }
+    const std::string &getGodPasswordInput() const { return godModeInput; }
 
     // Dirección del Enemigo (para saber qué sprite dibujar)
     enum class EnemyFacing
@@ -318,13 +325,13 @@ private:
 
     // Variables del tutorial
     TutorialStep tutorialStep = TutorialStep::Intro;
-    float tutorialTimer = 0.0f; 
-    bool tutorialFlag = false; 
-    int tutorialMenuSelection = 0; 
-    
+    float tutorialTimer = 0.0f;
+    bool tutorialFlag = false;
+    int tutorialMenuSelection = 0;
+
     // Función auxiliar para texto dinámico (Teclado vs Mando)
     // Devuelve el texto 'kb' si usa teclado, o 'gp' si usa gamepad
-    const char* getInputText(const char* kb, const char* gp) const;
+    const char *getInputText(const char *kb, const char *gp) const;
 
     void startTutorial();
     void updateTutorial(float dt);
@@ -342,9 +349,8 @@ private:
         GAMEPAD_BUTTON_LEFT_FACE_LEFT,
         GAMEPAD_BUTTON_LEFT_FACE_RIGHT,
         GAMEPAD_BUTTON_RIGHT_FACE_RIGHT,
-        GAMEPAD_BUTTON_RIGHT_FACE_DOWN 
-    };
-    
+        GAMEPAD_BUTTON_RIGHT_FACE_DOWN};
+
     // Índice actual de la secuencia (cuántos has acertado seguidos)
     size_t cheatCodeIndex = 0;
 
@@ -380,8 +386,8 @@ private:
     // UI Screens
     void renderMainMenu();
     void renderHelpOverlay();
-    void renderOptionsMenu(); 
-    void handleOptionsInput(); 
+    void renderOptionsMenu();
+    void handleOptionsInput();
 
     Rectangle uiCenterRect(float w, float h) const;
 
@@ -403,7 +409,7 @@ private:
     void spawnBoss();
     void updateBoss(float dt);
     void drawBoss() const;
-    
+
     // Helpers colisión Boss (como es grande, necesitamos saber si un punto toca su "área")
     bool isBossCell(int x, int y) const;
 
@@ -438,7 +444,7 @@ private:
     int helpScroll = 0;
     std::string helpText;
     int mainMenuSelection = 0;
-    int pauseSelection = 0;  
+    int pauseSelection = 0;
     GameState previousState = GameState::MainMenu;
     GameState pauseOrigin = GameState::Playing;
 
@@ -503,14 +509,13 @@ private:
     Language pendingLanguage = language;
 
     void cycleLanguage();
-    std::string getLanguageLabel() const; 
-    
+    std::string getLanguageLabel() const;
 
     // Variables del Modo Dios
-    bool godMode = false;           // ¿Está activo el modo dios?
-    bool showGodModeInput = false;  // ¿Mostrando el cuadro de contraseña?
-    std::string godModeInput = "";  // Texto que el usuario está escribiendo
-    
+    bool godMode = false;          // ¿Está activo el modo dios?
+    bool showGodModeInput = false; // ¿Mostrando el cuadro de contraseña?
+    std::string godModeInput = ""; // Texto que el usuario está escribiendo
+
     // Método auxiliar para activar/desactivar
     void toggleGodMode(bool enable);
 
@@ -519,6 +524,11 @@ private:
 
     float audioVolume = 0.2f;
     std::string getVolumeLabel() const;
+
+    void loadSettings();
+    void saveSettings() const;
+    static std::string settingsPath();
+
     // Tipos de sonido para el generador
     enum SoundType
     {
