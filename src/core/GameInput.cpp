@@ -6,8 +6,7 @@
 #include <iostream>
 #include <string>
 #include <clocale>
-#include <cstdlib> // setenv
-#include <locale.h>
+
 
 // Variable global definida en Game.cpp
 extern bool gQuitRequested;
@@ -881,7 +880,6 @@ void Game::handleOptionsInput()
             // Aplicar cambios y reiniciar
             difficulty = pendingDifficulty; // Confirmamos el cambio
             applyLanguageIfChanged();
-
             newRun();
             state = GameState::Playing;
             ResumeSound(sfxAmbient);
@@ -1079,10 +1077,8 @@ void Game::handleOptionsInput()
     }
 
     // B) ARRASTRAR VOLUMEN (Down para fluidez)
-    if (IsMouseButtonDown(MOUSE_LEFT_BUTTON))
-    {
-        if (CheckCollisionPointRec(mp, sliderRect))
-        {
+    if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
+        if (CheckCollisionPointRec(mp, sliderRect)) {
             // Calculamos cuánto se ha movido el ratón dentro de la barra
             float rel = (mp.x - sliderRect.x) / sliderRect.width;
             audioVolume = std::clamp(rel, 0.0f, 1.0f);
