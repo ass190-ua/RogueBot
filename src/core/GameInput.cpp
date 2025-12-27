@@ -1,6 +1,7 @@
 #include "Game.hpp"
 #include "GameUtils.hpp"
 #include "AssetPath.hpp"
+#include "I18n.hpp"
 #include <cmath>
 #include <algorithm>
 #include <iostream>
