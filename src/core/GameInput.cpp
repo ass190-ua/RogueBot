@@ -996,6 +996,7 @@ void Game::handleOptionsInput()
         {
             // Cambiar idioma
             cycleLanguage();
+            applyLanguageIfChanged();
         }
         else if (mainMenuSelection == 2)
         {
@@ -1060,6 +1061,7 @@ void Game::handleOptionsInput()
         else if (CheckCollisionPointRec(mp, langRect))
         {
             cycleLanguage();
+            applyLanguageIfChanged();
         }
         else if (CheckCollisionPointRec(mp, backRect))
         {
