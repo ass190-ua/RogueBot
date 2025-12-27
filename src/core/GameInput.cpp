@@ -924,7 +924,7 @@ void Game::handleOptionsInput()
             }
         }
         applyLanguageIfChanged();
-
+        saveSettings();
         // Salir normalmente
         state = previousState;
         if (state == GameState::MainMenu)
@@ -1009,6 +1009,7 @@ void Game::handleOptionsInput()
                 // Aquí se aplicará también el cambio de idioma al salir
                 applyLanguageIfChanged();
                 difficulty = pendingDifficulty;
+                saveSettings();
                 state = previousState;
             }
         }
@@ -1072,6 +1073,7 @@ void Game::handleOptionsInput()
             {
                 applyLanguageIfChanged();
                 difficulty = pendingDifficulty;
+                saveSettings();
                 state = previousState;
             }
         }
