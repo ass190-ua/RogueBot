@@ -527,6 +527,7 @@ private:
 
     void loadSettings();
     void saveSettings() const;
+    void applyCurrentLanguage();
     static std::string settingsPath();
 
     // Tipos de sonido para el generador
