@@ -89,6 +89,7 @@ dist/
 debian/debhelper-build-stamp
 debian/files
 debian/*.substvars
+build-tests
 
 
 assets/locales/**/*.mo
