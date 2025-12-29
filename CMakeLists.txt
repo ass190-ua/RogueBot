@@ -50,6 +50,9 @@ project(roguebot
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Buscar la librería de internacionalización (necesaria para gettext)
+find_package(Intl REQUIRED)
+
 # Opciones de usuario para controlar cómo se obtiene/enlaza raylib
 option(PREFER_RAYLIB_STATIC "Preferir enlazar raylib de forma estática" ON)
 option(USE_EXTERNAL_RAYLIB "Usar raylib instalada en el sistema (pkg-config/find_package)" OFF)
@@ -157,6 +160,11 @@ endif()
 
 # Crear el ejecutable a partir de todos los .cpp recogidos
 add_executable(${PROJECT_NAME} ${ROGUEBOT_SOURCES})
+
+# Vincular la librería Intl (Gettext) al ejecutable
+if(Intl_FOUND)
+    target_link_libraries(${PROJECT_NAME} PRIVATE Intl::Intl)
+endif()
 
 # Forzar enlazado estático en Windows (MinGW)
 if(WIN32 AND MINGW)
