@@ -331,5 +331,14 @@ else()
   endif()
 endif()
 
+# -----------------------------------------------------------------------------
+# Tests (CTest)
+# -----------------------------------------------------------------------------
+include(CTest)
+
+if(BUILD_TESTING)
+  add_subdirectory(tests)
+endif()
+
 # Incluir CPack y activar los targets "package" / "package_source"
 include(CPack)
