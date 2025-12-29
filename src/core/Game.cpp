@@ -180,58 +180,89 @@ std::string Game::settingsPath()
     return std::string(home) + "/.config/roguebot/settings.cfg";
 }
 
-void Game::loadSettings()
-{
+void Game::applyCurrentLanguage() {
+    const char *res = nullptr;
+
+    // 1. Intentamos nombres estándar POSIX (Linux/Mac)
+    if (language == Language::EN)
+    {
+        res = setlocale(LC_ALL, "en_GB.UTF-8");
+        if (!res) res = setlocale(LC_ALL, "en_GB.utf8");
+    }
+    else // Caso ES
+    {
+        res = setlocale(LC_ALL, "es_ES.UTF-8");
+        if (!res) res = setlocale(LC_ALL, "es_ES.utf8");
+    }
+
+    // 2. Fallback para Windows (si falló lo anterior)
+    if (!res) {
+        if (language == Language::EN) {
+            res = setlocale(LC_ALL, "English_United Kingdom");
+            if (!res) res = setlocale(LC_ALL, "English");
+        }
+        else {
+            res = setlocale(LC_ALL, "Spanish_Spain");
+            if (!res) res = setlocale(LC_ALL, "Spanish");
+        }
+    }
+
+    // FIX WINDOWS: Forzar variables de entorno
+#ifdef _WIN32
+    if (language == Language::ES) {
+        _putenv("LANGUAGE=es_ES");
+        _putenv("LC_ALL=es_ES");
+    } else {
+        _putenv("LANGUAGE=en_GB");
+        _putenv("LC_ALL=en_GB");
+    }
+#endif
+
+    // Debug opcional
+    if (res) std::cout << "[I18N] Idioma aplicado: " << res << "\n";
+
+    // Recargar Gettext
+    bind_textdomain_codeset("roguebot", "UTF-8");
+    textdomain("roguebot");
+    
+    // Actualizar el título de la ventana al momento
+    SetWindowTitle(_("RogueBot"));
+}
+
+void Game::loadSettings() {
     const std::string path = settingsPath();
     std::ifstream f(path);
-    if (!f.is_open())
+    // Si no hay fichero, aplicamos idioma por defecto (ES)
+    if (!f.is_open()) {
+        applyCurrentLanguage(); 
         return;
+    }
 
     std::string line;
-    while (std::getline(f, line))
-    {
-        if (line.empty())
-            continue;
-
+    while (std::getline(f, line)) {
+        if (line.empty()) continue;
         const auto eq = line.find('=');
-        if (eq == std::string::npos)
-            continue;
+        if (eq == std::string::npos) continue;
 
         const std::string key = line.substr(0, eq);
         const std::string val = line.substr(eq + 1);
 
-        if (key == "language")
-        {
-            if (val == "en")
-                language = Language::EN;
-            else if (val == "es")
-                language = Language::ES;
-
+        if (key == "language") {
+            if (val == "en") language = Language::EN;
+            else if (val == "es") language = Language::ES;
+            
             pendingLanguage = language;
-
-            // Aplicar locale para gettext
-            const char *localeStr = (language == Language::EN) ? "en_GB.UTF-8" : "es_ES.UTF-8";
-            const char *res = setlocale(LC_ALL, localeStr);
-            if (!res)
-                setlocale(LC_ALL, (language == Language::EN) ? "en_GB.utf8" : "es_ES.utf8");
-
-            bind_textdomain_codeset("roguebot", "UTF-8");
-            textdomain("roguebot");
-
-            // Actualizar título con el idioma cargado
-            SetWindowTitle(_("RogueBot"));
+            
+            applyCurrentLanguage();
         }
-        else if (key == "difficulty")
-        {
+        else if (key == "difficulty") {
             int d = std::atoi(val.c_str());
-            if (d >= 0 && d <= 2)
-            {
+            if (d >= 0 && d <= 2) {
                 difficulty = (Difficulty)d;
                 pendingDifficulty = difficulty;
             }
         }
-        else if (key == "volume")
-        {
+        else if (key == "volume") {
             int volPct = std::atoi(val.c_str());
             volPct = std::clamp(volPct, 0, 100);
             audioVolume = (float)volPct / 100.0f;
@@ -907,18 +938,17 @@ void Game::cycleDifficulty()
     }
 }
 
-void Game::cycleLanguage()
-{
-    switch (pendingLanguage)
-    {
-    case Language::ES:
+void Game::cycleLanguage() {
+    // Cambiamos el idioma
+    if (language == Language::ES) {
+        language = Language::EN;
         pendingLanguage = Language::EN;
-        break;
-    // añadir casos para futuros idiomas
-    default:
+    } else {
+        language = Language::ES;
         pendingLanguage = Language::ES;
-        break;
     }
+
+    applyCurrentLanguage();
 }
 
 // Devuelve una cadena estática con el nombre de la dificultad, usada en el menú.
