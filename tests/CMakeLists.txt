@@ -1,5 +1,5 @@
 
-## Test: Comprobar que los archivos de localización existen
+# Test: Comprobar que los archivos de localización existen
 add_executable(rb_test_locales_exist
   test_locales_exist.cpp
 )
@@ -11,7 +11,7 @@ set_tests_properties(locales_exist PROPERTIES
 )
 
 
-## Test: Comprobar que assetPath funciona correctamente
+# Test: Comprobar que assetPath funciona correctamente
 add_executable(rb_test_assetpath
   test_assetpath.cpp
 )
@@ -27,7 +27,7 @@ set_tests_properties(assetpath_exists PROPERTIES
 )
 
 
-## Test: Comprobar función dominantAxis
+# Test: Comprobar función dominantAxis
 add_executable(rb_test_dominant_axis
   test_dominant_axis.cpp
   ${PROJECT_SOURCE_DIR}/src/core/GameUtils.cpp
@@ -45,7 +45,7 @@ set_tests_properties(dominant_axis PROPERTIES
 )
 
 
-## Test: Comprobar función isAdjacent4
+# Test: Comprobar función isAdjacent4
 add_executable(rb_test_is_adjacent4
   test_is_adjacent4.cpp
   ${PROJECT_SOURCE_DIR}/src/core/GameUtils.cpp
@@ -95,3 +95,18 @@ if(TARGET raylib)
 endif()
 
 add_test(NAME compute_melee_front COMMAND rb_test_compute_melee_front)
+
+
+# Test: Comprobar función computeMeleeTiles con frontOnly = false
+add_executable(rb_test_compute_melee_cross
+  test_compute_melee_tiles_cross.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/GameUtils.cpp
+)
+
+target_include_directories(rb_test_compute_melee_cross PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_compute_melee_cross PRIVATE raylib)
+endif()
+
+add_test(NAME compute_melee_cross COMMAND rb_test_compute_melee_cross)
