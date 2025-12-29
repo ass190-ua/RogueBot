@@ -80,3 +80,18 @@ set_tests_properties(gettext_translation PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
 )
 target_include_directories(rb_test_gettext_translation PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+
+# Test: Comprobar función computeMeleeTiles con frontOnly = true
+add_executable(rb_test_compute_melee_front
+  test_compute_melee_tiles_front.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/GameUtils.cpp
+)
+
+target_include_directories(rb_test_compute_melee_front PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_compute_melee_front PRIVATE raylib)
+endif()
+
+add_test(NAME compute_melee_front COMMAND rb_test_compute_melee_front)
