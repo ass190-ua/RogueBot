@@ -110,3 +110,19 @@ if(TARGET raylib)
 endif()
 
 add_test(NAME compute_melee_cross COMMAND rb_test_compute_melee_cross)
+
+
+# Test: Comprobar función computeMeleeTilesOccluded con frontOnly = true
+add_executable(rb_test_compute_melee_occluded_front
+  ${CMAKE_CURRENT_SOURCE_DIR}/test_compute_melee_tiles_occluded_front.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/GameUtils.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/Map.cpp
+)
+
+target_include_directories(rb_test_compute_melee_occluded_front PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_compute_melee_occluded_front PRIVATE raylib)
+endif()
+
+add_test(NAME compute_melee_occluded_front COMMAND rb_test_compute_melee_occluded_front)
