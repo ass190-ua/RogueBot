@@ -25,3 +25,17 @@ add_test(NAME assetpath_exists COMMAND rb_test_assetpath)
 set_tests_properties(assetpath_exists PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
 )
+
+
+## Tercer test: Comprobar función dominantAxis
+add_executable(rb_test_dominant_axis
+  test_dominant_axis.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/GameUtils.cpp
+)
+
+target_include_directories(rb_test_dominant_axis PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+add_test(NAME dominant_axis COMMAND rb_test_dominant_axis)
+set_tests_properties(dominant_axis PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+)
