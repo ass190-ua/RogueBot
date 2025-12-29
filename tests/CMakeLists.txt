@@ -39,3 +39,17 @@ add_test(NAME dominant_axis COMMAND rb_test_dominant_axis)
 set_tests_properties(dominant_axis PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
 )
+
+
+## Cuarto test: Comprobar función isAdjacent4
+add_executable(rb_test_is_adjacent4
+  test_is_adjacent4.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/GameUtils.cpp
+)
+
+target_include_directories(rb_test_is_adjacent4 PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+add_test(NAME is_adjacent4 COMMAND rb_test_is_adjacent4)
+set_tests_properties(is_adjacent4 PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+)
