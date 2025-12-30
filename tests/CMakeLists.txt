@@ -126,3 +126,17 @@ if(TARGET raylib)
 endif()
 
 add_test(NAME compute_melee_occluded_front COMMAND rb_test_compute_melee_occluded_front)
+
+
+# Test
+add_executable(rb_test_facing_from_dir
+  ${CMAKE_CURRENT_SOURCE_DIR}/test_facing_from_dir.cpp
+)
+
+target_include_directories(rb_test_facing_from_dir PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_facing_from_dir PRIVATE raylib)
+endif()
+
+add_test(NAME facing_from_dir COMMAND rb_test_facing_from_dir)
