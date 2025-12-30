@@ -1,5 +1,5 @@
 
-## Test: Comprobar que los archivos de localización existen
+# Test: Comprobar que los archivos de localización existen
 add_executable(rb_test_locales_exist
   test_locales_exist.cpp
 )
@@ -11,7 +11,7 @@ set_tests_properties(locales_exist PROPERTIES
 )
 
 
-## Test: Comprobar que assetPath funciona correctamente
+# Test: Comprobar que assetPath funciona correctamente
 add_executable(rb_test_assetpath
   test_assetpath.cpp
 )
@@ -27,7 +27,7 @@ set_tests_properties(assetpath_exists PROPERTIES
 )
 
 
-## Test: Comprobar función dominantAxis
+# Test: Comprobar función dominantAxis
 add_executable(rb_test_dominant_axis
   test_dominant_axis.cpp
   ${PROJECT_SOURCE_DIR}/src/core/GameUtils.cpp
@@ -45,7 +45,7 @@ set_tests_properties(dominant_axis PROPERTIES
 )
 
 
-## Test: Comprobar función isAdjacent4
+# Test: Comprobar función isAdjacent4
 add_executable(rb_test_is_adjacent4
   test_is_adjacent4.cpp
   ${PROJECT_SOURCE_DIR}/src/core/GameUtils.cpp
@@ -80,3 +80,77 @@ set_tests_properties(gettext_translation PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
 )
 target_include_directories(rb_test_gettext_translation PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+
+# Test: Comprobar función computeMeleeTiles con frontOnly = true
+add_executable(rb_test_compute_melee_front
+  test_compute_melee_tiles_front.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/GameUtils.cpp
+)
+
+target_include_directories(rb_test_compute_melee_front PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_compute_melee_front PRIVATE raylib)
+endif()
+
+add_test(NAME compute_melee_front COMMAND rb_test_compute_melee_front)
+
+
+# Test: Comprobar función computeMeleeTiles con frontOnly = false
+add_executable(rb_test_compute_melee_cross
+  test_compute_melee_tiles_cross.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/GameUtils.cpp
+)
+
+target_include_directories(rb_test_compute_melee_cross PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_compute_melee_cross PRIVATE raylib)
+endif()
+
+add_test(NAME compute_melee_cross COMMAND rb_test_compute_melee_cross)
+
+
+# Test: Comprobar función computeMeleeTilesOccluded con frontOnly = true
+add_executable(rb_test_compute_melee_occluded_front
+  ${CMAKE_CURRENT_SOURCE_DIR}/test_compute_melee_tiles_occluded_front.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/GameUtils.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/Map.cpp
+)
+
+target_include_directories(rb_test_compute_melee_occluded_front PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_compute_melee_occluded_front PRIVATE raylib)
+endif()
+
+add_test(NAME compute_melee_occluded_front COMMAND rb_test_compute_melee_occluded_front)
+
+
+# Test
+add_executable(rb_test_facing_from_dir
+  ${CMAKE_CURRENT_SOURCE_DIR}/test_facing_from_dir.cpp
+)
+
+target_include_directories(rb_test_facing_from_dir PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_facing_from_dir PRIVATE raylib)
+endif()
+
+add_test(NAME facing_from_dir COMMAND rb_test_facing_from_dir)
+
+
+# Test: Comprobar función PerformMeleeHit
+add_executable(rb_test_perform_melee_hit
+  ${CMAKE_CURRENT_SOURCE_DIR}/test_perform_melee_hit.cpp
+)
+
+target_include_directories(rb_test_perform_melee_hit PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_perform_melee_hit PRIVATE raylib)
+endif()
+
+add_test(NAME perform_melee_hit COMMAND rb_test_perform_melee_hit)
