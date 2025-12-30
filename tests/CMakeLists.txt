@@ -140,3 +140,17 @@ if(TARGET raylib)
 endif()
 
 add_test(NAME facing_from_dir COMMAND rb_test_facing_from_dir)
+
+
+# Test: Comprobar función PerformMeleeHit
+add_executable(rb_test_perform_melee_hit
+  ${CMAKE_CURRENT_SOURCE_DIR}/test_perform_melee_hit.cpp
+)
+
+target_include_directories(rb_test_perform_melee_hit PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_perform_melee_hit PRIVATE raylib)
+endif()
+
+add_test(NAME perform_melee_hit COMMAND rb_test_perform_melee_hit)
