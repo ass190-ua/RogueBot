@@ -13,6 +13,16 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      
+      - name: Instalar dependencias X11 (Ubuntu)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libx11-dev \
+            libxrandr-dev \
+            libxinerama-dev \
+            libxcursor-dev \
+            libxi-dev
 
       - name: Configure (CMake + CTest)
         run: cmake -S . -B build-tests -DBUILD_TESTING=ON
