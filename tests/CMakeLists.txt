@@ -174,3 +174,22 @@ add_test(NAME map_deterministic_seed COMMAND rb_test_map_deterministic_seed)
 set_tests_properties(map_deterministic_seed PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
 )
+
+
+# Test: findExitTile devuelve una celda válida
+add_executable(rb_test_find_exit_tile
+  test_find_exit_tile.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/Map.cpp
+)
+
+target_include_directories(rb_test_find_exit_tile PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_find_exit_tile PRIVATE raylib)
+endif()
+
+add_test(NAME find_exit_tile COMMAND rb_test_find_exit_tile)
+
+set_tests_properties(find_exit_tile PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+)
