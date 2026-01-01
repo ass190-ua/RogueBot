@@ -232,3 +232,21 @@ set_tests_properties(map_boss_arena_structure PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
 )
 
+
+# Test: Map::generate coloca EXIT
+add_executable(rb_test_map_generate_places_exit
+  test_map_generate_places_exit.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/Map.cpp
+)
+
+target_include_directories(rb_test_map_generate_places_exit PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_map_generate_places_exit PRIVATE raylib)
+endif()
+
+add_test(NAME map_generate_places_exit COMMAND rb_test_map_generate_places_exit)
+
+set_tests_properties(map_generate_places_exit PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+)
