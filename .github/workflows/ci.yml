@@ -23,6 +23,7 @@ jobs:
             libxinerama-dev \
             libxcursor-dev \
             libxi-dev \
+            libxxf86vm-dev \
             libgl1-mesa-dev \
             libglu1-mesa-dev \
             libglvnd-dev \
