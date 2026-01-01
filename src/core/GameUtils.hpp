@@ -10,7 +10,7 @@
 // Bando Enemigo
 inline constexpr int ENEMY_BASE_HP = 100;            // Vida estándar (tanky)
 inline constexpr int ENEMY_CONTACT_DMG = 1;          // Daño al tocar al jugador (1 corazón)
-inline constexpr float ENEMY_ATTACK_COOLDOWN = 1.0f; // Los enemigos atacan 1 vez por segundo
+inline constexpr float ENEMY_ATTACK_COOLDOWN = 1.5f; // Los enemigos atacan 1 vez por segundo
 
 // Bando Jugador: Puños (Default)
 // DPS bajo, alto riesgo (hay que acercarse mucho)
