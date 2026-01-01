@@ -193,3 +193,22 @@ add_test(NAME find_exit_tile COMMAND rb_test_find_exit_tile)
 set_tests_properties(find_exit_tile PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
 )
+
+
+# Test: Map::isWalkable (límites + WALL/FLOOR)
+add_executable(rb_test_map_is_walkable
+  test_map_is_walkable.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/Map.cpp
+)
+
+target_include_directories(rb_test_map_is_walkable PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_map_is_walkable PRIVATE raylib)
+endif()
+
+add_test(NAME map_is_walkable COMMAND rb_test_map_is_walkable)
+
+set_tests_properties(map_is_walkable PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+)
