@@ -276,7 +276,7 @@ private:
 
     // Invulnerabilidad tras recibir daño (i-frames)
     float damageCooldown = 0.0f;
-    const float DAMAGE_COOLDOWN = 0.2f;
+    const float DAMAGE_COOLDOWN = 0.4f;
 
     // Generación Aleatoria (RNG)
     unsigned fixedSeed = 0; // Si != 0, fuerza la semilla
@@ -311,15 +311,15 @@ private:
         switch (difficulty)
         {
         case Difficulty::Easy:
+            return (lvl == 1) ? 2 : (lvl == 2) ? 4
+                                               : 6;
+        case Difficulty::Medium:
             return (lvl == 1) ? 3 : (lvl == 2) ? 5
                                                : 7;
-        case Difficulty::Medium:
-            return (lvl == 1) ? 4 : (lvl == 2) ? 6
-                                               : 8;
         case Difficulty::Hard:
         default:
-            return (lvl == 1) ? 5 : (lvl == 2) ? 8
-                                               : 12;
+            return (lvl == 1) ? 4 : (lvl == 2) ? 7
+                                               : 11;
         }
     }
 
