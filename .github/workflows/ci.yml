@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [ "develop" ]
+  pull_request:
+    branches: [ "develop" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Instalar dependencias y locales (Ubuntu)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libx11-dev \
+            libxrandr-dev \
+            libxinerama-dev \
+            libxcursor-dev \
+            libxi-dev \
+            libxxf86vm-dev \
+            libgl1-mesa-dev \
+            libglu1-mesa-dev \
+            libglvnd-dev \
+            mesa-common-dev \
+            locales \
+            gettext
+
+          sudo locale-gen es_ES.UTF-8
+          sudo locale-gen en_GB.UTF-8
+          sudo update-locale LANG=en_GB.UTF-8
+
+
+
+      - name: Configure (CMake + CTest)
+        run: cmake -S . -B build-tests -DBUILD_TESTING=ON
+
+      - name: Build
+        run: cmake --build build-tests -j
+
+      - name: Test (CTest)
+        run: |
+          export LANG=es_ES.UTF-8
+          export LC_ALL=es_ES.UTF-8
+          export LANGUAGE=es
+          locale
+          ctest --test-dir build-tests --output-on-failure

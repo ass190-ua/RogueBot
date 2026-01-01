@@ -29,7 +29,7 @@ static Texture2D loadTex(const char *path)
         Image white = GenImageColor(32, 32, WHITE);
         Texture2D t = LoadTextureFromImage(white);
         UnloadImage(white);
-        std::cerr << _("[ASSETS] FALLBACK tex para: ") << full << "\n";
+        std::cerr << _("[ASSETS] FALLBACK text para: ") << full << "\n";
         return t;
     }
     Texture2D t = LoadTextureFromImage(img);
