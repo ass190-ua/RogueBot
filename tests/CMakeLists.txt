@@ -8,6 +8,7 @@ add_test(NAME locales_exist COMMAND rb_test_locales_exist)
 
 set_tests_properties(locales_exist PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+  LABELS "assets"
 )
 
 
@@ -27,6 +28,7 @@ add_test(NAME assetpath_exists COMMAND rb_test_assetpath)
 
 set_tests_properties(assetpath_exists PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+  LABELS "assets"
 )
 
 
