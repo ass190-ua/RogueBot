@@ -276,7 +276,7 @@ private:
 
     // Invulnerabilidad tras recibir daño (i-frames)
     float damageCooldown = 0.0f;
-    const float DAMAGE_COOLDOWN = 0.2f;
+    const float DAMAGE_COOLDOWN = 0.4f;
 
     // Generación Aleatoria (RNG)
     unsigned fixedSeed = 0; // Si != 0, fuerza la semilla
