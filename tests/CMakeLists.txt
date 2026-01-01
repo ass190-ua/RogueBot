@@ -250,3 +250,22 @@ add_test(NAME map_generate_places_exit COMMAND rb_test_map_generate_places_exit)
 set_tests_properties(map_generate_places_exit PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
 )
+
+
+# Test: Map::setTile respeta límites
+add_executable(rb_test_map_set_tile_bounds
+  test_map_set_tile_bounds.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/Map.cpp
+)
+
+target_include_directories(rb_test_map_set_tile_bounds PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_map_set_tile_bounds PRIVATE raylib)
+endif()
+
+add_test(NAME map_set_tile_bounds COMMAND rb_test_map_set_tile_bounds)
+
+set_tests_properties(map_set_tile_bounds PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+)
