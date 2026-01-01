@@ -311,15 +311,15 @@ private:
         switch (difficulty)
         {
         case Difficulty::Easy:
+            return (lvl == 1) ? 2 : (lvl == 2) ? 4
+                                               : 6;
+        case Difficulty::Medium:
             return (lvl == 1) ? 3 : (lvl == 2) ? 5
                                                : 7;
-        case Difficulty::Medium:
-            return (lvl == 1) ? 4 : (lvl == 2) ? 6
-                                               : 8;
         case Difficulty::Hard:
         default:
-            return (lvl == 1) ? 5 : (lvl == 2) ? 8
-                                               : 12;
+            return (lvl == 1) ? 4 : (lvl == 2) ? 7
+                                               : 11;
         }
     }
 
