@@ -11,6 +11,9 @@ set_tests_properties(locales_exist PROPERTIES
 )
 
 
+
+
+
 # Test: Comprobar que assetPath funciona correctamente
 add_executable(rb_test_assetpath
   test_assetpath.cpp
@@ -25,6 +28,8 @@ add_test(NAME assetpath_exists COMMAND rb_test_assetpath)
 set_tests_properties(assetpath_exists PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
 )
+
+
 
 
 # Test: Comprobar función dominantAxis
@@ -46,6 +51,8 @@ set_tests_properties(dominant_axis PROPERTIES
 )
 
 
+
+
 # Test: Comprobar función isAdjacent4
 add_executable(rb_test_is_adjacent4
   test_is_adjacent4.cpp
@@ -65,6 +72,8 @@ set_tests_properties(is_adjacent4 PROPERTIES
 )
 
 
+
+
 ## Text: Comprobar traducciones con gettext
 find_library(RB_INTL_LIB intl)
 
@@ -82,8 +91,10 @@ set_tests_properties(gettext_translation PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
   ENVIRONMENT "LANG=es_ES.UTF-8;LC_ALL=es_ES.UTF-8;LANGUAGE=es"
 )
-
+set_property(TEST gettext_translation PROPERTY LABELS i18n)
 target_include_directories(rb_test_gettext_translation PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+
 
 
 # Test: Comprobar función computeMeleeTiles con frontOnly = true
@@ -104,6 +115,8 @@ set_tests_properties(compute_melee_front PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
   LABELS "utils"
 )
+
+
 
 
 # Test: Comprobar función computeMeleeTiles con frontOnly = false
