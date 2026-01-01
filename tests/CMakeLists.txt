@@ -78,7 +78,9 @@ add_test(NAME gettext_translation COMMAND rb_test_gettext_translation)
 
 set_tests_properties(gettext_translation PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+  ENVIRONMENT "LANG=es_ES.UTF-8;LC_ALL=es_ES.UTF-8;LANGUAGE=es"
 )
+
 target_include_directories(rb_test_gettext_translation PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
 
 
