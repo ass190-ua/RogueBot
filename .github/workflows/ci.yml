@@ -14,7 +14,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       
-      - name: Instalar dependencias X11 y OpenGL (Ubuntu)
+      - name: Instalar dependencias y locales (Ubuntu)
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -27,7 +27,12 @@ jobs:
             libgl1-mesa-dev \
             libglu1-mesa-dev \
             libglvnd-dev \
-            mesa-common-dev
+            mesa-common-dev \
+            locales \
+            gettext
+
+          sudo locale-gen es_ES.UTF-8
+          sudo update-locale LANG=es_ES.UTF-8
 
 
       - name: Configure (CMake + CTest)
@@ -37,4 +42,9 @@ jobs:
         run: cmake --build build-tests -j
 
       - name: Test (CTest)
-        run: ctest --test-dir build-tests --output-on-failure
+        run: |
+          export LANG=es_ES.UTF-8
+          export LC_ALL=es_ES.UTF-8
+          export LANGUAGE=es
+          locale
+          ctest --test-dir build-tests --output-on-failure
