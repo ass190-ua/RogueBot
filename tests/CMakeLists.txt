@@ -42,6 +42,7 @@ endif()
 add_test(NAME dominant_axis COMMAND rb_test_dominant_axis)
 set_tests_properties(dominant_axis PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+  LABELS "utils"
 )
 
 
@@ -60,6 +61,7 @@ endif()
 add_test(NAME is_adjacent4 COMMAND rb_test_is_adjacent4)
 set_tests_properties(is_adjacent4 PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+  LABELS "utils"
 )
 
 
@@ -98,6 +100,11 @@ endif()
 
 add_test(NAME compute_melee_front COMMAND rb_test_compute_melee_front)
 
+set_tests_properties(compute_melee_front PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+  LABELS "utils"
+)
+
 
 # Test: Comprobar función computeMeleeTiles con frontOnly = false
 add_executable(rb_test_compute_melee_cross
@@ -112,6 +119,13 @@ if(TARGET raylib)
 endif()
 
 add_test(NAME compute_melee_cross COMMAND rb_test_compute_melee_cross)
+
+set_tests_properties(compute_melee_cross PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+  LABELS "utils"
+)
+
+
 
 
 # Test: Comprobar función computeMeleeTilesOccluded con frontOnly = true
@@ -129,6 +143,13 @@ endif()
 
 add_test(NAME compute_melee_occluded_front COMMAND rb_test_compute_melee_occluded_front)
 
+set_tests_properties(compute_melee_occluded_front PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+  LABELS "utils"
+)
+
+
+
 
 # Test
 add_executable(rb_test_facing_from_dir
@@ -143,6 +164,12 @@ endif()
 
 add_test(NAME facing_from_dir COMMAND rb_test_facing_from_dir)
 
+set_tests_properties(facing_from_dir PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+  LABELS "utils"
+)
+
+
 
 # Test: Comprobar función PerformMeleeHit
 add_executable(rb_test_perform_melee_hit
@@ -156,6 +183,13 @@ if(TARGET raylib)
 endif()
 
 add_test(NAME perform_melee_hit COMMAND rb_test_perform_melee_hit)
+
+set_tests_properties(perform_melee_hit PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+  LABELS "utils"
+)
+
+
 
 # Test: Map determinista con misma seed
 add_executable(rb_test_map_deterministic_seed
