@@ -212,3 +212,23 @@ add_test(NAME map_is_walkable COMMAND rb_test_map_is_walkable)
 set_tests_properties(map_is_walkable PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
 )
+
+
+# Test: generateBossArena (borde WALL e interior FLOOR)
+add_executable(rb_test_map_boss_arena_structure
+  test_map_boss_arena_structure.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/Map.cpp
+)
+
+target_include_directories(rb_test_map_boss_arena_structure PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_map_boss_arena_structure PRIVATE raylib)
+endif()
+
+add_test(NAME map_boss_arena_structure COMMAND rb_test_map_boss_arena_structure)
+
+set_tests_properties(map_boss_arena_structure PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+)
+
