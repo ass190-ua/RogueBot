@@ -364,3 +364,23 @@ set_tests_properties(map_generate_exit_in_bounds PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
   LABELS "map"
 )
+
+
+# Test: Comprobar que findExitTile apunta a un tile EXIT
+add_executable(rb_test_map_exit_tile_is_exit
+  test_map_exit_tile_is_exit.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/Map.cpp
+)
+
+target_include_directories(rb_test_map_exit_tile_is_exit PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_map_exit_tile_is_exit PRIVATE raylib)
+endif()
+
+add_test(NAME map_exit_tile_is_exit COMMAND rb_test_map_exit_tile_is_exit)
+
+set_tests_properties(map_exit_tile_is_exit PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+  LABELS "map"
+)
