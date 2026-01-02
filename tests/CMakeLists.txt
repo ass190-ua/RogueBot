@@ -324,3 +324,83 @@ set_tests_properties(map_set_tile_bounds PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
   LABELS "map"
 )
+
+
+# Test: Comprobar que Map::generate fija correctamente width/height
+add_executable(rb_test_map_generate_sets_dimensions
+  test_map_generate_sets_dimensions.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/Map.cpp
+)
+
+target_include_directories(rb_test_map_generate_sets_dimensions PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_map_generate_sets_dimensions PRIVATE raylib)
+endif()
+
+add_test(NAME map_generate_sets_dimensions COMMAND rb_test_map_generate_sets_dimensions)
+
+set_tests_properties(map_generate_sets_dimensions PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+  LABELS "map"
+)
+
+
+# Test: Comprobar que findExitTile siempre devuelve coordenadas válidas (in-bounds)
+add_executable(rb_test_map_generate_exit_in_bounds
+  test_map_generate_exit_in_bounds.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/Map.cpp
+)
+
+target_include_directories(rb_test_map_generate_exit_in_bounds PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_map_generate_exit_in_bounds PRIVATE raylib)
+endif()
+
+add_test(NAME map_generate_exit_in_bounds COMMAND rb_test_map_generate_exit_in_bounds)
+
+set_tests_properties(map_generate_exit_in_bounds PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+  LABELS "map"
+)
+
+
+# Test: Comprobar que findExitTile apunta a un tile EXIT
+add_executable(rb_test_map_exit_tile_is_exit
+  test_map_exit_tile_is_exit.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/Map.cpp
+)
+
+target_include_directories(rb_test_map_exit_tile_is_exit PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_map_exit_tile_is_exit PRIVATE raylib)
+endif()
+
+add_test(NAME map_exit_tile_is_exit COMMAND rb_test_map_exit_tile_is_exit)
+
+set_tests_properties(map_exit_tile_is_exit PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+  LABELS "map"
+)
+
+
+# Test: Comprobar que Map::generate crea tiles FLOOR suficientes
+add_executable(rb_test_map_generate_creates_some_floor
+  test_map_generate_creates_some_floor.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/Map.cpp
+)
+
+target_include_directories(rb_test_map_generate_creates_some_floor PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_map_generate_creates_some_floor PRIVATE raylib)
+endif()
+
+add_test(NAME map_generate_creates_some_floor COMMAND rb_test_map_generate_creates_some_floor)
+
+set_tests_properties(map_generate_creates_some_floor PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+  LABELS "map"
+)
