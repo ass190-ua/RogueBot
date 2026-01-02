@@ -344,3 +344,23 @@ set_tests_properties(map_generate_sets_dimensions PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
   LABELS "map"
 )
+
+
+# Test: Comprobar que findExitTile siempre devuelve coordenadas válidas (in-bounds)
+add_executable(rb_test_map_generate_exit_in_bounds
+  test_map_generate_exit_in_bounds.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/Map.cpp
+)
+
+target_include_directories(rb_test_map_generate_exit_in_bounds PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_map_generate_exit_in_bounds PRIVATE raylib)
+endif()
+
+add_test(NAME map_generate_exit_in_bounds COMMAND rb_test_map_generate_exit_in_bounds)
+
+set_tests_properties(map_generate_exit_in_bounds PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+  LABELS "map"
+)
