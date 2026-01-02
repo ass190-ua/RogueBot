@@ -324,3 +324,23 @@ set_tests_properties(map_set_tile_bounds PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
   LABELS "map"
 )
+
+
+# Test: Comprobar que Map::generate fija correctamente width/height
+add_executable(rb_test_map_generate_sets_dimensions
+  test_map_generate_sets_dimensions.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/Map.cpp
+)
+
+target_include_directories(rb_test_map_generate_sets_dimensions PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_map_generate_sets_dimensions PRIVATE raylib)
+endif()
+
+add_test(NAME map_generate_sets_dimensions COMMAND rb_test_map_generate_sets_dimensions)
+
+set_tests_properties(map_generate_sets_dimensions PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+  LABELS "map"
+)
