@@ -30,6 +30,8 @@ add_executable(rb_test_assetpath
   test_assetpath.cpp
 )
 
+rb_link_boost_test(rb_test_assetpath)
+
 target_include_directories(rb_test_assetpath PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
 
 target_compile_definitions(rb_test_assetpath PRIVATE RB_ASSET_ROOT="${ASSET_ROOT}")
