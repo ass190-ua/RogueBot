@@ -1,3 +1,12 @@
+cmake_policy(SET CMP0167 OLD)
+find_package(Boost REQUIRED COMPONENTS unit_test_framework)
+
+function(rb_link_boost_test target)
+  target_link_libraries(${target} PRIVATE Boost::unit_test_framework)
+  # Ayuda en muchas distros cuando Boost.Test está como librería separada
+  target_compile_definitions(${target} PRIVATE BOOST_TEST_DYN_LINK)
+endfunction()
+
 
 # Test: Comprobar que los archivos de localización existen
 add_executable(rb_test_locales_exist
