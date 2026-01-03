@@ -36,50 +36,54 @@ void Game::drawEnemies() const {
     if (!visible(e.getX(), e.getY()))
       continue;
 
-    // Selección de pack según tipo
-    const bool isShooter = (e.getType() == Enemy::Shooter);
-
-    const Texture2D *idle =
-        isShooter ? &itemSprites.enemy2 : &itemSprites.enemy1;
-    const Texture2D *up1 =
-        isShooter ? &itemSprites.enemy2Up1 : &itemSprites.enemy1Up1;
-    const Texture2D *up2 =
-        isShooter ? &itemSprites.enemy2Up2 : &itemSprites.enemy1Up2;
-    const Texture2D *down1 =
-        isShooter ? &itemSprites.enemy2Down1 : &itemSprites.enemy1Down1;
-    const Texture2D *down2 =
-        isShooter ? &itemSprites.enemy2Down2 : &itemSprites.enemy1Down2;
-    const Texture2D *left1 =
-        isShooter ? &itemSprites.enemy2Left1 : &itemSprites.enemy1Left1;
-    const Texture2D *left2 =
-        isShooter ? &itemSprites.enemy2Left2 : &itemSprites.enemy1Left2;
-    const Texture2D *right1 =
-        isShooter ? &itemSprites.enemy2Right1 : &itemSprites.enemy1Right1;
-    const Texture2D *right2 =
-        isShooter ? &itemSprites.enemy2Right2 : &itemSprites.enemy1Right2;
-
-    // ¿Está moviéndose? (proxy: inclinación)
-    const bool moving = e.isMoving();
-
-    const int frame = e.getWalkIndex();
-
     const Texture2D *tex = nullptr;
-    switch (i < enemyFacing.size() ? enemyFacing[i] : EnemyFacing::Down) {
-    case EnemyFacing::Up:
-      tex = moving ? (frame == 0 ? up1 : up2) : idle;
-      break;
-    case EnemyFacing::Down:
-      tex = moving ? (frame == 0 ? down1 : down2) : idle;
-      break;
-    case EnemyFacing::Left:
-      tex = moving ? (frame == 0 ? left1 : left2) : idle;
-      break;
-    case EnemyFacing::Right:
-      tex = moving ? (frame == 0 ? right1 : right2) : idle;
-      break;
+
+    EnemyFacing face =
+        (i < enemyFacing.size()) ? enemyFacing[i] : EnemyFacing::Down;
+
+    // Alternamos frame 1 / frame 2 con el tiempo de animación del enemigo
+    // (no depende de si se mueve o no, pero te asegura que NUNCA se quedará en
+    // idle “por error de assets”)
+    bool frame2 = ((int)std::floor(e.getAnimTime() * 4.0f) % 2) == 1;
+
+    // Elegimos set según tipo
+    const bool isEnemy2 = (e.getType() == Enemy::Shooter);
+
+    if (!isEnemy2) {
+      switch (face) {
+      case EnemyFacing::Up:
+        tex = frame2 ? &itemSprites.enemy1Up2 : &itemSprites.enemy1Up1;
+        break;
+      case EnemyFacing::Down:
+        tex = frame2 ? &itemSprites.enemy1Down2 : &itemSprites.enemy1Down1;
+        break;
+      case EnemyFacing::Left:
+        tex = frame2 ? &itemSprites.enemy1Left2 : &itemSprites.enemy1Left1;
+        break;
+      case EnemyFacing::Right:
+        tex = frame2 ? &itemSprites.enemy1Right2 : &itemSprites.enemy1Right1;
+        break;
+      }
+    } else {
+      switch (face) {
+      case EnemyFacing::Up:
+        tex = frame2 ? &itemSprites.enemy2Up2 : &itemSprites.enemy2Up1;
+        break;
+      case EnemyFacing::Down:
+        tex = frame2 ? &itemSprites.enemy2Down2 : &itemSprites.enemy2Down1;
+        break;
+      case EnemyFacing::Left:
+        tex = frame2 ? &itemSprites.enemy2Left2 : &itemSprites.enemy2Left1;
+        break;
+      case EnemyFacing::Right:
+        tex = frame2 ? &itemSprites.enemy2Right2 : &itemSprites.enemy2Right1;
+        break;
+      }
     }
 
-    // Cada tipo tiene sprites propios
+    const float xpx = (float)(e.getX() * tileSize);
+    const float ypx = (float)(e.getY() * tileSize);
+
     Color tint = WHITE;
 
     // 1. Respiración (Squash & Stretch)
@@ -95,9 +99,6 @@ void Game::drawEnemies() const {
     // 3. Destino ajustado
     // Como rotamos desde los pies, la posición Y de destino debe ser la base
     // del tile
-    const float xpx = (float)(e.getX() * tileSize);
-    const float ypx = (float)(e.getY() * tileSize);
-
     Rectangle dest = {
         xpx + tileSize / 2.0f,    // Centro X
         ypx + tileSize,           // Pies Y
@@ -109,11 +110,17 @@ void Game::drawEnemies() const {
       Rectangle src{0, 0, (float)tex->width, (float)tex->height};
       // Usamos la rotación (tilt)
       DrawTexturePro(*tex, src, dest, origin, e.getTilt(), tint);
-    } else if (idle && idle->id != 0) {
-      Rectangle src{0, 0, (float)idle->width, (float)idle->height};
-      DrawTexturePro(*idle, src, dest, origin, e.getTilt(), tint);
     } else {
-      e.draw(tileSize);
+      // Fallback a idle del tipo correspondiente
+      const Texture2D &idle = (e.getType() == Enemy::Shooter)
+                                  ? itemSprites.enemy2Idle
+                                  : itemSprites.enemy1Idle;
+      if (idle.id != 0) {
+        Rectangle src{0, 0, (float)idle.width, (float)idle.height};
+        DrawTexturePro(idle, src, dest, origin, e.getTilt(), tint);
+      } else {
+        e.draw(tileSize);
+      }
     }
 
     // Flash blanco

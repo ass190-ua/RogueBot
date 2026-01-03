@@ -14,14 +14,23 @@ public:
   enum Type { Melee, Shooter };
 
   // Constructor: Inicializa al enemigo en una celda específica.
-  Enemy(int gx = 0, int gy = 0, Type t = Melee) : x(gx), y(gy), type(t) {}
+  Enemy(int gx = 0, int gy = 0, Type t = Melee) : x(gx), y(gy), type(t) {
+    lastX = gx;
+    lastY = gy;
+  }
 
   // Acceso a posición
   // Setters y Getters simples para mover al enemigo o leer dónde está.
   void setPos(int gx, int gy) {
     x = gx;
     y = gy;
+    lastX = gx;
+    lastY = gy;
+    walkTimer = 0.0f;
+    walkAnimTimer = 0.0f;
+    walkIndex = 0;
   }
+
   int getX() const { return x; }
   int getY() const { return y; }
 
@@ -64,11 +73,24 @@ public:
     // Decaimiento del target (el impulso de inclinación dura poco)
     targetTilt += (0.0f - targetTilt) * 5.0f * dt;
 
+    const bool movedNow = (x != lastX || y != lastY);
+    if (movedNow) {
+      walkTimer = 0.25f;
+      lastX = x;
+      lastY = y;
+    }
+
+    if (walkTimer > 0.0f) {
+      walkTimer -= dt;
+      if (walkTimer < 0.0f)
+        walkTimer = 0.0f;
+    }
+
     if (isMoving()) {
       walkAnimTimer += dt;
       if (walkAnimTimer >= walkAnimInterval) {
         walkAnimTimer = 0.0f;
-        walkIndex = 1 - walkIndex; // toggle 0 <-> 1
+        walkIndex = 1 - walkIndex;
       }
     } else {
       walkAnimTimer = 0.0f;
@@ -93,6 +115,8 @@ private:
   float animTime = 0.0f;   // Tiempo acumulado (para el seno)
   float tiltAngle = 0.0f;  // Ángulo de inclinación actual
   float targetTilt = 0.0f; // Ángulo objetivo (hacia donde nos movemos)
+
+  int lastX = 0, lastY = 0;
   float walkTimer = 0.0f;
   float walkAnimTimer = 0.0f;     // acumulador (como Player)
   float walkAnimInterval = 0.12f; // igual que Player (~8 fps)
