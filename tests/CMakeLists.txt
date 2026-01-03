@@ -518,6 +518,9 @@ add_executable(rb_test_gettext_translation_es_es
   test_gettext_translation_es_es.cpp
 )
 
+rb_link_boost_test(rb_test_gettext_translation_es_es)
+
+
 if(RB_INTL_LIB)
   target_link_libraries(rb_test_gettext_translation_es_es PRIVATE ${RB_INTL_LIB})
 endif()
