@@ -1,12 +1,12 @@
+#define BOOST_TEST_MODULE rb_test_find_exit_tile
+#include <boost/test/unit_test.hpp>
+
 #include "Map.hpp"
-#include <iostream>
 
-static int fail(const char* msg) {
-  std::cerr << "[FAIL] " << msg << "\n";
-  return 1;
-}
+BOOST_AUTO_TEST_SUITE(find_exit_tile)
 
-int main() {
+BOOST_AUTO_TEST_CASE(find_exit_tile_returns_valid_cell)
+{
   const int W = 40;
   const int H = 25;
 
@@ -15,19 +15,12 @@ int main() {
 
   auto [ex, ey] = m.findExitTile();
 
-  if (ex < 0 || ey < 0 || ex >= m.width() || ey >= m.height()) {
-    std::cerr << "[FAIL] findExitTile devuelve coordenadas fuera de rango: "
-              << ex << "," << ey << "\n";
-    return 1;
-  }
+  BOOST_REQUIRE_MESSAGE(!(ex < 0 || ey < 0 || ex >= m.width() || ey >= m.height()),
+                        "findExitTile devuelve coordenadas fuera de rango: " << ex << "," << ey);
 
   Tile t = m.at(ex, ey);
-  if (t == WALL) {
-    std::cerr << "[FAIL] findExitTile apunta a un muro en: "
-              << ex << "," << ey << "\n";
-    return 1;
-  }
-
-  std::cout << "[OK] findExitTile devuelve una celda válida (" << ex << "," << ey << ")\n";
-  return 0;
+  BOOST_REQUIRE_MESSAGE(t != WALL,
+                        "findExitTile apunta a un muro en: " << ex << "," << ey);
 }
+
+BOOST_AUTO_TEST_SUITE_END()
