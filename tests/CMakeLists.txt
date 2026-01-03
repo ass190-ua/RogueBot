@@ -404,3 +404,23 @@ set_tests_properties(map_generate_creates_some_floor PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
   LABELS "map"
 )
+
+
+# Test: Fijar comportamiento de dominantAxis en empate abs(dx)==abs(dy)
+add_executable(rb_test_dominant_axis_tie_behavior
+  test_dominant_axis_tie_behavior.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/GameUtils.cpp
+)
+
+target_include_directories(rb_test_dominant_axis_tie_behavior PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_dominant_axis_tie_behavior PRIVATE raylib)
+endif()
+
+add_test(NAME dominant_axis_tie_behavior COMMAND rb_test_dominant_axis_tie_behavior)
+
+set_tests_properties(dominant_axis_tie_behavior PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+  LABELS "utils"
+)
