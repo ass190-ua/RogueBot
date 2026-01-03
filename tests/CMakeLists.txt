@@ -12,6 +12,7 @@ endfunction()
 add_executable(rb_test_locales_exist
   test_locales_exist.cpp
 )
+rb_link_boost_test(rb_test_locales_exist)
 
 add_test(NAME locales_exist COMMAND rb_test_locales_exist)
 
