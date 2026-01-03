@@ -483,3 +483,52 @@ set_tests_properties(facing_from_dir_non_unit_vectors PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
   LABELS "utils"
 )
+
+
+# Test: Comprobar que existen catálogos .mo en es_ES y en_GB
+add_executable(rb_test_i18n_mo_files_exist_en_es
+  test_i18n_mo_files_exist_en_es.cpp
+)
+
+add_test(NAME i18n_mo_files_exist_en_es COMMAND rb_test_i18n_mo_files_exist_en_es)
+
+set_tests_properties(i18n_mo_files_exist_en_es PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+  LABELS "i18n"
+)
+
+
+# Test: Comprobar traducción con gettext en es_ES usando una clave real del .mo
+add_executable(rb_test_gettext_translation_es_es
+  test_gettext_translation_es_es.cpp
+)
+
+if(RB_INTL_LIB)
+  target_link_libraries(rb_test_gettext_translation_es_es PRIVATE ${RB_INTL_LIB})
+endif()
+
+target_include_directories(rb_test_gettext_translation_es_es PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+add_test(NAME gettext_translation_es_es COMMAND rb_test_gettext_translation_es_es)
+
+set_tests_properties(gettext_translation_es_es PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+  ENVIRONMENT "LANG=es_ES.UTF-8;LC_ALL=es_ES.UTF-8;LC_MESSAGES=es_ES.UTF-8;LANGUAGE=es_ES"
+)
+set_property(TEST gettext_translation_es_es PROPERTY LABELS i18n)
+
+
+# Test: assetPath resuelve correctamente un recurso existente conocido
+add_executable(rb_test_assetpath_known_file_exists
+  test_assetpath_known_file_exists.cpp
+)
+
+target_include_directories(rb_test_assetpath_known_file_exists PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+target_compile_definitions(rb_test_assetpath_known_file_exists PRIVATE RB_ASSET_ROOT="${ASSET_ROOT}")
+
+add_test(NAME assetpath_known_file_exists COMMAND rb_test_assetpath_known_file_exists)
+
+set_tests_properties(assetpath_known_file_exists PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+  LABELS "assets"
+)
