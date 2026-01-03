@@ -1,57 +1,45 @@
+#define BOOST_TEST_MODULE rb_test_compute_melee_tiles_cross
+#include <boost/test/unit_test.hpp>
+
 #include "GameUtils.hpp"
-#include <iostream>
 #include <vector>
+#include <cstddef>
 
-static bool eq(const IVec2 &a, const IVec2 &b) {
-  return a.x == b.x && a.y == b.y;
+static void assertTilesEq(const std::vector<IVec2>& got, const std::vector<IVec2>& exp) {
+  BOOST_REQUIRE_EQUAL(got.size(), exp.size());
+  for (std::size_t i = 0; i < exp.size(); ++i) {
+    BOOST_TEST(got[i].x == exp[i].x);
+    BOOST_TEST(got[i].y == exp[i].y);
+  }
 }
 
-static int assertTiles(const char *name, const std::vector<IVec2> &got,
-                       const std::vector<IVec2> &exp) {
-  if (got.size() != exp.size()) {
-    std::cerr << "[FAIL] " << name << " tamaño incorrecto\n";
-    std::cerr << "  esperado: " << exp.size() << "  obtenido: " << got.size()
-              << "\n";
-    return 1;
-  }
-  for (size_t i = 0; i < exp.size(); ++i) {
-    if (!eq(got[i], exp[i])) {
-      std::cerr << "[FAIL] " << name << " mismatch en i=" << i << "\n";
-      std::cerr << "  esperado: (" << exp[i].x << "," << exp[i].y << ")\n";
-      std::cerr << "  obtenido: (" << got[i].x << "," << got[i].y << ")\n";
-      return 1;
-    }
-  }
-  return 0;
+BOOST_AUTO_TEST_SUITE(GameUtils_ComputeMeleeTiles_Cross)
+
+BOOST_AUTO_TEST_CASE(cross_range2) {
+  // Arrange
+  IVec2 center{10, 10};
+  std::vector<IVec2> exp{
+      {11, 10}, {9, 10}, {10, 11}, {10, 9},
+      {12, 10}, {8, 10}, {10, 12}, {10, 8}
+  };
+
+  // Act
+  auto got = computeMeleeTiles(center, {7, 1}, 2, false);
+
+  // Assert
+  assertTilesEq(got, exp);
 }
 
-int main() {
-  int fails = 0;
+BOOST_AUTO_TEST_CASE(cross_range1) {
+  // Arrange
+  IVec2 center{0, 0};
+  std::vector<IVec2> exp{{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
 
-  {
-    IVec2 center{10, 10};
-    auto got = computeMeleeTiles(center, {7, 1}, 2, false);
+  // Act
+  auto got = computeMeleeTiles(center, {1, 0}, 1, false);
 
-    std::vector<IVec2> exp{
-        {11, 10}, {9, 10}, {10, 11}, {10, 9},
-        {12, 10}, {8, 10}, {10, 12}, {10, 8}
-    };
-
-    fails += assertTiles("cross_range2", got, exp);
-  }
-
-  {
-    IVec2 center{0, 0};
-    auto got = computeMeleeTiles(center, {1, 0}, 1, false);
-
-    std::vector<IVec2> exp{{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
-
-    fails += assertTiles("cross_range1", got, exp);
-  }
-
-  if (fails == 0) {
-    std::cout << "[OK] computeMeleeTiles (cruz)\n";
-    return 0;
-  }
-  return 1;
+  // Assert
+  assertTilesEq(got, exp);
 }
+
+BOOST_AUTO_TEST_SUITE_END()
