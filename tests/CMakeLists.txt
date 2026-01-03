@@ -209,6 +209,8 @@ add_executable(rb_test_perform_melee_hit
   ${CMAKE_CURRENT_SOURCE_DIR}/test_perform_melee_hit.cpp
 )
 
+rb_link_boost_test(rb_test_perform_melee_hit)
+
 target_include_directories(rb_test_perform_melee_hit PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
 
 if(TARGET raylib)
