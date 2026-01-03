@@ -444,3 +444,23 @@ set_tests_properties(compute_melee_tiles_range_zero PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
   LABELS "utils"
 )
+
+
+# Test: computeMeleeTiles maneja rango negativo sin romper
+add_executable(rb_test_compute_melee_tiles_negative_range
+  test_compute_melee_tiles_negative_range.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/GameUtils.cpp
+)
+
+target_include_directories(rb_test_compute_melee_tiles_negative_range PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_compute_melee_tiles_negative_range PRIVATE raylib)
+endif()
+
+add_test(NAME compute_melee_tiles_negative_range COMMAND rb_test_compute_melee_tiles_negative_range)
+
+set_tests_properties(compute_melee_tiles_negative_range PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+  LABELS "utils"
+)
