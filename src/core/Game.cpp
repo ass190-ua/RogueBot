@@ -96,57 +96,51 @@ void ItemSprites::load() {
   battery = ResourceManager::getInstance().getTexture(
       "assets/sprites/items/item_battery.png");
 
-  auto &rm = ResourceManager::getInstance();
+  // Enemy 1
+  enemy1Idle = ResourceManager::getInstance().getTexture(
+      "assets/sprites/enemies/enemy1.png");
+  enemy1Up1 = ResourceManager::getInstance().getTexture(
+      "assets/sprites/enemies/enemy1_up1.png");
+  enemy1Up2 = ResourceManager::getInstance().getTexture(
+      "assets/sprites/enemies/enemy1_up2.png");
+  enemy1Down1 = ResourceManager::getInstance().getTexture(
+      "assets/sprites/enemies/enemy1_down1.png");
+  enemy1Down2 = ResourceManager::getInstance().getTexture(
+      "assets/sprites/enemies/enemy1_down2.png");
+  enemy1Left1 = ResourceManager::getInstance().getTexture(
+      "assets/sprites/enemies/enemy1_left1.png");
+  enemy1Left2 = ResourceManager::getInstance().getTexture(
+      "assets/sprites/enemies/enemy1_left2.png");
+  enemy1Right1 = ResourceManager::getInstance().getTexture(
+      "assets/sprites/enemies/enemy1_right1.png");
+  enemy1Right2 = ResourceManager::getInstance().getTexture(
+      "assets/sprites/enemies/enemy1_right2.png");
 
-  // Pack enemy1
-  enemy1 = rm.getTexture("assets/sprites/enemies/enemy1.png");
-  enemy1Up1 = rm.getTexture("assets/sprites/enemies/enemy1_up1.png");
-  enemy1Up2 = rm.getTexture("assets/sprites/enemies/enemy1_up2.png");
-  enemy1Down1 = rm.getTexture("assets/sprites/enemies/enemy1_down1.png");
-  enemy1Down2 = rm.getTexture("assets/sprites/enemies/enemy1_down2.png");
-  enemy1Left1 = rm.getTexture("assets/sprites/enemies/enemy1_left1.png");
-  enemy1Left2 = rm.getTexture("assets/sprites/enemies/enemy1_left2.png");
-  enemy1Right1 = rm.getTexture("assets/sprites/enemies/enemy1_right1.png");
-  enemy1Right2 = rm.getTexture("assets/sprites/enemies/enemy1_right2.png");
-
-  // Pack enemy2
-  enemy2 = rm.getTexture("assets/sprites/enemies/enemy2.png");
-  enemy2Up1 = rm.getTexture("assets/sprites/enemies/enemy2_up1.png");
-  enemy2Up2 = rm.getTexture("assets/sprites/enemies/enemy2_up2.png");
-  enemy2Down1 = rm.getTexture("assets/sprites/enemies/enemy2_down1.png");
-  enemy2Down2 = rm.getTexture("assets/sprites/enemies/enemy2_down2.png");
-  enemy2Left1 = rm.getTexture("assets/sprites/enemies/enemy2_left1.png");
-  enemy2Left2 = rm.getTexture("assets/sprites/enemies/enemy2_left2.png");
-  enemy2Right1 = rm.getTexture("assets/sprites/enemies/enemy2_right1.png");
-  enemy2Right2 = rm.getTexture("assets/sprites/enemies/enemy2_right2.png");
+  // Enemy 2
+  enemy2Idle = ResourceManager::getInstance().getTexture(
+      "assets/sprites/enemies/enemy2.png");
+  enemy2Up1 = ResourceManager::getInstance().getTexture(
+      "assets/sprites/enemies/enemy2_up1.png");
+  enemy2Up2 = ResourceManager::getInstance().getTexture(
+      "assets/sprites/enemies/enemy2_up2.png");
+  enemy2Down1 = ResourceManager::getInstance().getTexture(
+      "assets/sprites/enemies/enemy2_down1.png");
+  enemy2Down2 = ResourceManager::getInstance().getTexture(
+      "assets/sprites/enemies/enemy2_down2.png");
+  enemy2Left1 = ResourceManager::getInstance().getTexture(
+      "assets/sprites/enemies/enemy2_left1.png");
+  enemy2Left2 = ResourceManager::getInstance().getTexture(
+      "assets/sprites/enemies/enemy2_left2.png");
+  enemy2Right1 = ResourceManager::getInstance().getTexture(
+      "assets/sprites/enemies/enemy2_right1.png");
+  enemy2Right2 = ResourceManager::getInstance().getTexture(
+      "assets/sprites/enemies/enemy2_right2.png");
 
   // Pixel-art nítido (evitar blur al escalar 16x16 -> tileSize)
   auto pixel = [](Texture2D &t) {
     if (t.id != 0)
       SetTextureFilter(t, TEXTURE_FILTER_POINT);
   };
-
-  // Enemy 1
-  pixel(enemy1);
-  pixel(enemy1Up1);
-  pixel(enemy1Up2);
-  pixel(enemy1Down1);
-  pixel(enemy1Down2);
-  pixel(enemy1Left1);
-  pixel(enemy1Left2);
-  pixel(enemy1Right1);
-  pixel(enemy1Right2);
-
-  // Enemy 2
-  pixel(enemy2);
-  pixel(enemy2Up1);
-  pixel(enemy2Up2);
-  pixel(enemy2Down1);
-  pixel(enemy2Down2);
-  pixel(enemy2Left1);
-  pixel(enemy2Left2);
-  pixel(enemy2Right1);
-  pixel(enemy2Right2);
 
   // Carga del Boss
   bossDownIdle = ResourceManager::getInstance().getTexture(
