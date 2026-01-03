@@ -424,3 +424,23 @@ set_tests_properties(dominant_axis_tie_behavior PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
   LABELS "utils"
 )
+
+
+# Test: computeMeleeTiles con rango 0 devuelve vacío
+add_executable(rb_test_compute_melee_tiles_range_zero
+  test_compute_melee_tiles_range_zero.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/GameUtils.cpp
+)
+
+target_include_directories(rb_test_compute_melee_tiles_range_zero PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_compute_melee_tiles_range_zero PRIVATE raylib)
+endif()
+
+add_test(NAME compute_melee_tiles_range_zero COMMAND rb_test_compute_melee_tiles_range_zero)
+
+set_tests_properties(compute_melee_tiles_range_zero PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+  LABELS "utils"
+)
