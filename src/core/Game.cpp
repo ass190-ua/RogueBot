@@ -98,51 +98,181 @@ void ItemSprites::load() {
 
   auto &rm = ResourceManager::getInstance();
 
-  auto pickExisting = [](const std::string &preferred,
-                         const std::string &fallback) -> std::string {
-    // assetPath() devuelve ruta absoluta; comprobamos si existe en disco
-    const std::string fullPreferred = assetPath(preferred.c_str());
-    if (std::filesystem::exists(fullPreferred))
-      return preferred;
-    return fallback;
+  auto pickExisting =
+      [](std::initializer_list<const char *> candidates) -> std::string {
+    const char *last = nullptr;
+    for (const char *rel : candidates) {
+      last = rel;
+      const std::string full = assetPath(rel);
+      if (std::filesystem::exists(full))
+        return std::string(rel);
+    }
+    return last ? std::string(last) : std::string();
   };
 
-  enemy = rm.getTexture("assets/sprites/enemies/enemy.png");
+  // -------- Pack enemy1 (idle + 2 frames por dirección) --------
+  const std::string e1_idle =
+      pickExisting({"assets/sprites/enemies/enemy1.png",
+                    "assets/sprites/enemies/enemy.png"});
+  enemy1 = rm.getTexture(e1_idle);
 
-  // UP
-  const std::string up1 = pickExisting("assets/sprites/enemies/enemy_up1.png",
-                                       "assets/sprites/enemies/enemy_up.png");
-  enemyUp = rm.getTexture(up1);
-  const std::string up2 =
-      pickExisting("assets/sprites/enemies/enemy_up2.png", up1);
-  enemyUp2 = rm.getTexture(up2);
+  const std::string e1_up1 =
+      pickExisting({"assets/sprites/enemies/enemy1_up1.png",
+                    "assets/sprites/enemies/enemy1_up.png",
+                    "assets/sprites/enemies/enemy_up.png",
+                    "assets/sprites/enemies/enemy1.png",
+                    "assets/sprites/enemies/enemy.png"});
+  const std::string e1_up2 =
+      pickExisting({"assets/sprites/enemies/enemy1_up2.png",
+                    "assets/sprites/enemies/enemy1_up1.png",
+                    "assets/sprites/enemies/enemy1_up.png",
+                    "assets/sprites/enemies/enemy_up.png",
+                    "assets/sprites/enemies/enemy1.png",
+                    "assets/sprites/enemies/enemy.png"});
+  enemy1Up1 = rm.getTexture(e1_up1);
+  enemy1Up2 = rm.getTexture(e1_up2);
 
-  // DOWN
-  const std::string down1 =
-      pickExisting("assets/sprites/enemies/enemy_down1.png",
-                   "assets/sprites/enemies/enemy_down.png");
-  enemyDown = rm.getTexture(down1);
-  const std::string down2 =
-      pickExisting("assets/sprites/enemies/enemy_down2.png", down1);
-  enemyDown2 = rm.getTexture(down2);
+  const std::string e1_down1 =
+      pickExisting({"assets/sprites/enemies/enemy1_down1.png",
+                    "assets/sprites/enemies/enemy1_down.png",
+                    "assets/sprites/enemies/enemy_down.png",
+                    "assets/sprites/enemies/enemy1.png",
+                    "assets/sprites/enemies/enemy.png"});
+  const std::string e1_down2 =
+      pickExisting({"assets/sprites/enemies/enemy1_down2.png",
+                    "assets/sprites/enemies/enemy1_down1.png",
+                    "assets/sprites/enemies/enemy1_down.png",
+                    "assets/sprites/enemies/enemy_down.png",
+                    "assets/sprites/enemies/enemy1.png",
+                    "assets/sprites/enemies/enemy.png"});
+  enemy1Down1 = rm.getTexture(e1_down1);
+  enemy1Down2 = rm.getTexture(e1_down2);
 
-  // LEFT
-  const std::string left1 =
-      pickExisting("assets/sprites/enemies/enemy_left1.png",
-                   "assets/sprites/enemies/enemy_left.png");
-  enemyLeft = rm.getTexture(left1);
-  const std::string left2 =
-      pickExisting("assets/sprites/enemies/enemy_left2.png", left1);
-  enemyLeft2 = rm.getTexture(left2);
+  const std::string e1_left1 =
+      pickExisting({"assets/sprites/enemies/enemy1_left1.png",
+                    "assets/sprites/enemies/enemy1_left.png",
+                    "assets/sprites/enemies/enemy_left.png",
+                    "assets/sprites/enemies/enemy1.png",
+                    "assets/sprites/enemies/enemy.png"});
+  const std::string e1_left2 =
+      pickExisting({"assets/sprites/enemies/enemy1_left2.png",
+                    "assets/sprites/enemies/enemy1_left1.png",
+                    "assets/sprites/enemies/enemy1_left.png",
+                    "assets/sprites/enemies/enemy_left.png",
+                    "assets/sprites/enemies/enemy1.png",
+                    "assets/sprites/enemies/enemy.png"});
+  enemy1Left1 = rm.getTexture(e1_left1);
+  enemy1Left2 = rm.getTexture(e1_left2);
 
-  // RIGHT
-  const std::string right1 =
-      pickExisting("assets/sprites/enemies/enemy_right1.png",
-                   "assets/sprites/enemies/enemy_right.png");
-  enemyRight = rm.getTexture(right1);
-  const std::string right2 =
-      pickExisting("assets/sprites/enemies/enemy_right2.png", right1);
-  enemyRight2 = rm.getTexture(right2);
+  const std::string e1_right1 =
+      pickExisting({"assets/sprites/enemies/enemy1_right1.png",
+                    "assets/sprites/enemies/enemy1_right.png",
+                    "assets/sprites/enemies/enemy_right.png",
+                    "assets/sprites/enemies/enemy1.png",
+                    "assets/sprites/enemies/enemy.png"});
+  const std::string e1_right2 =
+      pickExisting({"assets/sprites/enemies/enemy1_right2.png",
+                    "assets/sprites/enemies/enemy1_right1.png",
+                    "assets/sprites/enemies/enemy1_right.png",
+                    "assets/sprites/enemies/enemy_right.png",
+                    "assets/sprites/enemies/enemy1.png",
+                    "assets/sprites/enemies/enemy.png"});
+  enemy1Right1 = rm.getTexture(e1_right1);
+  enemy1Right2 = rm.getTexture(e1_right2);
+
+  // -------- Pack enemy2 (idle + 2 frames por dirección) --------
+  const std::string e2_idle = pickExisting(
+      {"assets/sprites/enemies/enemy2.png", "assets/sprites/enemies/enemy1.png",
+       "assets/sprites/enemies/enemy.png"});
+  enemy2 = rm.getTexture(e2_idle);
+
+  const std::string e2_up1 = pickExisting(
+      {"assets/sprites/enemies/enemy2_up1.png",
+       "assets/sprites/enemies/enemy2_up.png",
+       "assets/sprites/enemies/enemy1_up1.png",
+       "assets/sprites/enemies/enemy1_up.png",
+       "assets/sprites/enemies/enemy_up.png",
+       "assets/sprites/enemies/enemy2.png", "assets/sprites/enemies/enemy1.png",
+       "assets/sprites/enemies/enemy.png"});
+  const std::string e2_up2 = pickExisting(
+      {"assets/sprites/enemies/enemy2_up2.png",
+       "assets/sprites/enemies/enemy2_up1.png",
+       "assets/sprites/enemies/enemy2_up.png",
+       "assets/sprites/enemies/enemy1_up1.png",
+       "assets/sprites/enemies/enemy1_up.png",
+       "assets/sprites/enemies/enemy_up.png",
+       "assets/sprites/enemies/enemy2.png", "assets/sprites/enemies/enemy1.png",
+       "assets/sprites/enemies/enemy.png"});
+  enemy2Up1 = rm.getTexture(e2_up1);
+  enemy2Up2 = rm.getTexture(e2_up2);
+
+  const std::string e2_down1 = pickExisting(
+      {"assets/sprites/enemies/enemy2_down1.png",
+       "assets/sprites/enemies/enemy2_down.png",
+       "assets/sprites/enemies/enemy1_down1.png",
+       "assets/sprites/enemies/enemy1_down.png",
+       "assets/sprites/enemies/enemy_down.png",
+       "assets/sprites/enemies/enemy2.png", "assets/sprites/enemies/enemy1.png",
+       "assets/sprites/enemies/enemy.png"});
+  const std::string e2_down2 = pickExisting(
+      {"assets/sprites/enemies/enemy2_down2.png",
+       "assets/sprites/enemies/enemy2_down1.png",
+       "assets/sprites/enemies/enemy2_down.png",
+       "assets/sprites/enemies/enemy1_down1.png",
+       "assets/sprites/enemies/enemy1_down.png",
+       "assets/sprites/enemies/enemy_down.png",
+       "assets/sprites/enemies/enemy2.png", "assets/sprites/enemies/enemy1.png",
+       "assets/sprites/enemies/enemy.png"});
+  enemy2Down1 = rm.getTexture(e2_down1);
+  enemy2Down2 = rm.getTexture(e2_down2);
+
+  const std::string e2_left1 = pickExisting(
+      {"assets/sprites/enemies/enemy2_left1.png",
+       "assets/sprites/enemies/enemy2_left.png",
+       "assets/sprites/enemies/enemy1_left1.png",
+       "assets/sprites/enemies/enemy1_left.png",
+       "assets/sprites/enemies/enemy_left.png",
+       "assets/sprites/enemies/enemy2.png", "assets/sprites/enemies/enemy1.png",
+       "assets/sprites/enemies/enemy.png"});
+  const std::string e2_left2 = pickExisting(
+      {"assets/sprites/enemies/enemy2_left2.png",
+       "assets/sprites/enemies/enemy2_left1.png",
+       "assets/sprites/enemies/enemy2_left.png",
+       "assets/sprites/enemies/enemy1_left1.png",
+       "assets/sprites/enemies/enemy1_left.png",
+       "assets/sprites/enemies/enemy_left.png",
+       "assets/sprites/enemies/enemy2.png", "assets/sprites/enemies/enemy1.png",
+       "assets/sprites/enemies/enemy.png"});
+  enemy2Left1 = rm.getTexture(e2_left1);
+  enemy2Left2 = rm.getTexture(e2_left2);
+
+  const std::string e2_right1 = pickExisting(
+      {"assets/sprites/enemies/enemy2_right1.png",
+       "assets/sprites/enemies/enemy2_right.png",
+       "assets/sprites/enemies/enemy1_right1.png",
+       "assets/sprites/enemies/enemy1_right.png",
+       "assets/sprites/enemies/enemy_right.png",
+       "assets/sprites/enemies/enemy2.png", "assets/sprites/enemies/enemy1.png",
+       "assets/sprites/enemies/enemy.png"});
+  const std::string e2_right2 = pickExisting(
+      {"assets/sprites/enemies/enemy2_right2.png",
+       "assets/sprites/enemies/enemy2_right1.png",
+       "assets/sprites/enemies/enemy2_right.png",
+       "assets/sprites/enemies/enemy1_right1.png",
+       "assets/sprites/enemies/enemy1_right.png",
+       "assets/sprites/enemies/enemy_right.png",
+       "assets/sprites/enemies/enemy2.png", "assets/sprites/enemies/enemy1.png",
+       "assets/sprites/enemies/enemy.png"});
+  enemy2Right1 = rm.getTexture(e2_right1);
+  enemy2Right2 = rm.getTexture(e2_right2);
+
+  // -------- Compatibilidad: lo que usa el render actual (por ahora) = enemy1
+  // frame1 --------
+  enemy = enemy1;
+  enemyUp = enemy1Up1;
+  enemyDown = enemy1Down1;
+  enemyLeft = enemy1Left1;
+  enemyRight = enemy1Right1;
 
   // Carga del Boss
   bossDownIdle = ResourceManager::getInstance().getTexture(

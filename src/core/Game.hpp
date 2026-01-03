@@ -123,19 +123,35 @@ struct ItemSprites {
   Texture2D swordRed{};
   Texture2D plasma1{};
   Texture2D plasma2{};
-  
-  // Enemigos (Direccionales)
-  Texture2D enemy{}; // Fallback (idle)
+
+  // Enemigos (legacy: se seguirán usando hasta que cambiemos el render)
+  Texture2D enemy{}; // Fallback
   Texture2D enemyUp{};
   Texture2D enemyDown{};
   Texture2D enemyLeft{};
   Texture2D enemyRight{};
 
-  // 2º frame por dirección (walk2). Si no existe, será fallback al frame 1.
-  Texture2D enemyUp2{};
-  Texture2D enemyDown2{};
-  Texture2D enemyLeft2{};
-  Texture2D enemyRight2{};
+  // Enemigo 1 (pack propio)
+  Texture2D enemy1{};
+  Texture2D enemy1Up1{};
+  Texture2D enemy1Up2{};
+  Texture2D enemy1Down1{};
+  Texture2D enemy1Down2{};
+  Texture2D enemy1Left1{};
+  Texture2D enemy1Left2{};
+  Texture2D enemy1Right1{};
+  Texture2D enemy1Right2{};
+
+  // Enemigo 2 (pack propio)
+  Texture2D enemy2{};
+  Texture2D enemy2Up1{};
+  Texture2D enemy2Up2{};
+  Texture2D enemy2Down1{};
+  Texture2D enemy2Down2{};
+  Texture2D enemy2Left1{};
+  Texture2D enemy2Left2{};
+  Texture2D enemy2Right1{};
+  Texture2D enemy2Right2{};
 
   // Texturas del Boss
   Texture2D bossUpIdle{};
