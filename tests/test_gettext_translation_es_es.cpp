@@ -3,6 +3,8 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <cstdint>
+#include <cstddef>
 
 #include <libintl.h>
 #include <locale.h>
