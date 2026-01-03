@@ -464,3 +464,22 @@ set_tests_properties(compute_melee_tiles_negative_range PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
   LABELS "utils"
 )
+
+
+# Test: facingFromDir acepta vectores no unitarios
+add_executable(rb_test_facing_from_dir_non_unit_vectors
+  ${CMAKE_CURRENT_SOURCE_DIR}/test_facing_from_dir_non_unit_vectors.cpp
+)
+
+target_include_directories(rb_test_facing_from_dir_non_unit_vectors PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_facing_from_dir_non_unit_vectors PRIVATE raylib)
+endif()
+
+add_test(NAME facing_from_dir_non_unit_vectors COMMAND rb_test_facing_from_dir_non_unit_vectors)
+
+set_tests_properties(facing_from_dir_non_unit_vectors PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+  LABELS "utils"
+)
