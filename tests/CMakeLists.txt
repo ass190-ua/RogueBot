@@ -113,6 +113,7 @@ add_executable(rb_test_compute_melee_front
   test_compute_melee_tiles_front.cpp
   ${PROJECT_SOURCE_DIR}/src/core/GameUtils.cpp
 )
+rb_link_boost_test(rb_test_compute_melee_front)
 
 target_include_directories(rb_test_compute_melee_front PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
 
