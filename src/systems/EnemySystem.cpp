@@ -61,8 +61,7 @@ void Game::drawEnemies() const {
     // ¿Está moviéndose? (proxy: inclinación)
     const bool moving = e.isMoving();
 
-    // Frame walk 1/2 (cambia cada ~0.2s porque animTime sube dt*5)
-    const int frame = (static_cast<int>(std::floor(e.getAnimTime())) % 2);
+    const int frame = e.getWalkIndex();
 
     const Texture2D *tex = nullptr;
     switch (i < enemyFacing.size() ? enemyFacing[i] : EnemyFacing::Down) {

@@ -64,10 +64,15 @@ public:
     // Decaimiento del target (el impulso de inclinación dura poco)
     targetTilt += (0.0f - targetTilt) * 5.0f * dt;
 
-    if (walkTimer > 0.0f) {
-      walkTimer -= dt;
-      if (walkTimer < 0.0f)
-        walkTimer = 0.0f;
+    if (isMoving()) {
+      walkAnimTimer += dt;
+      if (walkAnimTimer >= walkAnimInterval) {
+        walkAnimTimer = 0.0f;
+        walkIndex = 1 - walkIndex; // toggle 0 <-> 1
+      }
+    } else {
+      walkAnimTimer = 0.0f;
+      walkIndex = 0;
     }
   }
 
@@ -81,12 +86,17 @@ public:
   void notifyMoved() { walkTimer = 0.25f; }
   bool isMoving() const { return walkTimer > 0.0f; }
 
+  int getWalkIndex() const { return walkIndex; } // 0 ó 1
+
 private:
   // Variables para animación
   float animTime = 0.0f;   // Tiempo acumulado (para el seno)
   float tiltAngle = 0.0f;  // Ángulo de inclinación actual
   float targetTilt = 0.0f; // Ángulo objetivo (hacia donde nos movemos)
   float walkTimer = 0.0f;
+  float walkAnimTimer = 0.0f;     // acumulador (como Player)
+  float walkAnimInterval = 0.12f; // igual que Player (~8 fps)
+  int walkIndex = 0;
 
   // Estado interno: Coordenadas de la rejilla (Grid Coordinates)
   // x = Columna, y = Fila
