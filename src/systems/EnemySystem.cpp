@@ -59,7 +59,7 @@ void Game::drawEnemies() const {
         isShooter ? &itemSprites.enemy2Right2 : &itemSprites.enemy1Right2;
 
     // ¿Está moviéndose? (proxy: inclinación)
-    const bool moving = std::fabs(e.getTilt()) > 0.5f;
+    const bool moving = e.isMoving();
 
     // Frame walk 1/2 (cambia cada ~0.2s porque animTime sube dt*5)
     const int frame = (static_cast<int>(std::floor(e.getAnimTime())) % 2);
