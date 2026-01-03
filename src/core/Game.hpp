@@ -124,34 +124,26 @@ struct ItemSprites {
   Texture2D plasma1{};
   Texture2D plasma2{};
 
-  // Enemigos (legacy: se seguirán usando hasta que cambiemos el render)
+  // Enemigos (legacy: se usan aún en el render actual)
   Texture2D enemy{}; // Fallback
   Texture2D enemyUp{};
   Texture2D enemyDown{};
   Texture2D enemyLeft{};
   Texture2D enemyRight{};
 
-  // Enemigo 1 (pack propio)
+  // Enemigo 1 (idle + 2 frames por dirección)
   Texture2D enemy1{};
-  Texture2D enemy1Up1{};
-  Texture2D enemy1Up2{};
-  Texture2D enemy1Down1{};
-  Texture2D enemy1Down2{};
-  Texture2D enemy1Left1{};
-  Texture2D enemy1Left2{};
-  Texture2D enemy1Right1{};
-  Texture2D enemy1Right2{};
+  Texture2D enemy1Up1{}, enemy1Up2{};
+  Texture2D enemy1Down1{}, enemy1Down2{};
+  Texture2D enemy1Left1{}, enemy1Left2{};
+  Texture2D enemy1Right1{}, enemy1Right2{};
 
-  // Enemigo 2 (pack propio)
+  // Enemigo 2 (idle + 2 frames por dirección)
   Texture2D enemy2{};
-  Texture2D enemy2Up1{};
-  Texture2D enemy2Up2{};
-  Texture2D enemy2Down1{};
-  Texture2D enemy2Down2{};
-  Texture2D enemy2Left1{};
-  Texture2D enemy2Left2{};
-  Texture2D enemy2Right1{};
-  Texture2D enemy2Right2{};
+  Texture2D enemy2Up1{}, enemy2Up2{};
+  Texture2D enemy2Down1{}, enemy2Down2{};
+  Texture2D enemy2Left1{}, enemy2Left2{};
+  Texture2D enemy2Right1{}, enemy2Right2{};
 
   // Texturas del Boss
   Texture2D bossUpIdle{};

@@ -98,176 +98,29 @@ void ItemSprites::load() {
 
   auto &rm = ResourceManager::getInstance();
 
-  auto pickExisting =
-      [](std::initializer_list<const char *> candidates) -> std::string {
-    const char *last = nullptr;
-    for (const char *rel : candidates) {
-      last = rel;
-      const std::string full = assetPath(rel);
-      if (std::filesystem::exists(full))
-        return std::string(rel);
-    }
-    return last ? std::string(last) : std::string();
-  };
+  // Pack enemy1
+  enemy1 = rm.getTexture("assets/sprites/enemies/enemy1.png");
+  enemy1Up1 = rm.getTexture("assets/sprites/enemies/enemy1_up1.png");
+  enemy1Up2 = rm.getTexture("assets/sprites/enemies/enemy1_up2.png");
+  enemy1Down1 = rm.getTexture("assets/sprites/enemies/enemy1_down1.png");
+  enemy1Down2 = rm.getTexture("assets/sprites/enemies/enemy1_down2.png");
+  enemy1Left1 = rm.getTexture("assets/sprites/enemies/enemy1_left1.png");
+  enemy1Left2 = rm.getTexture("assets/sprites/enemies/enemy1_left2.png");
+  enemy1Right1 = rm.getTexture("assets/sprites/enemies/enemy1_right1.png");
+  enemy1Right2 = rm.getTexture("assets/sprites/enemies/enemy1_right2.png");
 
-  // -------- Pack enemy1 (idle + 2 frames por dirección) --------
-  const std::string e1_idle =
-      pickExisting({"assets/sprites/enemies/enemy1.png",
-                    "assets/sprites/enemies/enemy.png"});
-  enemy1 = rm.getTexture(e1_idle);
+  // Pack enemy2
+  enemy2 = rm.getTexture("assets/sprites/enemies/enemy2.png");
+  enemy2Up1 = rm.getTexture("assets/sprites/enemies/enemy2_up1.png");
+  enemy2Up2 = rm.getTexture("assets/sprites/enemies/enemy2_up2.png");
+  enemy2Down1 = rm.getTexture("assets/sprites/enemies/enemy2_down1.png");
+  enemy2Down2 = rm.getTexture("assets/sprites/enemies/enemy2_down2.png");
+  enemy2Left1 = rm.getTexture("assets/sprites/enemies/enemy2_left1.png");
+  enemy2Left2 = rm.getTexture("assets/sprites/enemies/enemy2_left2.png");
+  enemy2Right1 = rm.getTexture("assets/sprites/enemies/enemy2_right1.png");
+  enemy2Right2 = rm.getTexture("assets/sprites/enemies/enemy2_right2.png");
 
-  const std::string e1_up1 =
-      pickExisting({"assets/sprites/enemies/enemy1_up1.png",
-                    "assets/sprites/enemies/enemy1_up.png",
-                    "assets/sprites/enemies/enemy_up.png",
-                    "assets/sprites/enemies/enemy1.png",
-                    "assets/sprites/enemies/enemy.png"});
-  const std::string e1_up2 =
-      pickExisting({"assets/sprites/enemies/enemy1_up2.png",
-                    "assets/sprites/enemies/enemy1_up1.png",
-                    "assets/sprites/enemies/enemy1_up.png",
-                    "assets/sprites/enemies/enemy_up.png",
-                    "assets/sprites/enemies/enemy1.png",
-                    "assets/sprites/enemies/enemy.png"});
-  enemy1Up1 = rm.getTexture(e1_up1);
-  enemy1Up2 = rm.getTexture(e1_up2);
-
-  const std::string e1_down1 =
-      pickExisting({"assets/sprites/enemies/enemy1_down1.png",
-                    "assets/sprites/enemies/enemy1_down.png",
-                    "assets/sprites/enemies/enemy_down.png",
-                    "assets/sprites/enemies/enemy1.png",
-                    "assets/sprites/enemies/enemy.png"});
-  const std::string e1_down2 =
-      pickExisting({"assets/sprites/enemies/enemy1_down2.png",
-                    "assets/sprites/enemies/enemy1_down1.png",
-                    "assets/sprites/enemies/enemy1_down.png",
-                    "assets/sprites/enemies/enemy_down.png",
-                    "assets/sprites/enemies/enemy1.png",
-                    "assets/sprites/enemies/enemy.png"});
-  enemy1Down1 = rm.getTexture(e1_down1);
-  enemy1Down2 = rm.getTexture(e1_down2);
-
-  const std::string e1_left1 =
-      pickExisting({"assets/sprites/enemies/enemy1_left1.png",
-                    "assets/sprites/enemies/enemy1_left.png",
-                    "assets/sprites/enemies/enemy_left.png",
-                    "assets/sprites/enemies/enemy1.png",
-                    "assets/sprites/enemies/enemy.png"});
-  const std::string e1_left2 =
-      pickExisting({"assets/sprites/enemies/enemy1_left2.png",
-                    "assets/sprites/enemies/enemy1_left1.png",
-                    "assets/sprites/enemies/enemy1_left.png",
-                    "assets/sprites/enemies/enemy_left.png",
-                    "assets/sprites/enemies/enemy1.png",
-                    "assets/sprites/enemies/enemy.png"});
-  enemy1Left1 = rm.getTexture(e1_left1);
-  enemy1Left2 = rm.getTexture(e1_left2);
-
-  const std::string e1_right1 =
-      pickExisting({"assets/sprites/enemies/enemy1_right1.png",
-                    "assets/sprites/enemies/enemy1_right.png",
-                    "assets/sprites/enemies/enemy_right.png",
-                    "assets/sprites/enemies/enemy1.png",
-                    "assets/sprites/enemies/enemy.png"});
-  const std::string e1_right2 =
-      pickExisting({"assets/sprites/enemies/enemy1_right2.png",
-                    "assets/sprites/enemies/enemy1_right1.png",
-                    "assets/sprites/enemies/enemy1_right.png",
-                    "assets/sprites/enemies/enemy_right.png",
-                    "assets/sprites/enemies/enemy1.png",
-                    "assets/sprites/enemies/enemy.png"});
-  enemy1Right1 = rm.getTexture(e1_right1);
-  enemy1Right2 = rm.getTexture(e1_right2);
-
-  // -------- Pack enemy2 (idle + 2 frames por dirección) --------
-  const std::string e2_idle = pickExisting(
-      {"assets/sprites/enemies/enemy2.png", "assets/sprites/enemies/enemy1.png",
-       "assets/sprites/enemies/enemy.png"});
-  enemy2 = rm.getTexture(e2_idle);
-
-  const std::string e2_up1 = pickExisting(
-      {"assets/sprites/enemies/enemy2_up1.png",
-       "assets/sprites/enemies/enemy2_up.png",
-       "assets/sprites/enemies/enemy1_up1.png",
-       "assets/sprites/enemies/enemy1_up.png",
-       "assets/sprites/enemies/enemy_up.png",
-       "assets/sprites/enemies/enemy2.png", "assets/sprites/enemies/enemy1.png",
-       "assets/sprites/enemies/enemy.png"});
-  const std::string e2_up2 = pickExisting(
-      {"assets/sprites/enemies/enemy2_up2.png",
-       "assets/sprites/enemies/enemy2_up1.png",
-       "assets/sprites/enemies/enemy2_up.png",
-       "assets/sprites/enemies/enemy1_up1.png",
-       "assets/sprites/enemies/enemy1_up.png",
-       "assets/sprites/enemies/enemy_up.png",
-       "assets/sprites/enemies/enemy2.png", "assets/sprites/enemies/enemy1.png",
-       "assets/sprites/enemies/enemy.png"});
-  enemy2Up1 = rm.getTexture(e2_up1);
-  enemy2Up2 = rm.getTexture(e2_up2);
-
-  const std::string e2_down1 = pickExisting(
-      {"assets/sprites/enemies/enemy2_down1.png",
-       "assets/sprites/enemies/enemy2_down.png",
-       "assets/sprites/enemies/enemy1_down1.png",
-       "assets/sprites/enemies/enemy1_down.png",
-       "assets/sprites/enemies/enemy_down.png",
-       "assets/sprites/enemies/enemy2.png", "assets/sprites/enemies/enemy1.png",
-       "assets/sprites/enemies/enemy.png"});
-  const std::string e2_down2 = pickExisting(
-      {"assets/sprites/enemies/enemy2_down2.png",
-       "assets/sprites/enemies/enemy2_down1.png",
-       "assets/sprites/enemies/enemy2_down.png",
-       "assets/sprites/enemies/enemy1_down1.png",
-       "assets/sprites/enemies/enemy1_down.png",
-       "assets/sprites/enemies/enemy_down.png",
-       "assets/sprites/enemies/enemy2.png", "assets/sprites/enemies/enemy1.png",
-       "assets/sprites/enemies/enemy.png"});
-  enemy2Down1 = rm.getTexture(e2_down1);
-  enemy2Down2 = rm.getTexture(e2_down2);
-
-  const std::string e2_left1 = pickExisting(
-      {"assets/sprites/enemies/enemy2_left1.png",
-       "assets/sprites/enemies/enemy2_left.png",
-       "assets/sprites/enemies/enemy1_left1.png",
-       "assets/sprites/enemies/enemy1_left.png",
-       "assets/sprites/enemies/enemy_left.png",
-       "assets/sprites/enemies/enemy2.png", "assets/sprites/enemies/enemy1.png",
-       "assets/sprites/enemies/enemy.png"});
-  const std::string e2_left2 = pickExisting(
-      {"assets/sprites/enemies/enemy2_left2.png",
-       "assets/sprites/enemies/enemy2_left1.png",
-       "assets/sprites/enemies/enemy2_left.png",
-       "assets/sprites/enemies/enemy1_left1.png",
-       "assets/sprites/enemies/enemy1_left.png",
-       "assets/sprites/enemies/enemy_left.png",
-       "assets/sprites/enemies/enemy2.png", "assets/sprites/enemies/enemy1.png",
-       "assets/sprites/enemies/enemy.png"});
-  enemy2Left1 = rm.getTexture(e2_left1);
-  enemy2Left2 = rm.getTexture(e2_left2);
-
-  const std::string e2_right1 = pickExisting(
-      {"assets/sprites/enemies/enemy2_right1.png",
-       "assets/sprites/enemies/enemy2_right.png",
-       "assets/sprites/enemies/enemy1_right1.png",
-       "assets/sprites/enemies/enemy1_right.png",
-       "assets/sprites/enemies/enemy_right.png",
-       "assets/sprites/enemies/enemy2.png", "assets/sprites/enemies/enemy1.png",
-       "assets/sprites/enemies/enemy.png"});
-  const std::string e2_right2 = pickExisting(
-      {"assets/sprites/enemies/enemy2_right2.png",
-       "assets/sprites/enemies/enemy2_right1.png",
-       "assets/sprites/enemies/enemy2_right.png",
-       "assets/sprites/enemies/enemy1_right1.png",
-       "assets/sprites/enemies/enemy1_right.png",
-       "assets/sprites/enemies/enemy_right.png",
-       "assets/sprites/enemies/enemy2.png", "assets/sprites/enemies/enemy1.png",
-       "assets/sprites/enemies/enemy.png"});
-  enemy2Right1 = rm.getTexture(e2_right1);
-  enemy2Right2 = rm.getTexture(e2_right2);
-
-  // -------- Compatibilidad: lo que usa el render actual (por ahora) = enemy1
-  // frame1 --------
+  // Compatibilidad con el render actual (por ahora = enemy1 frame1)
   enemy = enemy1;
   enemyUp = enemy1Up1;
   enemyDown = enemy1Down1;
