@@ -516,3 +516,19 @@ set_tests_properties(gettext_translation_es_es PROPERTIES
   ENVIRONMENT "LANG=es_ES.UTF-8;LC_ALL=es_ES.UTF-8;LC_MESSAGES=es_ES.UTF-8;LANGUAGE=es_ES"
 )
 set_property(TEST gettext_translation_es_es PROPERTY LABELS i18n)
+
+
+# Test: assetPath resuelve correctamente un recurso existente conocido
+add_executable(rb_test_assetpath_known_file_exists
+  test_assetpath_known_file_exists.cpp
+)
+
+target_include_directories(rb_test_assetpath_known_file_exists PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+target_compile_definitions(rb_test_assetpath_known_file_exists PRIVATE RB_ASSET_ROOT="${ASSET_ROOT}")
+
+add_test(NAME assetpath_known_file_exists COMMAND rb_test_assetpath_known_file_exists)
+
+set_tests_properties(assetpath_known_file_exists PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+  LABELS "assets"
+)
