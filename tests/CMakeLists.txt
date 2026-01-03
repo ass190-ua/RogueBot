@@ -483,3 +483,16 @@ set_tests_properties(facing_from_dir_non_unit_vectors PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
   LABELS "utils"
 )
+
+
+# Test: Comprobar que existen catálogos .mo en es_ES y en_GB
+add_executable(rb_test_i18n_mo_files_exist_en_es
+  test_i18n_mo_files_exist_en_es.cpp
+)
+
+add_test(NAME i18n_mo_files_exist_en_es COMMAND rb_test_i18n_mo_files_exist_en_es)
+
+set_tests_properties(i18n_mo_files_exist_en_es PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+  LABELS "i18n"
+)
