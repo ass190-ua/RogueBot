@@ -496,3 +496,23 @@ set_tests_properties(i18n_mo_files_exist_en_es PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
   LABELS "i18n"
 )
+
+
+# Test: Comprobar traducción con gettext en es_ES usando una clave real del .mo
+add_executable(rb_test_gettext_translation_es_es
+  test_gettext_translation_es_es.cpp
+)
+
+if(RB_INTL_LIB)
+  target_link_libraries(rb_test_gettext_translation_es_es PRIVATE ${RB_INTL_LIB})
+endif()
+
+target_include_directories(rb_test_gettext_translation_es_es PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+add_test(NAME gettext_translation_es_es COMMAND rb_test_gettext_translation_es_es)
+
+set_tests_properties(gettext_translation_es_es PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+  ENVIRONMENT "LANG=es_ES.UTF-8;LC_ALL=es_ES.UTF-8;LC_MESSAGES=es_ES.UTF-8;LANGUAGE=es_ES"
+)
+set_property(TEST gettext_translation_es_es PROPERTY LABELS i18n)
