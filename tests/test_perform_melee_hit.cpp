@@ -1,5 +1,7 @@
+#define BOOST_TEST_MODULE rb_test_perform_melee_hit
+#include <boost/test/unit_test.hpp>
+
 #include "Attack.hpp"
-#include <iostream>
 #include <vector>
 
 // Enemigo dummy compatible con PerformMeleeHit (necesita pos, hp, alive)
@@ -14,17 +16,6 @@ static Vector2 tileCenter(int tx, int ty) {
     return Vector2{ (tx + 0.5f) * TILE, (ty + 0.5f) * TILE };
 }
 
-static int assertAlive(const char* name, const DummyEnemy& e, bool expectedAlive)
-{
-    if (e.alive != expectedAlive) {
-        std::cerr << "[FAIL] " << name
-                  << " expected alive=" << (expectedAlive ? "true" : "false")
-                  << " got alive=" << (e.alive ? "true" : "false") << "\n";
-        return 1;
-    }
-    return 0;
-}
-
 static void reset(std::vector<DummyEnemy>& enemies) {
     for (auto& e : enemies) {
         e.hp = 1;
@@ -32,10 +23,10 @@ static void reset(std::vector<DummyEnemy>& enemies) {
     }
 }
 
-int main()
-{
-    int fails = 0;
+BOOST_AUTO_TEST_SUITE(perform_melee_hit)
 
+BOOST_AUTO_TEST_CASE(perform_melee_hit)
+{
     // Jugador en tile (5,5)
     const Vector2 playerPos = tileCenter(5,5);
 
@@ -59,16 +50,13 @@ int main()
     a.current.rangeTiles = 2;
     a.lastDir = Vector2{1.f, 0.f};
 
-    int hits1 = PerformMeleeHit(a, playerPos, enemies);
-    if (hits1 != 1) {
-        std::cerr << "[FAIL] hits front esperado=1 obtenido=" << hits1 << "\n";
-        return 1;
-    }
+    const int hits1 = PerformMeleeHit(a, playerPos, enemies);
+    BOOST_REQUIRE_MESSAGE(hits1 == 1, "hits front esperado=1 obtenido=" << hits1);
 
-    fails += assertAlive("front_front", enemies[0], false); // muere
-    fails += assertAlive("front_back",  enemies[1], true);
-    fails += assertAlive("front_diag",  enemies[2], true);
-    fails += assertAlive("front_far",   enemies[3], true);
+    BOOST_REQUIRE_MESSAGE(enemies[0].alive == false, "front_front expected alive=false got alive=true");
+    BOOST_REQUIRE_MESSAGE(enemies[1].alive == true,  "front_back expected alive=true got alive=false");
+    BOOST_REQUIRE_MESSAGE(enemies[2].alive == true,  "front_diag expected alive=true got alive=false");
+    BOOST_REQUIRE_MESSAGE(enemies[3].alive == true,  "front_far expected alive=true got alive=false");
 
     // Caso 2: Cross, range=1
     reset(enemies);
@@ -76,20 +64,13 @@ int main()
     a.mode = AttackSystem::Cross;
     a.current.rangeTiles = 1;
 
-    int hits2 = PerformMeleeHit(a, playerPos, enemies);
-    if (hits2 != 2) {
-        std::cerr << "[FAIL] hits cross esperado=2 obtenido=" << hits2 << "\n";
-        return 1;
-    }
+    const int hits2 = PerformMeleeHit(a, playerPos, enemies);
+    BOOST_REQUIRE_MESSAGE(hits2 == 2, "hits cross esperado=2 obtenido=" << hits2);
 
-    fails += assertAlive("cross_front", enemies[0], false); // muere
-    fails += assertAlive("cross_back",  enemies[1], false); // muere
-    fails += assertAlive("cross_diag",  enemies[2], true);
-    fails += assertAlive("cross_far",   enemies[3], true);
-
-    if (fails == 0) {
-        std::cout << "[OK] PerformMeleeHit: comportamiento esperado.\n";
-        return 0;
-    }
-    return 1;
+    BOOST_REQUIRE_MESSAGE(enemies[0].alive == false, "cross_front expected alive=false got alive=true");
+    BOOST_REQUIRE_MESSAGE(enemies[1].alive == false, "cross_back expected alive=false got alive=true");
+    BOOST_REQUIRE_MESSAGE(enemies[2].alive == true,  "cross_diag expected alive=true got alive=false");
+    BOOST_REQUIRE_MESSAGE(enemies[3].alive == true,  "cross_far expected alive=true got alive=false");
 }
+
+BOOST_AUTO_TEST_SUITE_END()
