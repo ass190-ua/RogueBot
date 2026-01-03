@@ -503,6 +503,7 @@ set_tests_properties(facing_from_dir_non_unit_vectors PROPERTIES
 add_executable(rb_test_i18n_mo_files_exist_en_es
   test_i18n_mo_files_exist_en_es.cpp
 )
+rb_link_boost_test(rb_test_i18n_mo_files_exist_en_es)
 
 add_test(NAME i18n_mo_files_exist_en_es COMMAND rb_test_i18n_mo_files_exist_en_es)
 
