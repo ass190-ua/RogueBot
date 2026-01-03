@@ -404,3 +404,82 @@ set_tests_properties(map_generate_creates_some_floor PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
   LABELS "map"
 )
+
+
+# Test: Fijar comportamiento de dominantAxis en empate abs(dx)==abs(dy)
+add_executable(rb_test_dominant_axis_tie_behavior
+  test_dominant_axis_tie_behavior.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/GameUtils.cpp
+)
+
+target_include_directories(rb_test_dominant_axis_tie_behavior PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_dominant_axis_tie_behavior PRIVATE raylib)
+endif()
+
+add_test(NAME dominant_axis_tie_behavior COMMAND rb_test_dominant_axis_tie_behavior)
+
+set_tests_properties(dominant_axis_tie_behavior PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+  LABELS "utils"
+)
+
+
+# Test: computeMeleeTiles con rango 0 devuelve vacío
+add_executable(rb_test_compute_melee_tiles_range_zero
+  test_compute_melee_tiles_range_zero.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/GameUtils.cpp
+)
+
+target_include_directories(rb_test_compute_melee_tiles_range_zero PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_compute_melee_tiles_range_zero PRIVATE raylib)
+endif()
+
+add_test(NAME compute_melee_tiles_range_zero COMMAND rb_test_compute_melee_tiles_range_zero)
+
+set_tests_properties(compute_melee_tiles_range_zero PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+  LABELS "utils"
+)
+
+
+# Test: computeMeleeTiles maneja rango negativo sin romper
+add_executable(rb_test_compute_melee_tiles_negative_range
+  test_compute_melee_tiles_negative_range.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/GameUtils.cpp
+)
+
+target_include_directories(rb_test_compute_melee_tiles_negative_range PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_compute_melee_tiles_negative_range PRIVATE raylib)
+endif()
+
+add_test(NAME compute_melee_tiles_negative_range COMMAND rb_test_compute_melee_tiles_negative_range)
+
+set_tests_properties(compute_melee_tiles_negative_range PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+  LABELS "utils"
+)
+
+
+# Test: facingFromDir acepta vectores no unitarios
+add_executable(rb_test_facing_from_dir_non_unit_vectors
+  ${CMAKE_CURRENT_SOURCE_DIR}/test_facing_from_dir_non_unit_vectors.cpp
+)
+
+target_include_directories(rb_test_facing_from_dir_non_unit_vectors PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_facing_from_dir_non_unit_vectors PRIVATE raylib)
+endif()
+
+add_test(NAME facing_from_dir_non_unit_vectors COMMAND rb_test_facing_from_dir_non_unit_vectors)
+
+set_tests_properties(facing_from_dir_non_unit_vectors PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+  LABELS "utils"
+)
