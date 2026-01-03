@@ -109,10 +109,9 @@ void Game::drawEnemies() const {
       Rectangle src{0, 0, (float)tex->width, (float)tex->height};
       // Usamos la rotación (tilt)
       DrawTexturePro(*tex, src, dest, origin, e.getTilt(), tint);
-    } else if (itemSprites.enemy.id != 0) {
-      Rectangle src{0, 0, (float)itemSprites.enemy.width,
-                    (float)itemSprites.enemy.height};
-      DrawTexturePro(itemSprites.enemy, src, dest, origin, e.getTilt(), tint);
+    } else if (idle && idle->id != 0) {
+      Rectangle src{0, 0, (float)idle->width, (float)idle->height};
+      DrawTexturePro(*idle, src, dest, origin, e.getTilt(), tint);
     } else {
       e.draw(tileSize);
     }

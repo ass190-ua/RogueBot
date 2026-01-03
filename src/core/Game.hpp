@@ -124,13 +124,6 @@ struct ItemSprites {
   Texture2D plasma1{};
   Texture2D plasma2{};
 
-  // Enemigos (legacy: se usan aún en el render actual)
-  Texture2D enemy{}; // Fallback
-  Texture2D enemyUp{};
-  Texture2D enemyDown{};
-  Texture2D enemyLeft{};
-  Texture2D enemyRight{};
-
   // Enemigo 1 (idle + 2 frames por dirección)
   Texture2D enemy1{};
   Texture2D enemy1Up1{}, enemy1Up2{};

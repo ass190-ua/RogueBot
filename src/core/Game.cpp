@@ -120,13 +120,6 @@ void ItemSprites::load() {
   enemy2Right1 = rm.getTexture("assets/sprites/enemies/enemy2_right1.png");
   enemy2Right2 = rm.getTexture("assets/sprites/enemies/enemy2_right2.png");
 
-  // Compatibilidad con el render actual
-  enemy = enemy1;
-  enemyUp = enemy1Up1;
-  enemyDown = enemy1Down1;
-  enemyLeft = enemy1Left1;
-  enemyRight = enemy1Right1;
-
   // Pixel-art nítido (evitar blur al escalar 16x16 -> tileSize)
   auto pixel = [](Texture2D &t) {
     if (t.id != 0)
@@ -154,13 +147,6 @@ void ItemSprites::load() {
   pixel(enemy2Left2);
   pixel(enemy2Right1);
   pixel(enemy2Right2);
-
-  // Aliases legacy
-  pixel(enemy);
-  pixel(enemyUp);
-  pixel(enemyDown);
-  pixel(enemyLeft);
-  pixel(enemyRight);
 
   // Carga del Boss
   bossDownIdle = ResourceManager::getInstance().getTexture(
