@@ -263,6 +263,7 @@ add_executable(rb_test_map_is_walkable
   test_map_is_walkable.cpp
   ${PROJECT_SOURCE_DIR}/src/core/Map.cpp
 )
+rb_link_boost_test(rb_test_map_is_walkable)
 
 target_include_directories(rb_test_map_is_walkable PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
 
