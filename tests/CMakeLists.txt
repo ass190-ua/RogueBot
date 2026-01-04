@@ -640,6 +640,7 @@ add_test(NAME assetpath_known_file_exists COMMAND rb_test_assetpath_known_file_e
 
 set_tests_properties(assetpath_known_file_exists PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+  LABELS "assets"
 )
 rb_label_test(assetpath_known_file_exists integration assets)
 
@@ -680,3 +681,16 @@ endif()
 add_test(NAME enemy COMMAND rb_test_enemy)
 set_tests_properties(enemy PROPERTIES WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
 rb_label_test(enemy unit core)
+
+
+# Test: comprobar que existen los sprites de enemy1/enemy2
+add_executable(rb_test_enemy_sprites_exist
+  test_enemy_sprites_exist.cpp
+)
+
+add_test(NAME enemy_sprites_exist COMMAND rb_test_enemy_sprites_exist)
+
+set_tests_properties(enemy_sprites_exist PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+  LABELS "assets"
+)
