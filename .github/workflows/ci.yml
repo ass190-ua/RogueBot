@@ -30,7 +30,9 @@ jobs:
             mesa-common-dev \
             locales \
             gettext \
+            libboost-dev \
             libboost-test-dev
+
 
           sudo locale-gen es_ES.UTF-8
           sudo locale-gen en_GB.UTF-8

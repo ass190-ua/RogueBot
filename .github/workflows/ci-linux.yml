@@ -26,7 +26,10 @@ jobs:
             libx11-dev libxrandr-dev libxi-dev libxxf86vm-dev \
             libxinerama-dev libxcursor-dev \
             libgl1-mesa-dev libglu1-mesa-dev mesa-common-dev \
-            libasound2-dev
+            libasound2-dev \
+            libboost-dev libboost-test-dev \
+            locales gettext
+
 
       - name: Configure CMake (Release)
         run: |
