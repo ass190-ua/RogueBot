@@ -254,8 +254,10 @@ add_test(NAME map_deterministic_seed COMMAND rb_test_map_deterministic_seed)
 
 set_tests_properties(map_deterministic_seed PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "unit;map"
 )
+rb_label_test(map_deterministic_seed unit map)
+
+
 
 
 # Test: findExitTile devuelve una celda válida
@@ -276,8 +278,10 @@ add_test(NAME find_exit_tile COMMAND rb_test_find_exit_tile)
 
 set_tests_properties(find_exit_tile PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "unit;map"
 )
+
+rb_label_test(find_exit_tile unit map)
+
 
 
 # Test: Map::isWalkable (límites + WALL/FLOOR)
@@ -297,8 +301,11 @@ add_test(NAME map_is_walkable COMMAND rb_test_map_is_walkable)
 
 set_tests_properties(map_is_walkable PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "unit;map"
 )
+
+rb_label_test(map_is_walkable unit map)
+
+
 
 
 # Test: generateBossArena (borde WALL e interior FLOOR)
@@ -319,8 +326,10 @@ add_test(NAME map_boss_arena_structure COMMAND rb_test_map_boss_arena_structure)
 
 set_tests_properties(map_boss_arena_structure PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "unit;map"
 )
+rb_label_test(map_boss_arena_structure unit map)
+
+
 
 
 # Test: Map::generate coloca EXIT
@@ -341,8 +350,11 @@ add_test(NAME map_generate_places_exit COMMAND rb_test_map_generate_places_exit)
 
 set_tests_properties(map_generate_places_exit PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "unit;map"
 )
+
+rb_label_test(map_generate_places_exit unit map)
+
+
 
 
 # Test: Map::setTile respeta límites
@@ -363,8 +375,13 @@ add_test(NAME map_set_tile_bounds COMMAND rb_test_map_set_tile_bounds)
 
 set_tests_properties(map_set_tile_bounds PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "unit;map"
+
 )
+
+rb_label_test(map_set_tile_bounds unit map)
+
+
+
 
 
 # Test: Comprobar que Map::generate fija correctamente width/height
@@ -385,8 +402,12 @@ add_test(NAME map_generate_sets_dimensions COMMAND rb_test_map_generate_sets_dim
 
 set_tests_properties(map_generate_sets_dimensions PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "unit;map"
 )
+
+rb_label_test(map_generate_sets_dimensions unit map)
+
+
+
 
 
 # Test: Comprobar que findExitTile siempre devuelve coordenadas válidas (in-bounds)
@@ -407,8 +428,12 @@ add_test(NAME map_generate_exit_in_bounds COMMAND rb_test_map_generate_exit_in_b
 
 set_tests_properties(map_generate_exit_in_bounds PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "unit;map"
 )
+
+rb_label_test(map_generate_exit_in_bounds unit map)
+
+
+
 
 
 # Test: Comprobar que findExitTile apunta a un tile EXIT
@@ -429,8 +454,12 @@ add_test(NAME map_exit_tile_is_exit COMMAND rb_test_map_exit_tile_is_exit)
 
 set_tests_properties(map_exit_tile_is_exit PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "unit;map"
 )
+
+rb_label_test(map_exit_tile_is_exit unit map)
+
+
+
 
 
 # Test: Comprobar que Map::generate crea tiles FLOOR suficientes
@@ -451,8 +480,12 @@ add_test(NAME map_generate_creates_some_floor COMMAND rb_test_map_generate_creat
 
 set_tests_properties(map_generate_creates_some_floor PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "unit;map"
 )
+
+rb_label_test(map_generate_creates_some_floor unit map)
+
+
+
 
 
 # Test: Fijar comportamiento de dominantAxis en empate abs(dx)==abs(dy)
