@@ -51,7 +51,11 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Buscar la librería de internacionalización (necesaria para gettext)
-find_package(Intl REQUIRED)
+option(ENABLE_I18N "Activar i18n/gettext (libintl)" ON)
+
+if(ENABLE_I18N)
+  find_package(Intl)
+endif()
 
 # Opciones de usuario para controlar cómo se obtiene/enlaza raylib
 option(PREFER_RAYLIB_STATIC "Preferir enlazar raylib de forma estática" ON)
