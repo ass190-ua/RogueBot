@@ -279,6 +279,19 @@ cmake --build build-tests -j
 ctest --test-dir build-tests -L unit --output-on-failure
 ctest --test-dir build-tests -L integration --output-on-failure
 
+
+### Notas
+
+- `unit`: tests de lógica pura (sin assets/filesystem/locales/gettext/raylib).
+- `integration`: tests que dependen de assets/filesystem/locales/gettext/raylib.
+
+Si algún test de `i18n` falla por configuración regional:
+
+```bash
+export LANG=es_ES.UTF-8
+export LC_ALL=es_ES.UTF-8
+export LANGUAGE=es
+
 ## 💡 Desarrollo y contribución
 
 1. Crear rama a partir de `develop`:
