@@ -258,7 +258,7 @@ add_test(NAME map_deterministic_seed COMMAND rb_test_map_deterministic_seed)
 
 set_tests_properties(map_deterministic_seed PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "map"
+  LABELS "unit;map"
 )
 
 
@@ -280,7 +280,7 @@ add_test(NAME find_exit_tile COMMAND rb_test_find_exit_tile)
 
 set_tests_properties(find_exit_tile PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "map"
+  LABELS "unit;map"
 )
 
 
@@ -301,7 +301,7 @@ add_test(NAME map_is_walkable COMMAND rb_test_map_is_walkable)
 
 set_tests_properties(map_is_walkable PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "map"
+  LABELS "unit;map"
 )
 
 
@@ -323,7 +323,7 @@ add_test(NAME map_boss_arena_structure COMMAND rb_test_map_boss_arena_structure)
 
 set_tests_properties(map_boss_arena_structure PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "map"
+  LABELS "unit;map"
 )
 
 
@@ -345,7 +345,7 @@ add_test(NAME map_generate_places_exit COMMAND rb_test_map_generate_places_exit)
 
 set_tests_properties(map_generate_places_exit PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "map"
+  LABELS "unit;map"
 )
 
 
@@ -367,7 +367,7 @@ add_test(NAME map_set_tile_bounds COMMAND rb_test_map_set_tile_bounds)
 
 set_tests_properties(map_set_tile_bounds PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "map"
+  LABELS "unit;map"
 )
 
 
@@ -389,7 +389,7 @@ add_test(NAME map_generate_sets_dimensions COMMAND rb_test_map_generate_sets_dim
 
 set_tests_properties(map_generate_sets_dimensions PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "map"
+  LABELS "unit;map"
 )
 
 
@@ -411,7 +411,7 @@ add_test(NAME map_generate_exit_in_bounds COMMAND rb_test_map_generate_exit_in_b
 
 set_tests_properties(map_generate_exit_in_bounds PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "map"
+  LABELS "unit;map"
 )
 
 
@@ -433,7 +433,7 @@ add_test(NAME map_exit_tile_is_exit COMMAND rb_test_map_exit_tile_is_exit)
 
 set_tests_properties(map_exit_tile_is_exit PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "map"
+  LABELS "unit;map"
 )
 
 
@@ -455,7 +455,7 @@ add_test(NAME map_generate_creates_some_floor COMMAND rb_test_map_generate_creat
 
 set_tests_properties(map_generate_creates_some_floor PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "map"
+  LABELS "unit;map"
 )
 
 
