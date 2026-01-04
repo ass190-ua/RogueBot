@@ -661,3 +661,22 @@ endif()
 add_test(NAME player COMMAND rb_test_player)
 set_tests_properties(player PROPERTIES WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
 rb_label_test(player unit core)
+
+
+# Test: Enemy (core)
+add_executable(rb_test_enemy
+  test_enemy.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/Enemy.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/Map.cpp
+)
+
+rb_link_boost_test(rb_test_enemy)
+target_include_directories(rb_test_enemy PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_enemy PRIVATE raylib)
+endif()
+
+add_test(NAME enemy COMMAND rb_test_enemy)
+set_tests_properties(enemy PROPERTIES WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+rb_label_test(enemy unit core)
