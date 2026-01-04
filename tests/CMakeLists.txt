@@ -485,6 +485,9 @@ add_executable(rb_test_compute_melee_tiles_negative_range
   ${PROJECT_SOURCE_DIR}/src/core/GameUtils.cpp
 )
 
+rb_link_boost_test(rb_test_compute_melee_tiles_negative_range)
+
+
 target_include_directories(rb_test_compute_melee_tiles_negative_range PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
 
 if(TARGET raylib)
