@@ -70,7 +70,7 @@ endif()
 add_test(NAME dominant_axis COMMAND rb_test_dominant_axis)
 set_tests_properties(dominant_axis PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "utils"
+  LABELS "unit;utils"
 )
 
 
@@ -92,7 +92,7 @@ endif()
 add_test(NAME is_adjacent4 COMMAND rb_test_is_adjacent4)
 set_tests_properties(is_adjacent4 PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "utils"
+  LABELS "unit;utils"
 )
 
 
@@ -141,7 +141,7 @@ add_test(NAME compute_melee_front COMMAND rb_test_compute_melee_front)
 
 set_tests_properties(compute_melee_front PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "utils"
+  LABELS "unit;utils"
 )
 
 
@@ -165,7 +165,7 @@ add_test(NAME compute_melee_cross COMMAND rb_test_compute_melee_cross)
 
 set_tests_properties(compute_melee_cross PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "utils"
+  LABELS "unit;utils"
 )
 
 
@@ -190,7 +190,7 @@ add_test(NAME compute_melee_occluded_front COMMAND rb_test_compute_melee_occlude
 
 set_tests_properties(compute_melee_occluded_front PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "utils"
+  LABELS "unit;utils"
 )
 
 
@@ -213,7 +213,7 @@ add_test(NAME facing_from_dir COMMAND rb_test_facing_from_dir)
 
 set_tests_properties(facing_from_dir PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "utils"
+  LABELS "unit;utils"
 )
 
 
@@ -235,7 +235,7 @@ add_test(NAME perform_melee_hit COMMAND rb_test_perform_melee_hit)
 
 set_tests_properties(perform_melee_hit PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "utils"
+  LABELS "unit;utils"
 )
 
 
@@ -477,7 +477,7 @@ add_test(NAME dominant_axis_tie_behavior COMMAND rb_test_dominant_axis_tie_behav
 
 set_tests_properties(dominant_axis_tie_behavior PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "utils"
+  LABELS "unit;utils"
 )
 
 
@@ -499,7 +499,7 @@ add_test(NAME compute_melee_tiles_range_zero COMMAND rb_test_compute_melee_tiles
 
 set_tests_properties(compute_melee_tiles_range_zero PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "utils"
+  LABELS "unit;utils"
 )
 
 
@@ -521,7 +521,7 @@ add_test(NAME compute_melee_tiles_negative_range COMMAND rb_test_compute_melee_t
 
 set_tests_properties(compute_melee_tiles_negative_range PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "utils"
+  LABELS "unit;utils"
 )
 
 
@@ -542,7 +542,7 @@ add_test(NAME facing_from_dir_non_unit_vectors COMMAND rb_test_facing_from_dir_n
 
 set_tests_properties(facing_from_dir_non_unit_vectors PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "utils"
+  LABELS "unit;utils"
 )
 
 
