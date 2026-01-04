@@ -1,37 +1,27 @@
+#define BOOST_TEST_MODULE rb_test_compute_melee_tiles_range_zero
+#include <boost/test/unit_test.hpp>
+
 #include "GameUtils.hpp"
-#include <iostream>
-#include <vector>
 
-int main() {
-  int fails = 0;
+BOOST_AUTO_TEST_SUITE(compute_melee_tiles_range_zero)
 
+BOOST_AUTO_TEST_CASE(compute_melee_tiles_range_zero)
+{
   {
     IVec2 center{10, 10};
 
     auto got = computeMeleeTiles(center, {1, 0}, 0, true);
-    if (!got.empty()) {
-      std::cerr
-          << "[FAIL] range_zero_front: esperado vector vacío, obtenido tamaño="
-          << got.size() << "\n";
-      fails++;
-    }
+    BOOST_REQUIRE_MESSAGE(got.empty(),
+                          "range_zero_front: esperado vector vacío, obtenido tamaño=" << got.size());
   }
 
   {
     IVec2 center{10, 10};
 
     auto got = computeMeleeTiles(center, {0, 1}, 0, false);
-    if (!got.empty()) {
-      std::cerr
-          << "[FAIL] range_zero_cross: esperado vector vacío, obtenido tamaño="
-          << got.size() << "\n";
-      fails++;
-    }
+    BOOST_REQUIRE_MESSAGE(got.empty(),
+                          "range_zero_cross: esperado vector vacío, obtenido tamaño=" << got.size());
   }
-
-  if (fails == 0) {
-    std::cout << "[OK] computeMeleeTiles: rango 0 devuelve vacío.\n";
-    return 0;
-  }
-  return 1;
 }
+
+BOOST_AUTO_TEST_SUITE_END()

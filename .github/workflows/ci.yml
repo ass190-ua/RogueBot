@@ -10,6 +10,11 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
+    env:
+      LANG: es_ES.UTF-8
+      LC_ALL: es_ES.UTF-8
+      LANGUAGE: es
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -29,7 +34,10 @@ jobs:
             libglvnd-dev \
             mesa-common-dev \
             locales \
-            gettext
+            gettext \
+            libboost-dev \
+            libboost-test-dev
+
 
           sudo locale-gen es_ES.UTF-8
           sudo locale-gen en_GB.UTF-8
@@ -43,10 +51,18 @@ jobs:
       - name: Build
         run: cmake --build build-tests -j
 
-      - name: Test (CTest)
+      - name: List tests (CTest labels)
         run: |
-          export LANG=es_ES.UTF-8
-          export LC_ALL=es_ES.UTF-8
-          export LANGUAGE=es
+          ctest --test-dir build-tests -N
+          ctest --test-dir build-tests -L unit -N
+          ctest --test-dir build-tests -L integration -N
+
+      - name: Test (CTest) - unit
+        run: |
           locale
-          ctest --test-dir build-tests --output-on-failure
+          ctest --test-dir build-tests -L unit --output-on-failure
+
+      - name: Test (CTest) - integration
+        run: |
+          locale
+          ctest --test-dir build-tests -L integration --output-on-failure

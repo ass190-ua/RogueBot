@@ -1,6 +1,8 @@
+#define BOOST_TEST_MODULE rb_test_gettext_translation_es_es
+#include <boost/test/unit_test.hpp>
+
 #include <cstdlib>
 #include <fstream>
-#include <iostream>
 #include <string>
 #include <vector>
 #include <cstdint>
@@ -117,49 +119,38 @@ static bool pickPairFromMo(const char *moPath, std::string &outMsgid,
   return true;
 }
 
-int main() {
+BOOST_AUTO_TEST_SUITE(Gettext_Integration_ES_ES)
+
+BOOST_AUTO_TEST_CASE(translates_real_key_from_mo_es_es) {
+  // Arrange
   const char *domain = "roguebot";
   const char *localeRoot = "assets/locales";
   const char *moPath = "assets/locales/es_ES/LC_MESSAGES/roguebot.mo";
 
   std::string msgid, expected;
-  if (!pickPairFromMo(moPath, msgid, expected)) {
-    std::cerr
-        << "[FAIL] No se pudo leer/parsing del .mo o no hay entradas válidas: "
-        << moPath << "\n";
-    return 1;
-  }
+  BOOST_REQUIRE_MESSAGE(
+      pickPairFromMo(moPath, msgid, expected),
+      "No se pudo leer/parsing del .mo o no hay entradas válidas: " << moPath);
 
   setenv("LANG", "es_ES.UTF-8", 1);
   setenv("LC_ALL", "es_ES.UTF-8", 1);
   setenv("LC_MESSAGES", "es_ES.UTF-8", 1);
   setenv("LANGUAGE", "es_ES", 1);
 
-  if (!setlocale(LC_ALL, "")) {
-    std::cerr
-        << "[FAIL] setlocale(LC_ALL, \"\") ha fallado. ¿Locales instalados?\n";
-    return 1;
-  }
+  BOOST_REQUIRE_MESSAGE(setlocale(LC_ALL, "") != nullptr,
+                        "setlocale(LC_ALL, \"\") ha fallado. ¿Locales instalados?");
 
   bindtextdomain(domain, localeRoot);
   bind_textdomain_codeset(domain, "UTF-8");
   textdomain(domain);
 
+  // Act
   const char *got = dgettext(domain, msgid.c_str());
-  
-  if (!got) {
-    std::cerr << "[FAIL] gettext devolvió null\n";
-    return 1;
-  }
 
-  if (std::string(got) != expected) {
-    std::cerr << "[FAIL] gettext no traduce como el catálogo es_ES\n";
-    std::cerr << "  msgid:     " << msgid << "\n";
-    std::cerr << "  esperado:  " << expected << "\n";
-    std::cerr << "  obtenido:  " << got << "\n";
-    return 1;
-  }
+  // Assert
+  BOOST_REQUIRE_MESSAGE(got != nullptr, "gettext devolvió null");
 
-  std::cout << "[OK] gettext traduce en es_ES para una clave real del .mo\n";
-  return 0;
+  BOOST_TEST(std::string(got) == expected);
 }
+
+BOOST_AUTO_TEST_SUITE_END()

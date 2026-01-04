@@ -1,9 +1,11 @@
+#define BOOST_TEST_MODULE rb_test_gettext_translation
+#include <boost/test/unit_test.hpp>
+
 #include <clocale>
 #include <cstdint>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
-#include <iostream>
 #include <string>
 #include <vector>
 
@@ -80,9 +82,9 @@ static bool read_first_translation_pair_from_mo(const std::filesystem::path& moP
         std::string msgid  = read_str(ooff, olen);
         std::string msgstr = read_str(toff, tlen);
 
-        if (msgid.empty()) continue;                 // header
+        if (msgid.empty()) continue;                      // header
         if (msgid.find('\0') != std::string::npos) continue; // plural => skip
-        if (msgid == msgstr) continue;               // no traducción real
+        if (msgid == msgstr) continue;                    // no traducción real
 
         out.msgid = msgid;
         out.msgstr = msgstr;
@@ -102,43 +104,33 @@ static void force_language_en_gb()
     setlocale(LC_ALL, "");
 }
 
-int main()
-{
+BOOST_AUTO_TEST_SUITE(Gettext_Integration)
+
+BOOST_AUTO_TEST_CASE(translates_real_key_from_mo_en_gb) {
     namespace fs = std::filesystem;
 
+    // Arrange
     const fs::path root = fs::path(ROGUEBOT_SOURCE_DIR);
     const fs::path localeDir = root / "assets" / "locales";
     const fs::path mo_en = localeDir / "en_GB" / "LC_MESSAGES" / "roguebot.mo";
 
-    if (!fs::exists(mo_en)) {
-        std::cerr << "[FAIL] No existe el .mo esperado: " << mo_en << "\n";
-        return 1;
-    }
+    BOOST_REQUIRE_MESSAGE(fs::exists(mo_en), "No existe el .mo esperado: " << mo_en.string());
 
-    // Cargamos dominio
     bindtextdomain("roguebot", localeDir.string().c_str());
     bind_textdomain_codeset("roguebot", "UTF-8");
     textdomain("roguebot");
 
-    // Elegimos una clave REAL del .mo
     MoPair pair;
-    if (!read_first_translation_pair_from_mo(mo_en, pair)) {
-        std::cerr << "[FAIL] No se pudo extraer ningún par traducido del .mo: " << mo_en << "\n";
-        return 1;
-    }
+    BOOST_REQUIRE_MESSAGE(read_first_translation_pair_from_mo(mo_en, pair),
+        "No se pudo extraer ningún par traducido del .mo: " << mo_en.string());
 
     force_language_en_gb();
 
+    // Act
     const std::string got = std::string(dgettext("roguebot", pair.msgid.c_str()));
-    if (got != pair.msgstr) {
-        std::cerr << "[FAIL] gettext no traduce según el .mo\n";
-        std::cerr << "  msgid:     " << pair.msgid << "\n";
-        std::cerr << "  esperado:  " << pair.msgstr << "\n";
-        std::cerr << "  obtenido:  " << got << "\n";
-        std::cerr << "  locale:    " << (setlocale(LC_ALL, nullptr) ? setlocale(LC_ALL, nullptr) : "(null)") << "\n";
-        return 1;
-    }
 
-    std::cout << "[OK] gettext traduce (en_GB): '" << pair.msgid << "' -> '" << got << "'\n";
-    return 0;
+    // Assert
+    BOOST_TEST(got == pair.msgstr);
 }
+
+BOOST_AUTO_TEST_SUITE_END()

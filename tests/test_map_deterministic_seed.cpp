@@ -1,12 +1,12 @@
+#define BOOST_TEST_MODULE rb_test_map_deterministic_seed
+#include <boost/test/unit_test.hpp>
+
 #include "Map.hpp"
-#include <iostream>
 
-static int fail(const char* msg) {
-  std::cerr << "[FAIL] " << msg << "\n";
-  return 1;
-}
+BOOST_AUTO_TEST_SUITE(map_deterministic_seed)
 
-int main() {
+BOOST_AUTO_TEST_CASE(map_deterministic_seed)
+{
   const int W = 40;
   const int H = 25;
   const unsigned seed = 12345;
@@ -16,20 +16,16 @@ int main() {
   a.generate(W, H, seed);
   b.generate(W, H, seed);
 
-  if (a.width() != b.width() || a.height() != b.height()) {
-    return fail("dimensiones distintas con misma seed");
-  }
+  BOOST_REQUIRE_MESSAGE(a.width() == b.width() && a.height() == b.height(),
+                        "dimensiones distintas con misma seed");
 
   for (int y = 0; y < H; ++y) {
     for (int x = 0; x < W; ++x) {
-      if (a.at(x, y) != b.at(x, y)) {
-        std::cerr << "[FAIL] tile distinto en (" << x << "," << y << ")\n";
-        std::cerr << "  a=" << int(a.at(x,y)) << " b=" << int(b.at(x,y)) << "\n";
-        return 1;
-      }
+      BOOST_REQUIRE_MESSAGE(a.at(x, y) == b.at(x, y),
+                            "tile distinto en (" << x << "," << y << ")\n"
+                            << "  a=" << int(a.at(x,y)) << " b=" << int(b.at(x,y)));
     }
   }
-
-  std::cout << "[OK] Map::generate es determinista con la misma seed\n";
-  return 0;
 }
+
+BOOST_AUTO_TEST_SUITE_END()
