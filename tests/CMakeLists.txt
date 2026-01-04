@@ -345,6 +345,8 @@ add_executable(rb_test_map_set_tile_bounds
   ${PROJECT_SOURCE_DIR}/src/core/Map.cpp
 )
 
+rb_link_boost_test(rb_test_map_set_tile_bounds)
+
 target_include_directories(rb_test_map_set_tile_bounds PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
 
 if(TARGET raylib)
