@@ -7,6 +7,13 @@ function(rb_link_boost_test target)
   target_compile_definitions(${target} PRIVATE BOOST_TEST_DYN_LINK)
 endfunction()
 
+function(rb_label_test test_name scope category)
+  set_tests_properties(${test_name} PROPERTIES
+    LABELS "${scope};${category}"
+  )
+endfunction()
+
+
 
 # Test: Comprobar que los archivos de localización existen
 add_executable(rb_test_locales_exist
