@@ -25,8 +25,9 @@ add_test(NAME locales_exist COMMAND rb_test_locales_exist)
 
 set_tests_properties(locales_exist PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "integration;assets"
 )
+rb_label_test(locales_exist integration assets)
+
 
 
 
