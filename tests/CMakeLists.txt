@@ -74,6 +74,7 @@ add_executable(rb_test_is_adjacent4
   test_is_adjacent4.cpp
   ${PROJECT_SOURCE_DIR}/src/core/GameUtils.cpp
 )
+rb_link_boost_test(rb_test_is_adjacent4)
 
 target_include_directories(rb_test_is_adjacent4 PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
 
