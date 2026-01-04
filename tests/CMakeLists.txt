@@ -7,6 +7,13 @@ function(rb_link_boost_test target)
   target_compile_definitions(${target} PRIVATE BOOST_TEST_DYN_LINK)
 endfunction()
 
+function(rb_label_test test_name scope category)
+  set_tests_properties(${test_name} PROPERTIES
+    LABELS "${scope};${category}"
+  )
+endfunction()
+
+
 
 # Test: Comprobar que los archivos de localización existen
 add_executable(rb_test_locales_exist
@@ -18,7 +25,7 @@ add_test(NAME locales_exist COMMAND rb_test_locales_exist)
 
 set_tests_properties(locales_exist PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "assets"
+  LABELS "integration;assets"
 )
 
 
@@ -40,7 +47,7 @@ add_test(NAME assetpath_exists COMMAND rb_test_assetpath)
 
 set_tests_properties(assetpath_exists PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "assets"
+  LABELS "integration;assets"
 )
 
 
@@ -63,7 +70,7 @@ endif()
 add_test(NAME dominant_axis COMMAND rb_test_dominant_axis)
 set_tests_properties(dominant_axis PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "utils"
+  LABELS "unit;utils"
 )
 
 
@@ -85,7 +92,7 @@ endif()
 add_test(NAME is_adjacent4 COMMAND rb_test_is_adjacent4)
 set_tests_properties(is_adjacent4 PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "utils"
+  LABELS "unit;utils"
 )
 
 
@@ -111,7 +118,7 @@ set_tests_properties(gettext_translation PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
   ENVIRONMENT "LANG=es_ES.UTF-8;LC_ALL=es_ES.UTF-8;LANGUAGE=es"
 )
-set_property(TEST gettext_translation PROPERTY LABELS i18n)
+set_property(TEST gettext_translation PROPERTY LABELS "integration;i18n")
 target_include_directories(rb_test_gettext_translation PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
 
 
@@ -134,7 +141,7 @@ add_test(NAME compute_melee_front COMMAND rb_test_compute_melee_front)
 
 set_tests_properties(compute_melee_front PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "utils"
+  LABELS "unit;utils"
 )
 
 
@@ -158,7 +165,7 @@ add_test(NAME compute_melee_cross COMMAND rb_test_compute_melee_cross)
 
 set_tests_properties(compute_melee_cross PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "utils"
+  LABELS "unit;utils"
 )
 
 
@@ -183,7 +190,7 @@ add_test(NAME compute_melee_occluded_front COMMAND rb_test_compute_melee_occlude
 
 set_tests_properties(compute_melee_occluded_front PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "utils"
+  LABELS "unit;utils"
 )
 
 
@@ -206,7 +213,7 @@ add_test(NAME facing_from_dir COMMAND rb_test_facing_from_dir)
 
 set_tests_properties(facing_from_dir PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "utils"
+  LABELS "unit;utils"
 )
 
 
@@ -228,7 +235,7 @@ add_test(NAME perform_melee_hit COMMAND rb_test_perform_melee_hit)
 
 set_tests_properties(perform_melee_hit PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "utils"
+  LABELS "unit;utils"
 )
 
 
@@ -251,7 +258,7 @@ add_test(NAME map_deterministic_seed COMMAND rb_test_map_deterministic_seed)
 
 set_tests_properties(map_deterministic_seed PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "map"
+  LABELS "unit;map"
 )
 
 
@@ -273,7 +280,7 @@ add_test(NAME find_exit_tile COMMAND rb_test_find_exit_tile)
 
 set_tests_properties(find_exit_tile PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "map"
+  LABELS "unit;map"
 )
 
 
@@ -294,7 +301,7 @@ add_test(NAME map_is_walkable COMMAND rb_test_map_is_walkable)
 
 set_tests_properties(map_is_walkable PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "map"
+  LABELS "unit;map"
 )
 
 
@@ -316,7 +323,7 @@ add_test(NAME map_boss_arena_structure COMMAND rb_test_map_boss_arena_structure)
 
 set_tests_properties(map_boss_arena_structure PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "map"
+  LABELS "unit;map"
 )
 
 
@@ -338,7 +345,7 @@ add_test(NAME map_generate_places_exit COMMAND rb_test_map_generate_places_exit)
 
 set_tests_properties(map_generate_places_exit PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "map"
+  LABELS "unit;map"
 )
 
 
@@ -360,7 +367,7 @@ add_test(NAME map_set_tile_bounds COMMAND rb_test_map_set_tile_bounds)
 
 set_tests_properties(map_set_tile_bounds PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "map"
+  LABELS "unit;map"
 )
 
 
@@ -382,7 +389,7 @@ add_test(NAME map_generate_sets_dimensions COMMAND rb_test_map_generate_sets_dim
 
 set_tests_properties(map_generate_sets_dimensions PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "map"
+  LABELS "unit;map"
 )
 
 
@@ -404,7 +411,7 @@ add_test(NAME map_generate_exit_in_bounds COMMAND rb_test_map_generate_exit_in_b
 
 set_tests_properties(map_generate_exit_in_bounds PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "map"
+  LABELS "unit;map"
 )
 
 
@@ -426,7 +433,7 @@ add_test(NAME map_exit_tile_is_exit COMMAND rb_test_map_exit_tile_is_exit)
 
 set_tests_properties(map_exit_tile_is_exit PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "map"
+  LABELS "unit;map"
 )
 
 
@@ -448,7 +455,7 @@ add_test(NAME map_generate_creates_some_floor COMMAND rb_test_map_generate_creat
 
 set_tests_properties(map_generate_creates_some_floor PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "map"
+  LABELS "unit;map"
 )
 
 
@@ -470,7 +477,7 @@ add_test(NAME dominant_axis_tie_behavior COMMAND rb_test_dominant_axis_tie_behav
 
 set_tests_properties(dominant_axis_tie_behavior PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "utils"
+  LABELS "unit;utils"
 )
 
 
@@ -492,7 +499,7 @@ add_test(NAME compute_melee_tiles_range_zero COMMAND rb_test_compute_melee_tiles
 
 set_tests_properties(compute_melee_tiles_range_zero PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "utils"
+  LABELS "unit;utils"
 )
 
 
@@ -514,7 +521,7 @@ add_test(NAME compute_melee_tiles_negative_range COMMAND rb_test_compute_melee_t
 
 set_tests_properties(compute_melee_tiles_negative_range PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "utils"
+  LABELS "unit;utils"
 )
 
 
@@ -535,7 +542,7 @@ add_test(NAME facing_from_dir_non_unit_vectors COMMAND rb_test_facing_from_dir_n
 
 set_tests_properties(facing_from_dir_non_unit_vectors PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "utils"
+  LABELS "unit;utils"
 )
 
 
@@ -549,7 +556,7 @@ add_test(NAME i18n_mo_files_exist_en_es COMMAND rb_test_i18n_mo_files_exist_en_e
 
 set_tests_properties(i18n_mo_files_exist_en_es PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "i18n"
+  LABELS "integration;i18n"
 )
 
 
@@ -573,7 +580,8 @@ set_tests_properties(gettext_translation_es_es PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
   ENVIRONMENT "LANG=es_ES.UTF-8;LC_ALL=es_ES.UTF-8;LC_MESSAGES=es_ES.UTF-8;LANGUAGE=es_ES"
 )
-set_property(TEST gettext_translation_es_es PROPERTY LABELS i18n)
+set_property(TEST gettext_translation_es_es PROPERTY LABELS "integration;i18n")
+
 
 
 # Test: assetPath resuelve correctamente un recurso existente conocido
@@ -590,5 +598,5 @@ add_test(NAME assetpath_known_file_exists COMMAND rb_test_assetpath_known_file_e
 
 set_tests_properties(assetpath_known_file_exists PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "assets"
+  LABELS "integration;assets"
 )
