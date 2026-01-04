@@ -54,18 +54,12 @@ jobs:
         run: |
           git clone https://github.com/microsoft/vcpkg.git
           .\vcpkg\bootstrap-vcpkg.bat
-          .\vcpkg\vcpkg.exe install boost-test:x64-windows
+          .\vcpkg\vcpkg.exe install boost:x64-windows boost-test:x64-windows
 
       - name: Configure (CMake + CTest) - Windows (vcpkg toolchain)
         if: runner.os == 'Windows'
         shell: pwsh
-        run: |
-          cmake -S . -B build-tests `
-            -DBUILD_TESTING=ON `
-            -DENABLE_GETTEXT=OFF `
-            -DENABLE_I18N=OFF
-            -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}\vcpkg\scripts\buildsystems\vcpkg.cmake" `
-            -DVCPKG_TARGET_TRIPLET=x64-windows
+        run: cmake -S . -B build-tests -DBUILD_TESTING=ON -DENABLE_I18N=OFF -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}\vcpkg\scripts\buildsystems\vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows
 
       - name: Configure (CMake + CTest) - Linux
         if: runner.os == 'Linux'

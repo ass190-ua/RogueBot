@@ -1,6 +1,7 @@
 if(POLICY CMP0167)
   cmake_policy(SET CMP0167 NEW)
 endif()
+set(Boost_NO_BOOST_CMAKE ON)
 find_package(Boost REQUIRED COMPONENTS unit_test_framework)
 
 function(rb_link_boost_test target)
