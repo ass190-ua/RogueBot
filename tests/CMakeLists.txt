@@ -70,9 +70,8 @@ endif()
 add_test(NAME dominant_axis COMMAND rb_test_dominant_axis)
 set_tests_properties(dominant_axis PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "unit;utils"
 )
-
+rb_label_test(dominant_axis unit utils)
 
 
 
