@@ -549,6 +549,8 @@ set_property(TEST gettext_translation_es_es PROPERTY LABELS i18n)
 add_executable(rb_test_assetpath_known_file_exists
   test_assetpath_known_file_exists.cpp
 )
+rb_link_boost_test(rb_test_assetpath_known_file_exists)
+
 
 target_include_directories(rb_test_assetpath_known_file_exists PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
 target_compile_definitions(rb_test_assetpath_known_file_exists PRIVATE RB_ASSET_ROOT="${ASSET_ROOT}")
