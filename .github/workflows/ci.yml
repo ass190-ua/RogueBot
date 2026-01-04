@@ -24,6 +24,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Cache vcpkg (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/cache@v4
+        with:
+          path: |
+            vcpkg
+            vcpkg\installed
+            vcpkg\packages
+            vcpkg\buildtrees
+            vcpkg\downloads
+          key: vcpkg-${{ runner.os }}-x64-windows
+
       - name: Instalar dependencias y locales (Ubuntu)
         if: runner.os == 'Linux'
         run: |
@@ -54,7 +66,7 @@ jobs:
         run: |
           git clone https://github.com/microsoft/vcpkg.git
           .\vcpkg\bootstrap-vcpkg.bat
-          .\vcpkg\vcpkg.exe install boost:x64-windows boost-test:x64-windows
+          .\vcpkg\vcpkg.exe install boost:x64-windows boost-test:x64-windows --clean-after-build
 
       - name: Configure (CMake + CTest) - Windows (vcpkg toolchain)
         if: runner.os == 'Windows'
