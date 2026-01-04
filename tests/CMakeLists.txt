@@ -498,6 +498,8 @@ add_executable(rb_test_facing_from_dir_non_unit_vectors
   ${CMAKE_CURRENT_SOURCE_DIR}/test_facing_from_dir_non_unit_vectors.cpp
 )
 
+rb_link_boost_test(rb_test_facing_from_dir_non_unit_vectors)
+
 target_include_directories(rb_test_facing_from_dir_non_unit_vectors PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
 
 if(TARGET raylib)
