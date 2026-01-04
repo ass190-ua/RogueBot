@@ -52,10 +52,18 @@ jobs:
           ctest --test-dir build-tests -L unit -N
           ctest --test-dir build-tests -L integration -N
 
-      - name: Test (CTest)
+      - name: Test (CTest) - unit
         run: |
           export LANG=es_ES.UTF-8
           export LC_ALL=es_ES.UTF-8
           export LANGUAGE=es
           locale
-          ctest --test-dir build-tests --output-on-failure
+          ctest --test-dir build-tests -L unit --output-on-failure
+
+      - name: Test (CTest) - integration
+        run: |
+          export LANG=es_ES.UTF-8
+          export LC_ALL=es_ES.UTF-8
+          export LANGUAGE=es
+          locale
+          ctest --test-dir build-tests -L integration --output-on-failure
