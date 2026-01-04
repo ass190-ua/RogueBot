@@ -48,14 +48,23 @@ jobs:
           sudo locale-gen en_GB.UTF-8
           sudo update-locale LANG=en_GB.UTF-8
 
-      - name: Instalar Boost (Windows - vcpkg)
+      - name: Instalar vcpkg + Boost.Test (Windows)
         if: runner.os == 'Windows'
-        uses: lukka/run-vcpkg@v11
-        with:
-          vcpkgGitCommitId: "a94f5c5f8bd8e0d4f1f7e6c8dbb2a8ef3c7f0b11"
+        shell: pwsh
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git
+          .\vcpkg\bootstrap-vcpkg.bat
+          .\vcpkg\vcpkg.exe install boost-test:x64-windows
 
-      - name: Configure (CMake + CTest)
+      - name: Configure (CMake + CTest) - Windows (vcpkg toolchain)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: cmake -S . -B build-tests -DBUILD_TESTING=ON -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}\vcpkg\scripts\buildsystems\vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows
+
+      - name: Configure (CMake + CTest) - Linux
+        if: runner.os == 'Linux'
         run: cmake -S . -B build-tests -DBUILD_TESTING=ON
+
 
       - name: Build
         run: cmake --build build-tests -j
