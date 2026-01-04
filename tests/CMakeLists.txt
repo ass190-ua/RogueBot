@@ -118,7 +118,7 @@ set_tests_properties(gettext_translation PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
   ENVIRONMENT "LANG=es_ES.UTF-8;LC_ALL=es_ES.UTF-8;LANGUAGE=es"
 )
-set_property(TEST gettext_translation PROPERTY LABELS i18n)
+set_property(TEST gettext_translation PROPERTY LABELS "integration;i18n")
 target_include_directories(rb_test_gettext_translation PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
 
 
@@ -556,7 +556,7 @@ add_test(NAME i18n_mo_files_exist_en_es COMMAND rb_test_i18n_mo_files_exist_en_e
 
 set_tests_properties(i18n_mo_files_exist_en_es PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "i18n"
+  LABELS "integration;i18n"
 )
 
 
@@ -580,7 +580,8 @@ set_tests_properties(gettext_translation_es_es PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
   ENVIRONMENT "LANG=es_ES.UTF-8;LC_ALL=es_ES.UTF-8;LC_MESSAGES=es_ES.UTF-8;LANGUAGE=es_ES"
 )
-set_property(TEST gettext_translation_es_es PROPERTY LABELS i18n)
+set_property(TEST gettext_translation_es_es PROPERTY LABELS "integration;i18n")
+
 
 
 # Test: assetPath resuelve correctamente un recurso existente conocido
