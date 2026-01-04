@@ -269,6 +269,16 @@ requisitos del **Entregable 3: proyecto autoconfigurable y aplicación multiplat
 
 ---
 
+## 🧪 Tests (CTest)
+
+Para reproducir localmente lo que ejecuta el CI (CTest con labels):
+
+```bash
+cmake -S . -B build-tests -DBUILD_TESTING=ON
+cmake --build build-tests -j
+ctest --test-dir build-tests -L unit --output-on-failure
+ctest --test-dir build-tests -L integration --output-on-failure
+
 ## 💡 Desarrollo y contribución
 
 1. Crear rama a partir de `develop`:
