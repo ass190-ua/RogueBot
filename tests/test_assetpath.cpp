@@ -1,29 +1,23 @@
+#define BOOST_TEST_MODULE rb_test_assetpath
+#include <boost/test/unit_test.hpp>
+
 #include "AssetPath.hpp"
 #include <filesystem>
-#include <iostream>
 
-int main()
+BOOST_AUTO_TEST_SUITE(assetpath)
+
+BOOST_AUTO_TEST_CASE(assetpath_exists)
 {
     namespace fs = std::filesystem;
 
     const std::string rel = "locales/es_ES/LC_MESSAGES/roguebot.mo";
     const std::string abs = assetPath(rel);
 
-    if (!fs::exists(abs))
-    {
-        std::cerr << "[FAIL] assetPath no devuelve un fichero existente\n";
-        std::cerr << "  rel: " << rel << "\n";
-        std::cerr << "  abs: " << abs << "\n";
-        return 1;
-    }
+    BOOST_REQUIRE_MESSAGE(fs::exists(abs),
+                          "assetPath no devuelve un fichero existente\n  rel: " << rel << "\n  abs: " << abs);
 
-    if (fs::file_size(abs) == 0)
-    {
-        std::cerr << "[FAIL] El fichero existe pero está vacío\n";
-        std::cerr << "  abs: " << abs << "\n";
-        return 1;
-    }
-
-    std::cout << "[OK] assetPath -> " << abs << "\n";
-    return 0;
+    BOOST_REQUIRE_MESSAGE(fs::file_size(abs) != 0,
+                          "El fichero existe pero está vacío\n  abs: " << abs);
 }
+
+BOOST_AUTO_TEST_SUITE_END()

@@ -1,8 +1,18 @@
+cmake_policy(SET CMP0167 OLD)
+find_package(Boost REQUIRED COMPONENTS unit_test_framework)
+
+function(rb_link_boost_test target)
+  target_link_libraries(${target} PRIVATE Boost::unit_test_framework)
+  # Ayuda en muchas distros cuando Boost.Test está como librería separada
+  target_compile_definitions(${target} PRIVATE BOOST_TEST_DYN_LINK)
+endfunction()
+
 
 # Test: Comprobar que los archivos de localización existen
 add_executable(rb_test_locales_exist
   test_locales_exist.cpp
 )
+rb_link_boost_test(rb_test_locales_exist)
 
 add_test(NAME locales_exist COMMAND rb_test_locales_exist)
 
@@ -19,6 +29,8 @@ set_tests_properties(locales_exist PROPERTIES
 add_executable(rb_test_assetpath
   test_assetpath.cpp
 )
+
+rb_link_boost_test(rb_test_assetpath)
 
 target_include_directories(rb_test_assetpath PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
 
@@ -40,6 +52,8 @@ add_executable(rb_test_dominant_axis
   ${PROJECT_SOURCE_DIR}/src/core/GameUtils.cpp
 )
 
+rb_link_boost_test(rb_test_dominant_axis)
+
 target_include_directories(rb_test_dominant_axis PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
 
 if(TARGET raylib)
@@ -60,6 +74,7 @@ add_executable(rb_test_is_adjacent4
   test_is_adjacent4.cpp
   ${PROJECT_SOURCE_DIR}/src/core/GameUtils.cpp
 )
+rb_link_boost_test(rb_test_is_adjacent4)
 
 target_include_directories(rb_test_is_adjacent4 PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
 
@@ -83,6 +98,9 @@ add_executable(rb_test_gettext_translation
   test_gettext_translation.cpp
 )
 
+rb_link_boost_test(rb_test_gettext_translation)
+
+
 if(RB_INTL_LIB)
   target_link_libraries(rb_test_gettext_translation PRIVATE ${RB_INTL_LIB})
 endif()
@@ -104,6 +122,7 @@ add_executable(rb_test_compute_melee_front
   test_compute_melee_tiles_front.cpp
   ${PROJECT_SOURCE_DIR}/src/core/GameUtils.cpp
 )
+rb_link_boost_test(rb_test_compute_melee_front)
 
 target_include_directories(rb_test_compute_melee_front PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
 
@@ -126,6 +145,8 @@ add_executable(rb_test_compute_melee_cross
   test_compute_melee_tiles_cross.cpp
   ${PROJECT_SOURCE_DIR}/src/core/GameUtils.cpp
 )
+
+rb_link_boost_test(rb_test_compute_melee_cross)
 
 target_include_directories(rb_test_compute_melee_cross PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
 
@@ -150,6 +171,8 @@ add_executable(rb_test_compute_melee_occluded_front
   ${PROJECT_SOURCE_DIR}/src/core/Map.cpp
 )
 
+rb_link_boost_test(rb_test_compute_melee_occluded_front)
+
 target_include_directories(rb_test_compute_melee_occluded_front PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
 
 if(TARGET raylib)
@@ -171,6 +194,8 @@ add_executable(rb_test_facing_from_dir
   ${CMAKE_CURRENT_SOURCE_DIR}/test_facing_from_dir.cpp
 )
 
+rb_link_boost_test(rb_test_facing_from_dir)
+
 target_include_directories(rb_test_facing_from_dir PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
 
 if(TARGET raylib)
@@ -190,6 +215,8 @@ set_tests_properties(facing_from_dir PROPERTIES
 add_executable(rb_test_perform_melee_hit
   ${CMAKE_CURRENT_SOURCE_DIR}/test_perform_melee_hit.cpp
 )
+
+rb_link_boost_test(rb_test_perform_melee_hit)
 
 target_include_directories(rb_test_perform_melee_hit PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
 
@@ -212,6 +239,8 @@ add_executable(rb_test_map_deterministic_seed
   ${PROJECT_SOURCE_DIR}/src/core/Map.cpp
 )
 
+rb_link_boost_test(rb_test_map_deterministic_seed)
+
 target_include_directories(rb_test_map_deterministic_seed PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
 
 if(TARGET raylib)
@@ -232,6 +261,8 @@ add_executable(rb_test_find_exit_tile
   ${PROJECT_SOURCE_DIR}/src/core/Map.cpp
 )
 
+rb_link_boost_test(rb_test_find_exit_tile)
+
 target_include_directories(rb_test_find_exit_tile PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
 
 if(TARGET raylib)
@@ -251,6 +282,7 @@ add_executable(rb_test_map_is_walkable
   test_map_is_walkable.cpp
   ${PROJECT_SOURCE_DIR}/src/core/Map.cpp
 )
+rb_link_boost_test(rb_test_map_is_walkable)
 
 target_include_directories(rb_test_map_is_walkable PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
 
@@ -272,6 +304,8 @@ add_executable(rb_test_map_boss_arena_structure
   ${PROJECT_SOURCE_DIR}/src/core/Map.cpp
 )
 
+rb_link_boost_test(rb_test_map_boss_arena_structure)
+
 target_include_directories(rb_test_map_boss_arena_structure PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
 
 if(TARGET raylib)
@@ -291,6 +325,8 @@ add_executable(rb_test_map_generate_places_exit
   test_map_generate_places_exit.cpp
   ${PROJECT_SOURCE_DIR}/src/core/Map.cpp
 )
+
+rb_link_boost_test(rb_test_map_generate_places_exit)
 
 target_include_directories(rb_test_map_generate_places_exit PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
 
@@ -312,6 +348,8 @@ add_executable(rb_test_map_set_tile_bounds
   ${PROJECT_SOURCE_DIR}/src/core/Map.cpp
 )
 
+rb_link_boost_test(rb_test_map_set_tile_bounds)
+
 target_include_directories(rb_test_map_set_tile_bounds PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
 
 if(TARGET raylib)
@@ -331,6 +369,8 @@ add_executable(rb_test_map_generate_sets_dimensions
   test_map_generate_sets_dimensions.cpp
   ${PROJECT_SOURCE_DIR}/src/core/Map.cpp
 )
+
+rb_link_boost_test(rb_test_map_generate_sets_dimensions)
 
 target_include_directories(rb_test_map_generate_sets_dimensions PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
 
@@ -352,6 +392,8 @@ add_executable(rb_test_map_generate_exit_in_bounds
   ${PROJECT_SOURCE_DIR}/src/core/Map.cpp
 )
 
+rb_link_boost_test(rb_test_map_generate_exit_in_bounds)
+
 target_include_directories(rb_test_map_generate_exit_in_bounds PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
 
 if(TARGET raylib)
@@ -371,6 +413,8 @@ add_executable(rb_test_map_exit_tile_is_exit
   test_map_exit_tile_is_exit.cpp
   ${PROJECT_SOURCE_DIR}/src/core/Map.cpp
 )
+
+rb_link_boost_test(rb_test_map_exit_tile_is_exit)
 
 target_include_directories(rb_test_map_exit_tile_is_exit PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
 
@@ -392,6 +436,8 @@ add_executable(rb_test_map_generate_creates_some_floor
   ${PROJECT_SOURCE_DIR}/src/core/Map.cpp
 )
 
+rb_link_boost_test(rb_test_map_generate_creates_some_floor)
+
 target_include_directories(rb_test_map_generate_creates_some_floor PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
 
 if(TARGET raylib)
@@ -411,6 +457,8 @@ add_executable(rb_test_dominant_axis_tie_behavior
   test_dominant_axis_tie_behavior.cpp
   ${PROJECT_SOURCE_DIR}/src/core/GameUtils.cpp
 )
+
+rb_link_boost_test(rb_test_dominant_axis_tie_behavior)
 
 target_include_directories(rb_test_dominant_axis_tie_behavior PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
 
@@ -432,6 +480,8 @@ add_executable(rb_test_compute_melee_tiles_range_zero
   ${PROJECT_SOURCE_DIR}/src/core/GameUtils.cpp
 )
 
+rb_link_boost_test(rb_test_compute_melee_tiles_range_zero)
+
 target_include_directories(rb_test_compute_melee_tiles_range_zero PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
 
 if(TARGET raylib)
@@ -452,6 +502,8 @@ add_executable(rb_test_compute_melee_tiles_negative_range
   ${PROJECT_SOURCE_DIR}/src/core/GameUtils.cpp
 )
 
+rb_link_boost_test(rb_test_compute_melee_tiles_negative_range)
+
 target_include_directories(rb_test_compute_melee_tiles_negative_range PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
 
 if(TARGET raylib)
@@ -471,6 +523,8 @@ add_executable(rb_test_facing_from_dir_non_unit_vectors
   ${CMAKE_CURRENT_SOURCE_DIR}/test_facing_from_dir_non_unit_vectors.cpp
 )
 
+rb_link_boost_test(rb_test_facing_from_dir_non_unit_vectors)
+
 target_include_directories(rb_test_facing_from_dir_non_unit_vectors PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
 
 if(TARGET raylib)
@@ -489,6 +543,7 @@ set_tests_properties(facing_from_dir_non_unit_vectors PROPERTIES
 add_executable(rb_test_i18n_mo_files_exist_en_es
   test_i18n_mo_files_exist_en_es.cpp
 )
+rb_link_boost_test(rb_test_i18n_mo_files_exist_en_es)
 
 add_test(NAME i18n_mo_files_exist_en_es COMMAND rb_test_i18n_mo_files_exist_en_es)
 
@@ -502,6 +557,9 @@ set_tests_properties(i18n_mo_files_exist_en_es PROPERTIES
 add_executable(rb_test_gettext_translation_es_es
   test_gettext_translation_es_es.cpp
 )
+
+rb_link_boost_test(rb_test_gettext_translation_es_es)
+
 
 if(RB_INTL_LIB)
   target_link_libraries(rb_test_gettext_translation_es_es PRIVATE ${RB_INTL_LIB})
@@ -522,6 +580,8 @@ set_property(TEST gettext_translation_es_es PROPERTY LABELS i18n)
 add_executable(rb_test_assetpath_known_file_exists
   test_assetpath_known_file_exists.cpp
 )
+rb_link_boost_test(rb_test_assetpath_known_file_exists)
+
 
 target_include_directories(rb_test_assetpath_known_file_exists PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
 target_compile_definitions(rb_test_assetpath_known_file_exists PRIVATE RB_ASSET_ROOT="${ASSET_ROOT}")

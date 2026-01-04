@@ -1,9 +1,12 @@
-#include <cstdlib>
-#include <iostream>
+#define BOOST_TEST_MODULE rb_test_map_generate_exit_in_bounds
+#include <boost/test/unit_test.hpp>
 
 #include "core/Map.hpp"
 
-int main() {
+BOOST_AUTO_TEST_SUITE(map_generate_exit_in_bounds)
+
+BOOST_AUTO_TEST_CASE(map_generate_exit_in_bounds)
+{
   Map map;
 
   struct Case {
@@ -15,21 +18,18 @@ int main() {
   const Case cases[] = {
       {40, 25, 1u}, {20, 15, 42u}, {60, 30, 12345u}, {10, 10, 0u}};
 
-  for (const auto &c : cases) {
+  for (const auto& c : cases) {
     map.generate(c.W, c.H, c.seed);
 
     auto [ex, ey] = map.findExitTile();
 
-    if (ex < 0 || ex >= c.W || ey < 0 || ey >= c.H) {
-      std::cerr << "[FAIL] findExitTile fuera de rango tras generate(" << c.W
-                << "," << c.H << "," << c.seed << "). "
-                << "Exit=(" << ex << "," << ey << "), "
-                << "Rangos: x[0," << (c.W - 1) << "], y[0," << (c.H - 1)
-                << "]\n";
-      return EXIT_FAILURE;
-    }
+    BOOST_REQUIRE_MESSAGE(!(ex < 0 || ex >= c.W || ey < 0 || ey >= c.H),
+                          "findExitTile fuera de rango tras generate(" << c.W
+                          << "," << c.H << "," << c.seed << "). "
+                          << "Exit=(" << ex << "," << ey << "), "
+                          << "Rangos: x[0," << (c.W - 1) << "], y[0," << (c.H - 1)
+                          << "]");
   }
-
-  std::cout << "[OK] findExitTile devuelve coordenadas válidas (in-bounds)\n";
-  return EXIT_SUCCESS;
 }
+
+BOOST_AUTO_TEST_SUITE_END()

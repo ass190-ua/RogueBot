@@ -1,8 +1,12 @@
-#include <iostream>
+#define BOOST_TEST_MODULE rb_test_map_generate_creates_some_floor
+#include <boost/test/unit_test.hpp>
 
 #include "Map.hpp"
 
-int main() {
+BOOST_AUTO_TEST_SUITE(map_generate_creates_some_floor)
+
+BOOST_AUTO_TEST_CASE(map_generate_creates_some_floor)
+{
   const int W = 60;
   const int H = 35;
   const unsigned seed = 123;
@@ -22,12 +26,8 @@ int main() {
 
   const int MIN_FLOOR = 10;
 
-  if (floorCount < MIN_FLOOR) {
-    std::cerr << "[FAIL] FLOOR insuficiente: " << floorCount
-              << " (min=" << MIN_FLOOR << ")\n";
-    return 1;
-  }
-
-  std::cout << "[OK] generate crea FLOOR suficiente: " << floorCount << "\n";
-  return 0;
+  BOOST_REQUIRE_MESSAGE(floorCount >= MIN_FLOOR,
+                        "FLOOR insuficiente: " << floorCount << " (min=" << MIN_FLOOR << ")");
 }
+
+BOOST_AUTO_TEST_SUITE_END()
