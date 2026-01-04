@@ -560,6 +560,9 @@ set_tests_properties(i18n_mo_files_exist_en_es PROPERTIES
 )
 rb_label_test(i18n_mo_files_exist_en_es integration i18n)
 
+
+
+
 # Test: Comprobar traducción con gettext en es_ES usando una clave real del .mo
 add_executable(rb_test_gettext_translation_es_es
   test_gettext_translation_es_es.cpp
@@ -580,7 +583,8 @@ set_tests_properties(gettext_translation_es_es PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
   ENVIRONMENT "LANG=es_ES.UTF-8;LC_ALL=es_ES.UTF-8;LC_MESSAGES=es_ES.UTF-8;LANGUAGE=es_ES"
 )
-set_property(TEST gettext_translation_es_es PROPERTY LABELS "integration;i18n")
+
+rb_label_test(gettext_translation_es_es integration i18n)
 
 
 
