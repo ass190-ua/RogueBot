@@ -91,9 +91,8 @@ endif()
 add_test(NAME is_adjacent4 COMMAND rb_test_is_adjacent4)
 set_tests_properties(is_adjacent4 PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "unit;utils"
 )
-
+rb_label_test(is_adjacent4 unit utils) 
 
 
 
@@ -141,9 +140,8 @@ add_test(NAME compute_melee_front COMMAND rb_test_compute_melee_front)
 
 set_tests_properties(compute_melee_front PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "unit;utils"
 )
-
+rb_label_test(compute_melee_front unit utils)
 
 
 
@@ -165,9 +163,8 @@ add_test(NAME compute_melee_cross COMMAND rb_test_compute_melee_cross)
 
 set_tests_properties(compute_melee_cross PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "unit;utils"
 )
-
+rb_label_test(compute_melee_cross unit utils)
 
 
 
@@ -190,9 +187,8 @@ add_test(NAME compute_melee_occluded_front COMMAND rb_test_compute_melee_occlude
 
 set_tests_properties(compute_melee_occluded_front PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "unit;utils"
 )
-
+rb_label_test(compute_melee_occluded_front unit utils) 
 
 
 
@@ -213,8 +209,8 @@ add_test(NAME facing_from_dir COMMAND rb_test_facing_from_dir)
 
 set_tests_properties(facing_from_dir PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "unit;utils"
 )
+rb_label_test(facing_from_dir unit utils)
 
 
 
@@ -235,8 +231,8 @@ add_test(NAME perform_melee_hit COMMAND rb_test_perform_melee_hit)
 
 set_tests_properties(perform_melee_hit PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "unit;utils"
 )
+rb_label_test(perform_melee_hit unit utils)
 
 
 
@@ -477,8 +473,9 @@ add_test(NAME dominant_axis_tie_behavior COMMAND rb_test_dominant_axis_tie_behav
 
 set_tests_properties(dominant_axis_tie_behavior PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "unit;utils"
 )
+rb_label_test(dominant_axis_tie_behavior unit utils)
+
 
 
 # Test: computeMeleeTiles con rango 0 devuelve vacío
@@ -499,8 +496,9 @@ add_test(NAME compute_melee_tiles_range_zero COMMAND rb_test_compute_melee_tiles
 
 set_tests_properties(compute_melee_tiles_range_zero PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "unit;utils"
 )
+rb_label_test(compute_melee_tiles_range_zero unit utils)
+
 
 
 # Test: computeMeleeTiles maneja rango negativo sin romper
@@ -521,8 +519,11 @@ add_test(NAME compute_melee_tiles_negative_range COMMAND rb_test_compute_melee_t
 
 set_tests_properties(compute_melee_tiles_negative_range PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "unit;utils"
 )
+
+rb_label_test(compute_melee_tiles_negative_range unit utils)
+
+
 
 
 # Test: facingFromDir acepta vectores no unitarios
@@ -542,8 +543,11 @@ add_test(NAME facing_from_dir_non_unit_vectors COMMAND rb_test_facing_from_dir_n
 
 set_tests_properties(facing_from_dir_non_unit_vectors PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "unit;utils"
 )
+
+rb_label_test(facing_from_dir_non_unit_vectors unit utils)
+
+
 
 
 # Test: Comprobar que existen catálogos .mo en es_ES y en_GB
