@@ -2,13 +2,18 @@ name: CI
 
 on:
   push:
-    branches: [ "develop" ]
+    branches: ["develop"]
   pull_request:
-    branches: [ "develop" ]
+    branches: ["develop"]
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    runs-on: ${{ matrix.os }}
 
     env:
       LANG: es_ES.UTF-8
@@ -18,8 +23,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      
+
       - name: Instalar dependencias y locales (Ubuntu)
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -38,12 +44,15 @@ jobs:
             libboost-dev \
             libboost-test-dev
 
-
           sudo locale-gen es_ES.UTF-8
           sudo locale-gen en_GB.UTF-8
           sudo update-locale LANG=en_GB.UTF-8
 
-
+      - name: Instalar Boost (Windows - vcpkg)
+        if: runner.os == 'Windows'
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgGitCommitId: "a94f5c5f8bd8e0d4f1f7e6c8dbb2a8ef3c7f0b11"
 
       - name: Configure (CMake + CTest)
         run: cmake -S . -B build-tests -DBUILD_TESTING=ON
@@ -52,6 +61,7 @@ jobs:
         run: cmake --build build-tests -j
 
       - name: List tests (CTest labels)
+        if: runner.os == 'Linux'
         run: |
           ctest --test-dir build-tests -N
           ctest --test-dir build-tests -L unit -N
@@ -59,10 +69,9 @@ jobs:
 
       - name: Test (CTest) - unit
         run: |
-          locale
           ctest --test-dir build-tests -L unit --output-on-failure
 
       - name: Test (CTest) - integration
+        if: runner.os == 'Linux'
         run: |
-          locale
           ctest --test-dir build-tests -L integration --output-on-failure
