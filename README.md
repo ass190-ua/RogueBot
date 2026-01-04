@@ -278,6 +278,7 @@ cmake -S . -B build-tests -DBUILD_TESTING=ON
 cmake --build build-tests -j
 ctest --test-dir build-tests -L unit --output-on-failure
 ctest --test-dir build-tests -L integration --output-on-failure
+```
 
 
 ### Notas
@@ -291,6 +292,8 @@ Si algún test de `i18n` falla por configuración regional:
 export LANG=es_ES.UTF-8
 export LC_ALL=es_ES.UTF-8
 export LANGUAGE=es
+```
+
 
 ## 💡 Desarrollo y contribución
 
