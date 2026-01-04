@@ -598,5 +598,5 @@ add_test(NAME assetpath_known_file_exists COMMAND rb_test_assetpath_known_file_e
 
 set_tests_properties(assetpath_known_file_exists PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "integration;assets"
 )
+rb_label_test(assetpath_known_file_exists integration assets)
