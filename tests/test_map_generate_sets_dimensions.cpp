@@ -1,9 +1,12 @@
-#include <cstdlib>
-#include <iostream>
+#define BOOST_TEST_MODULE rb_test_map_generate_sets_dimensions
+#include <boost/test/unit_test.hpp>
 
 #include "core/Map.hpp"
 
-int main() {
+BOOST_AUTO_TEST_SUITE(map_generate_sets_dimensions)
+
+BOOST_AUTO_TEST_CASE(map_generate_sets_dimensions)
+{
   Map map;
 
   const int W = 40;
@@ -12,18 +15,11 @@ int main() {
 
   map.generate(W, H, seed);
 
-  if (map.width() != W) {
-    std::cerr << "[FAIL] width() incorrecto. Esperado=" << W
-              << " Obtenido=" << map.width() << "\n";
-    return EXIT_FAILURE;
-  }
+  BOOST_REQUIRE_MESSAGE(map.width() == W,
+                        "width() incorrecto. Esperado=" << W << " Obtenido=" << map.width());
 
-  if (map.height() != H) {
-    std::cerr << "[FAIL] height() incorrecto. Esperado=" << H
-              << " Obtenido=" << map.height() << "\n";
-    return EXIT_FAILURE;
-  }
-
-  std::cout << "[OK] Map::generate fija correctamente width/height\n";
-  return EXIT_SUCCESS;
+  BOOST_REQUIRE_MESSAGE(map.height() == H,
+                        "height() incorrecto. Esperado=" << H << " Obtenido=" << map.height());
 }
+
+BOOST_AUTO_TEST_SUITE_END()
