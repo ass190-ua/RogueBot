@@ -118,7 +118,8 @@ set_tests_properties(gettext_translation PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
   ENVIRONMENT "LANG=es_ES.UTF-8;LC_ALL=es_ES.UTF-8;LANGUAGE=es"
 )
-set_property(TEST gettext_translation PROPERTY LABELS "integration;i18n")
+rb_label_test(gettext_translation integration i18n)
+
 target_include_directories(rb_test_gettext_translation PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
 
 
