@@ -46,6 +46,12 @@ jobs:
       - name: Build
         run: cmake --build build-tests -j
 
+      - name: List tests (CTest labels)
+        run: |
+          ctest --test-dir build-tests -N
+          ctest --test-dir build-tests -L unit -N
+          ctest --test-dir build-tests -L integration -N
+
       - name: Test (CTest)
         run: |
           export LANG=es_ES.UTF-8
