@@ -557,9 +557,8 @@ add_test(NAME i18n_mo_files_exist_en_es COMMAND rb_test_i18n_mo_files_exist_en_e
 
 set_tests_properties(i18n_mo_files_exist_en_es PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "integration;i18n"
 )
-
+rb_label_test(i18n_mo_files_exist_en_es integration i18n)
 
 # Test: Comprobar traducción con gettext en es_ES usando una clave real del .mo
 add_executable(rb_test_gettext_translation_es_es
