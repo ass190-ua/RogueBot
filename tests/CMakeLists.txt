@@ -1,4 +1,6 @@
-cmake_policy(SET CMP0167 OLD)
+if(POLICY CMP0167)
+  cmake_policy(SET CMP0167 NEW)
+endif()
 find_package(Boost REQUIRED COMPONENTS unit_test_framework)
 
 function(rb_link_boost_test target)
@@ -92,7 +94,7 @@ add_test(NAME is_adjacent4 COMMAND rb_test_is_adjacent4)
 set_tests_properties(is_adjacent4 PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
 )
-rb_label_test(is_adjacent4 unit utils) 
+rb_label_test(is_adjacent4 unit utils)
 
 
 
@@ -188,7 +190,7 @@ add_test(NAME compute_melee_occluded_front COMMAND rb_test_compute_melee_occlude
 set_tests_properties(compute_melee_occluded_front PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
 )
-rb_label_test(compute_melee_occluded_front unit utils) 
+rb_label_test(compute_melee_occluded_front unit utils)
 
 
 
@@ -640,3 +642,22 @@ set_tests_properties(assetpath_known_file_exists PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
 )
 rb_label_test(assetpath_known_file_exists integration assets)
+
+
+# Test: Player (core)
+add_executable(rb_test_player
+  test_player.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/Player.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/ResourceManager.cpp
+)
+
+rb_link_boost_test(rb_test_player)
+target_include_directories(rb_test_player PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_player PRIVATE raylib)
+endif()
+
+add_test(NAME player COMMAND rb_test_player)
+set_tests_properties(player PROPERTIES WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+rb_label_test(player unit core)
