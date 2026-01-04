@@ -52,6 +52,8 @@ add_executable(rb_test_dominant_axis
   ${PROJECT_SOURCE_DIR}/src/core/GameUtils.cpp
 )
 
+rb_link_boost_test(rb_test_dominant_axis)
+
 target_include_directories(rb_test_dominant_axis PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
 
 if(TARGET raylib)
