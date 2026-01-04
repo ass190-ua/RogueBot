@@ -280,6 +280,7 @@ ctest --test-dir build-tests -L unit --output-on-failure
 ctest --test-dir build-tests -L integration --output-on-failure
 ```
 
+> Para más detalles, ver el archivo de [CONTRIBUCION](CONTRIBUCION.MD).
 
 ### Notas
 
