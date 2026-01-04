@@ -25,8 +25,9 @@ add_test(NAME locales_exist COMMAND rb_test_locales_exist)
 
 set_tests_properties(locales_exist PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "integration;assets"
 )
+rb_label_test(locales_exist integration assets)
+
 
 
 
@@ -47,9 +48,8 @@ add_test(NAME assetpath_exists COMMAND rb_test_assetpath)
 
 set_tests_properties(assetpath_exists PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "integration;assets"
 )
-
+rb_label_test(assetpath_exists integration assets)
 
 
 
@@ -598,5 +598,5 @@ add_test(NAME assetpath_known_file_exists COMMAND rb_test_assetpath_known_file_e
 
 set_tests_properties(assetpath_known_file_exists PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  LABELS "integration;assets"
 )
+rb_label_test(assetpath_known_file_exists integration assets)
