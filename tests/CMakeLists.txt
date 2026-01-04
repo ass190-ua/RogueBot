@@ -445,6 +445,8 @@ add_executable(rb_test_dominant_axis_tie_behavior
   ${PROJECT_SOURCE_DIR}/src/core/GameUtils.cpp
 )
 
+rb_link_boost_test(rb_test_dominant_axis_tie_behavior)
+
 target_include_directories(rb_test_dominant_axis_tie_behavior PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
 
 if(TARGET raylib)
