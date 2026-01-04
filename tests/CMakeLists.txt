@@ -1,10 +1,7 @@
 if(POLICY CMP0167)
   cmake_policy(SET CMP0167 NEW)
 endif()
-option(ROGUEBOT_ENABLE_GETTEXT "Activar soporte Gettext (i18n)" ON)
-if(ROGUEBOT_ENABLE_GETTEXT)
-  find_package(Gettext REQUIRED)
-endif()
+find_package(Boost REQUIRED COMPONENTS unit_test_framework)
 
 function(rb_link_boost_test target)
   target_link_libraries(${target} PRIVATE Boost::unit_test_framework)
