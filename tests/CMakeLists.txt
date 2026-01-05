@@ -696,3 +696,15 @@ set_tests_properties(enemy_sprites_exist PROPERTIES
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
   LABELS "assets"
 )
+
+
+# Test: floats (HUD easing)
+add_executable(rb_test_floats_hud_easing
+  test_floats_hud_easing.cpp
+)
+
+rb_link_boost_test(rb_test_floats_hud_easing)
+target_include_directories(rb_test_floats_hud_easing PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+add_test(NAME floats_hud_easing COMMAND rb_test_floats_hud_easing)
+set_tests_properties(floats_hud_easing PROPERTIES LABELS "unit;floats")
