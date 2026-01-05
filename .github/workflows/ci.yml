@@ -66,7 +66,7 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          vcpkg install boost boost-test gettext libiconv --triplet x64-windows
+          vcpkg install boost-test --triplet x64-windows
 
       # -------------------------
       # Configure
