@@ -1,14 +1,19 @@
 #pragma once
 
-// Helpers para GNU gettext (i18n)
+// Si i18n está activo, usamos gettext real.
+// Si NO, dejamos macros “stub” para que el código compile.
+#if defined(RB_ENABLE_I18N) && RB_ENABLE_I18N
 #include <libintl.h>
 
-// Traduce en runtime
 #ifndef _
 #define _(String) gettext(String)
 #endif
+#else
+#ifndef _
+#define _(String) (String)
+#endif
+#endif
 
-// Marca para traducir, pero NO traduce aún (útil para tablas estáticas)
 #ifndef N_
 #define N_(String) (String)
 #endif
