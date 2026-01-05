@@ -29,12 +29,13 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            vcpkg
             vcpkg\installed
-            vcpkg\packages
             vcpkg\buildtrees
             vcpkg\downloads
-          key: vcpkg-${{ runner.os }}-x64-windows
+            vcpkg\packages
+          key: vcpkg-${{ runner.os }}-x64-windows-boost
+          restore-keys: |
+            vcpkg-${{ runner.os }}-x64-windows-
 
       - name: Instalar dependencias y locales (Ubuntu)
         if: runner.os == 'Linux'
@@ -60,13 +61,15 @@ jobs:
           sudo locale-gen en_GB.UTF-8
           sudo update-locale LANG=en_GB.UTF-8
 
-      - name: Instalar vcpkg + Boost.Test (Windows)
+      - name: Instalar vcpkg + Boost (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          git clone https://github.com/microsoft/vcpkg.git
-          .\vcpkg\bootstrap-vcpkg.bat
-          .\vcpkg\vcpkg.exe install boost:x64-windows boost-test:x64-windows --clean-after-build
+          if (!(Test-Path -Path "vcpkg")) {
+            git clone https://github.com/microsoft/vcpkg.git
+            .\vcpkg\bootstrap-vcpkg.bat
+          }
+          .\vcpkg\vcpkg.exe install boost:x64-windows boost-test:x64-windows --clean-after-build --binarysource=clear;default
 
       - name: Configure (CMake + CTest) - Windows (vcpkg toolchain)
         if: runner.os == 'Windows'

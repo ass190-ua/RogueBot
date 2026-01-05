@@ -42,9 +42,9 @@ cmake_minimum_required(VERSION 3.20)
 #   cmake --build build --target package
 # -----------------------------------------------------------------------------
 project(roguebot
-        VERSION 1.1
-        DESCRIPTION "RogueBot — Roguelike con raylib"
-        LANGUAGES CXX)
+  VERSION 1.1
+  DESCRIPTION "RogueBot — Roguelike con raylib"
+  LANGUAGES CXX)
 
 # Usar C++17 de forma obligatoria en todo el proyecto
 set(CMAKE_CXX_STANDARD 17)
@@ -55,6 +55,7 @@ option(ENABLE_I18N "Activar i18n/gettext (libintl)" ON)
 
 if(ENABLE_I18N)
   find_package(Intl)
+  target_compile_definitions(${PROJECT_NAME} PRIVATE ENABLE_I18N)
 endif()
 
 # Opciones de usuario para controlar cómo se obtiene/enlaza raylib
@@ -70,14 +71,14 @@ set(ASSET_ROOT "assets" CACHE STRING "Directorio raíz de los assets del juego")
 # CONFIGURE_DEPENDS hace que si añadimos/eliminamos fuentes, CMake regenere
 # los archivos de build automáticamente (similar a un "find" en el Makefile).
 file(GLOB_RECURSE ROGUEBOT_SOURCES CONFIGURE_DEPENDS
-     "${PROJECT_SOURCE_DIR}/src/*.cpp")
+  "${PROJECT_SOURCE_DIR}/src/*.cpp")
 
 # Directorios de inclusión donde están los .hpp del proyecto.
 # Aquí añadimos src/ y subcarpetas relevantes (systems, core, etc.).
 set(ROGUEBOT_INCLUDE_DIRS
-    "${PROJECT_SOURCE_DIR}/src"
-    "${PROJECT_SOURCE_DIR}/src/systems"
-    "${PROJECT_SOURCE_DIR}/src/core"
+  "${PROJECT_SOURCE_DIR}/src"
+  "${PROJECT_SOURCE_DIR}/src/systems"
+  "${PROJECT_SOURCE_DIR}/src/core"
 )
 
 # -----------------------------------------------------------------------------
@@ -116,7 +117,7 @@ elseif(EXISTS "${PROJECT_SOURCE_DIR}/raylib/CMakeLists.txt")
 
   # Desactivar ejemplos/juegos y actualizaciones online en el subproyecto
   set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-  set(BUILD_GAMES    OFF CACHE BOOL "" FORCE)
+  set(BUILD_GAMES OFF CACHE BOOL "" FORCE)
   set(OPTION_CHECK_UPDATE OFF CACHE BOOL "" FORCE)
 
   # Decidir si la librería será estática o compartida
@@ -138,11 +139,11 @@ else()
   FetchContent_Declare(
     raylib
     GIT_REPOSITORY https://github.com/raysan5/raylib.git
-    GIT_TAG        5.0
+    GIT_TAG 5.0
   )
 
   set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-  set(BUILD_GAMES    OFF CACHE BOOL "" FORCE)
+  set(BUILD_GAMES OFF CACHE BOOL "" FORCE)
   set(OPTION_CHECK_UPDATE OFF CACHE BOOL "" FORCE)
 
   if(PREFER_RAYLIB_STATIC)
@@ -167,26 +168,26 @@ add_executable(${PROJECT_NAME} ${ROGUEBOT_SOURCES})
 
 # Vincular la librería Intl (Gettext) al ejecutable
 if(Intl_FOUND)
-    target_link_libraries(${PROJECT_NAME} PRIVATE Intl::Intl)
+  target_link_libraries(${PROJECT_NAME} PRIVATE Intl::Intl)
 endif()
 
 # Forzar enlazado estático en Windows (MinGW)
 if(WIN32 AND MINGW)
-    target_link_options(${PROJECT_NAME} PRIVATE 
-        -static 
-        -static-libgcc 
-        -static-libstdc++
-    )
+  target_link_options(${PROJECT_NAME} PRIVATE
+    -static
+    -static-libgcc
+    -static-libstdc++
+  )
 endif()
 
 # Añadir los directorios de cabeceras (.hpp) al target
 target_include_directories(${PROJECT_NAME}
-    PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+  PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
 
 # Inyectar la ruta de assets en el código como RB_ASSET_ROOT.
 # En C++ se verá como una cadena, por ejemplo "assets".
 target_compile_definitions(${PROJECT_NAME}
-    PRIVATE RB_ASSET_ROOT="${ASSET_ROOT}"
+  PRIVATE RB_ASSET_ROOT="${ASSET_ROOT}"
 )
 
 # Recurso de icono para el ejecutable en Windows (.exe).
@@ -249,12 +250,12 @@ include(GNUInstallDirs)
 if(WIN32)
   # En Windows queremos un ZIP “portable”: el exe en la raíz del paquete
   install(TARGETS ${PROJECT_NAME}
-      RUNTIME DESTINATION .)
+    RUNTIME DESTINATION .)
 
   # Copiar toda la carpeta assets/ a la raíz del paquete (assets/...)
   install(DIRECTORY ${PROJECT_SOURCE_DIR}/assets/
-          DESTINATION assets
-          PATTERN ".*" EXCLUDE)
+    DESTINATION assets
+    PATTERN ".*" EXCLUDE)
 
 else()
   # En Linux (y otros UNIX), seguimos el esquema estándar de FHS:
@@ -262,20 +263,20 @@ else()
 
   # Ejecutable en bin/ (normalmente /usr/local/bin)
   install(TARGETS ${PROJECT_NAME}
-      RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
   # Assets en share/roguebot/assets (p.ej. /usr/local/share/roguebot/assets)
   install(DIRECTORY ${PROJECT_SOURCE_DIR}/assets/
-          DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/${PROJECT_NAME}/assets
-          PATTERN ".*" EXCLUDE)
+    DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/${PROJECT_NAME}/assets
+    PATTERN ".*" EXCLUDE)
 
   # Fichero .desktop para integrarlo en el menú de escritorio (solo no-Windows)
   install(FILES ${PROJECT_SOURCE_DIR}/packaging/roguebot.desktop
-          DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/applications)
+    DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/applications)
 
   # Icono de 256x256 para menús/lanzadores en escritorio (solo no-Windows)
   install(FILES ${PROJECT_SOURCE_DIR}/packaging/icons/roguebot.png
-          DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/256x256/apps)
+    DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/256x256/apps)
 endif()
 
 # -----------------------------------------------------------------------------
@@ -322,11 +323,11 @@ if(WIN32)
 
   # Crear un acceso directo en el Escritorio al instalar
   set(CPACK_NSIS_CREATE_ICONS_EXTRA
-      "CreateShortCut '$DESKTOP\\\\RogueBot.lnk' '$INSTDIR\\\\roguebot.exe'")
+    "CreateShortCut '$DESKTOP\\\\RogueBot.lnk' '$INSTDIR\\\\roguebot.exe'")
 
   # Borrar el acceso del Escritorio al desinstalar
   set(CPACK_NSIS_DELETE_ICONS_EXTRA
-      "Delete '$DESKTOP\\\\RogueBot.lnk'")
+    "Delete '$DESKTOP\\\\RogueBot.lnk'")
 
 else()
   # En Linux generamos:
