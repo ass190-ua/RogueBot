@@ -46,13 +46,19 @@ jobs:
       # -------------------------
       # Windows dependencies (vcpkg)
       # -------------------------
+      - name: Resolve vcpkg baseline (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $commit = (git ls-remote https://github.com/microsoft/vcpkg.git HEAD).Split("`t")[0]
+          "VCPKG_COMMIT=$commit" | Out-File -FilePath $env:GITHUB_ENV -Append
+          Write-Host "Using vcpkg baseline commit: $commit"
+
       - name: Setup vcpkg (Windows)
         if: runner.os == 'Windows'
         uses: lukka/run-vcpkg@v11
         with:
-          # OJO: puedes fijar commit para reproducibilidad.
-          # Si lo dejas vacío, se usa una versión "reciente" gestionada por la acción.
-          vcpkgGitCommitId: ""
+          vcpkgGitCommitId: ${{ env.VCPKG_COMMIT }}
 
       - name: Install Boost + Boost.Test (Windows)
         if: runner.os == 'Windows'
