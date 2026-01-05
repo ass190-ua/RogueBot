@@ -100,29 +100,28 @@ rb_label_test(is_adjacent4 unit utils)
 
 
 ## Text: Comprobar traducciones con gettext
-if(NOT WIN32)
-  find_library(RB_INTL_LIB intl)
+find_library(RB_INTL_LIB intl)
 
-  add_executable(rb_test_gettext_translation
-    test_gettext_translation.cpp
-  )
+add_executable(rb_test_gettext_translation
+  test_gettext_translation.cpp
+)
 
-  rb_link_boost_test(rb_test_gettext_translation)
+rb_link_boost_test(rb_test_gettext_translation)
 
-  if(RB_INTL_LIB)
-    target_link_libraries(rb_test_gettext_translation PRIVATE ${RB_INTL_LIB})
-  endif()
 
-  add_test(NAME gettext_translation COMMAND rb_test_gettext_translation)
-
-  set_tests_properties(gettext_translation PROPERTIES
-    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-    ENVIRONMENT "LANG=es_ES.UTF-8;LC_ALL=es_ES.UTF-8;LANGUAGE=es"
-  )
-  rb_label_test(gettext_translation integration i18n)
-
-  target_include_directories(rb_test_gettext_translation PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+if(RB_INTL_LIB)
+  target_link_libraries(rb_test_gettext_translation PRIVATE ${RB_INTL_LIB})
 endif()
+
+add_test(NAME gettext_translation COMMAND rb_test_gettext_translation)
+
+set_tests_properties(gettext_translation PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+  ENVIRONMENT "LANG=es_ES.UTF-8;LC_ALL=es_ES.UTF-8;LANGUAGE=es"
+)
+rb_label_test(gettext_translation integration i18n)
+
+target_include_directories(rb_test_gettext_translation PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
 
 
 
@@ -604,29 +603,28 @@ rb_label_test(i18n_mo_files_exist_en_es integration i18n)
 
 
 # Test: Comprobar traducción con gettext en es_ES usando una clave real del .mo
-if(NOT WIN32)
-  add_executable(rb_test_gettext_translation_es_es
-    test_gettext_translation_es_es.cpp
-  )
+add_executable(rb_test_gettext_translation_es_es
+  test_gettext_translation_es_es.cpp
+)
 
-  rb_link_boost_test(rb_test_gettext_translation_es_es)
+rb_link_boost_test(rb_test_gettext_translation_es_es)
 
 
-  if(RB_INTL_LIB)
-    target_link_libraries(rb_test_gettext_translation_es_es PRIVATE ${RB_INTL_LIB})
-  endif()
-
-  target_include_directories(rb_test_gettext_translation_es_es PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
-
-  add_test(NAME gettext_translation_es_es COMMAND rb_test_gettext_translation_es_es)
-
-  set_tests_properties(gettext_translation_es_es PROPERTIES
-    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-    ENVIRONMENT "LANG=es_ES.UTF-8;LC_ALL=es_ES.UTF-8;LC_MESSAGES=es_ES.UTF-8;LANGUAGE=es_ES"
-  )
-
-  rb_label_test(gettext_translation_es_es integration i18n)
+if(RB_INTL_LIB)
+  target_link_libraries(rb_test_gettext_translation_es_es PRIVATE ${RB_INTL_LIB})
 endif()
+
+target_include_directories(rb_test_gettext_translation_es_es PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+add_test(NAME gettext_translation_es_es COMMAND rb_test_gettext_translation_es_es)
+
+set_tests_properties(gettext_translation_es_es PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+  ENVIRONMENT "LANG=es_ES.UTF-8;LC_ALL=es_ES.UTF-8;LC_MESSAGES=es_ES.UTF-8;LANGUAGE=es_ES"
+)
+
+rb_label_test(gettext_translation_es_es integration i18n)
+
 
 
 # Test: assetPath resuelve correctamente un recurso existente conocido
