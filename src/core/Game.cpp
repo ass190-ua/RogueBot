@@ -1,6 +1,7 @@
 #include "Game.hpp"
 #include "AssetPath.hpp"
 #include "GameUtils.hpp"
+#include "GettextCompat.hpp"
 #include "I18n.hpp"
 #include "ResourceManager.hpp"
 #include "raylib.h"
