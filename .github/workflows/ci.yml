@@ -59,12 +59,14 @@ jobs:
         uses: lukka/run-vcpkg@v11
         with:
           vcpkgGitCommitId: ${{ env.VCPKG_COMMIT }}
+          doNotCache: false
+          appendedCacheKey: ${{ env.VCPKG_COMMIT }}-x64-windows
 
       - name: Install Boost + Boost.Test (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          vcpkg install boost boost-test --triplet x64-windows
+          vcpkg install boost-test --triplet x64-windows
 
       # -------------------------
       # Configure
