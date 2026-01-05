@@ -701,15 +701,10 @@ set_tests_properties(enemy_sprites_exist PROPERTIES
 # Test: floats (HUD easing)
 add_executable(rb_test_floats_hud_easing
   test_floats_hud_easing.cpp
-  ${PROJECT_SOURCE_DIR}/src/systems/HUD.cpp
 )
 
+rb_link_boost_test(rb_test_floats_hud_easing)
 target_include_directories(rb_test_floats_hud_easing PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
 
-if(TARGET raylib)
-  target_link_libraries(rb_test_floats_hud_easing PRIVATE raylib)
-endif()
-
 add_test(NAME floats_hud_easing COMMAND rb_test_floats_hud_easing)
-set_tests_properties(floats_hud_easing PROPERTIES WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
-rb_label_test(floats_hud_easing unit floats)
+set_tests_properties(floats_hud_easing PROPERTIES LABELS "unit;floats")

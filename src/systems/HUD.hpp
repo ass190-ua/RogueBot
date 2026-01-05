@@ -25,14 +25,6 @@ public:
   // Dibuja la superposición de pantalla de derrota.
   void drawGameOver(const Game &game) const;
 
-  // Función matemática de "Easing" (Suavizado).
-  // Convierte un movimiento lineal en uno más natural (rápido al inicio, lento
-  // al final). Input x: 0.0 a 1.0. Output: Valor suavizado.
-  static float EaseOutCubic(float x) {
-    float a = 1.0f - x;
-    return 1.0f - a * a * a;
-  }
-
 private:
   // Estado interno de UI (animaciones)
   // 'mutable': Permite modificar esta variable incluso dentro de métodos

@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cmath>
 #include "I18n.hpp"
+#include "Easing.hpp"
 
 // Constantes de diseño UI
 static constexpr int kSlotSize = 20;        // Tamaño en px de cada corazón
@@ -48,7 +49,7 @@ static void DrawHeartHalf(float x, float y, float size, Color color) {
 // Usa coordenadas polares para distribuir partículas en círculo.
 void HUD::DrawBurst(Vector2 center, float t) {
     t = std::clamp(t, 0.0f, 1.0f);
-    float tt = EaseOutCubic(t); // Función de easing para movimiento suave
+    float tt = rb::EaseOutCubic(t); // Función de easing para movimiento suave
     
     const int particles = 8;    // Número de partículas
     // maxR: radio de expansión, size: las partículas se hacen pequeñas al final
@@ -167,7 +168,7 @@ void HUD::drawPlaying(const Game &game) const {
         const int x = barX + heartIdx * (kSlotSize + kSlotGap);
         if (e.type == HpFx::Type::Gain) {
             // Efecto de crecimiento (Scale Up)
-            float f = std::clamp(HUD::EaseOutCubic(e.t), 0.0f, 1.0f);
+            float f = std::clamp(rb::EaseOutCubic(e.t), 0.0f, 1.0f);
             float currentSize = kSlotSize * f;
             float offset = (kSlotSize - currentSize) / 2.0f;
             DrawHeartFull((float)x + offset, (float)barY + offset, currentSize, Fade(RED, 0.8f));
