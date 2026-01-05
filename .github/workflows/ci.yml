@@ -2,67 +2,118 @@ name: CI
 
 on:
   push:
-    branches: [ "develop" ]
+    branches: ["develop"]
   pull_request:
-    branches: [ "develop" ]
+    branches: ["develop"]
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-latest
+    name: Build & Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
 
     env:
       LANG: es_ES.UTF-8
       LC_ALL: es_ES.UTF-8
       LANGUAGE: es
+      BUILD_TYPE: Release
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      
-      - name: Instalar dependencias y locales (Ubuntu)
+
+      # -------------------------
+      # Linux dependencies
+      # -------------------------
+      - name: Install deps (Ubuntu)
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            libx11-dev \
-            libxrandr-dev \
-            libxinerama-dev \
-            libxcursor-dev \
-            libxi-dev \
-            libxxf86vm-dev \
-            libgl1-mesa-dev \
-            libglu1-mesa-dev \
-            libglvnd-dev \
-            mesa-common-dev \
-            locales \
-            gettext \
-            libboost-dev \
-            libboost-test-dev
-
+            cmake ninja-build \
+            libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libxxf86vm-dev \
+            libgl1-mesa-dev libglu1-mesa-dev libglvnd-dev mesa-common-dev \
+            locales gettext \
+            libboost-dev libboost-test-dev
 
           sudo locale-gen es_ES.UTF-8
           sudo locale-gen en_GB.UTF-8
-          sudo update-locale LANG=en_GB.UTF-8
 
+      # -------------------------
+      # Windows dependencies (vcpkg)
+      # -------------------------
+      - name: Resolve vcpkg baseline (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $commit = (git ls-remote https://github.com/microsoft/vcpkg.git HEAD).Split("`t")[0]
+          "VCPKG_COMMIT=$commit" | Out-File -FilePath $env:GITHUB_ENV -Append
+          Write-Host "Using vcpkg baseline commit: $commit"
 
+      - name: Setup vcpkg (Windows)
+        if: runner.os == 'Windows'
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgGitCommitId: ${{ env.VCPKG_COMMIT }}
+          doNotCache: false
+          appendedCacheKey: ${{ env.VCPKG_COMMIT }}-x64-windows
 
-      - name: Configure (CMake + CTest)
-        run: cmake -S . -B build-tests -DBUILD_TESTING=ON
+      - name: Install dependencias (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          vcpkg install boost-test --triplet x64-windows
 
-      - name: Build
-        run: cmake --build build-tests -j
+      # -------------------------
+      # Configure
+      # -------------------------
+      - name: Configure (Linux)
+        if: runner.os == 'Linux'
+        run: >
+          cmake -S . -B build-tests
+          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+          -DBUILD_TESTING=ON
 
-      - name: List tests (CTest labels)
+      - name: Configure (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: >
+          cmake -S . -B build-tests
+          -DBUILD_TESTING=ON
+          -DENABLE_I18N=OFF
+          -DCMAKE_TOOLCHAIN_FILE="${env:VCPKG_ROOT}\scripts\buildsystems\vcpkg.cmake"
+          -DVCPKG_TARGET_TRIPLET=x64-windows
+
+      # -------------------------
+      # Build (limit jobs to avoid super-long builds)
+      # -------------------------
+      - name: Build (Linux)
+        if: runner.os == 'Linux'
+        run: cmake --build build-tests -j 2
+
+      - name: Build (Windows)
+        if: runner.os == 'Windows'
+        run: cmake --build build-tests --config ${{ env.BUILD_TYPE }} -j 2
+
+      # -------------------------
+      # Tests
+      # -------------------------
+      - name: List tests (Linux only)
+        if: runner.os == 'Linux'
         run: |
           ctest --test-dir build-tests -N
           ctest --test-dir build-tests -L unit -N
           ctest --test-dir build-tests -L integration -N
 
-      - name: Test (CTest) - unit
+      - name: Test (unit)
         run: |
-          locale
-          ctest --test-dir build-tests -L unit --output-on-failure
+          ctest --test-dir build-tests -L unit --output-on-failure -C ${{ env.BUILD_TYPE }}
 
-      - name: Test (CTest) - integration
+      - name: Test (integration - Linux only)
+        if: runner.os == 'Linux'
         run: |
-          locale
           ctest --test-dir build-tests -L integration --output-on-failure
