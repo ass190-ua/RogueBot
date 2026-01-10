@@ -11,6 +11,17 @@
 #include <libintl.h>
 #include <locale.h>
 
+static void portable_setenv(const char* name, const char* value) {
+#ifdef _WIN32
+    // En Windows se usa _putenv
+    std::string envStr = std::string(name) + "=" + std::string(value);
+    _putenv(envStr.c_str());
+#else
+    // En Linux/Unix se usa setenv
+    setenv(name, value, 1);
+#endif
+}
+
 static uint32_t read32(const std::vector<unsigned char> &data, size_t off,
                        bool bigEndian) {
   if (off + 4 > data.size())
@@ -132,10 +143,11 @@ BOOST_AUTO_TEST_CASE(translates_real_key_from_mo_es_es) {
       pickPairFromMo(moPath, msgid, expected),
       "No se pudo leer/parsing del .mo o no hay entradas válidas: " << moPath);
 
-  setenv("LANG", "es_ES.UTF-8", 1);
-  setenv("LC_ALL", "es_ES.UTF-8", 1);
-  setenv("LC_MESSAGES", "es_ES.UTF-8", 1);
-  setenv("LANGUAGE", "es_ES", 1);
+  // Usamos la función portable
+  portable_setenv("LANG", "es_ES.UTF-8");
+  portable_setenv("LC_ALL", "es_ES.UTF-8");
+  portable_setenv("LC_MESSAGES", "es_ES.UTF-8");
+  portable_setenv("LANGUAGE", "es_ES");
 
   BOOST_REQUIRE_MESSAGE(setlocale(LC_ALL, "") != nullptr,
                         "setlocale(LC_ALL, \"\") ha fallado. ¿Locales instalados?");
