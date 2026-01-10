@@ -13,6 +13,10 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+// Include para funciones web
+#if defined(__EMSCRIPTEN__)
+    #include <emscripten/emscripten.h>
+#endif
 
 static inline unsigned now_seed() {
   return static_cast<unsigned>(time(nullptr));
@@ -185,8 +189,16 @@ void ItemSprites::unload() {
 }
 
 Game::Game(unsigned seed) : fixedSeed(seed) {
-  SetConfigFlags(FLAG_FULLSCREEN_MODE);
-  InitWindow(0, 0, _("RogueBot"));
+  #if defined(__EMSCRIPTEN__)
+    // En web: Resolución fija segura (el CSS se encarga de estirarlo)
+    // Quitamos FLAG_FULLSCREEN_MODE para evitar conflictos con el navegador
+    InitWindow(1280, 720, "RogueBot Web");
+  #else
+    // En escritorio: Comportamiento original (Pantalla completa)
+    SetConfigFlags(FLAG_FULLSCREEN_MODE);
+    InitWindow(0, 0, _("RogueBot"));
+  #endif
+
   SetExitKey(KEY_NULL);
 
   // 1. Iniciar audio
@@ -738,39 +750,46 @@ void Game::toggleGodMode(bool enable) {
   }
 }
 
-void Game::run() {
-  while (!WindowShouldClose() && !gQuitRequested) {
+// Lógica de un frame extraída del bucle while
+void Game::loopStep() {
     processInput();
     update();
     render();
 
-    // Gestión de música ambiente
-    // Solo suena si estamos jugando. Si salimos al menú, se calla.
+    // Gestión de música ambiente (Tu lógica original)
     if (state == GameState::Playing || state == GameState::Paused) {
       if (!IsSoundPlaying(sfxAmbient)) {
         PlaySound(sfxAmbient);
       }
-
-      // Si está en pausa, pausamos el stream de audio
-      if (state == GameState::Paused)
-        ResumeSound(sfxAmbient);
-      // Mejor lógica:
       if (state == GameState::Paused) {
-        // Silencio total:
-        if (IsSoundPlaying(sfxAmbient))
-          PauseSound(sfxAmbient);
+        if (IsSoundPlaying(sfxAmbient)) PauseSound(sfxAmbient);
       } else {
-        if (!IsSoundPlaying(sfxAmbient))
-          ResumeSound(sfxAmbient);
+        if (!IsSoundPlaying(sfxAmbient)) ResumeSound(sfxAmbient);
       }
     } else {
-      // Menú principal / GameOver / Victory
       if (IsSoundPlaying(sfxAmbient)) {
         StopSound(sfxAmbient);
       }
     }
-  }
+}
 
+// Función puente para que C (Emscripten) pueda llamar a C++ (Clase Game)
+void globalLoopWrapper(void* arg) {
+    static_cast<Game*>(arg)->loopStep();
+}
+
+void Game::run() {
+#if defined(__EMSCRIPTEN__)
+  // EN WEB: Le damos el control al navegador.
+  // 0 fps = usar requestAnimationFrame (sincronizado con pantalla)
+  // 1 = simular bucle infinito (evita que la función termine y se borre el stack)
+  emscripten_set_main_loop_arg(globalLoopWrapper, this, 0, 1);
+#else
+  // EN ESCRITORIO: Bucle while clásico
+  while (!WindowShouldClose() && !gQuitRequested) {
+    loopStep();
+  }
+  
   // Descargar sonidos
   UnloadSound(sfxHit);
   UnloadSound(sfxExplosion);
@@ -787,6 +806,7 @@ void Game::run() {
   ResourceManager::getInstance().clear();
   CloseAudioDevice();
   CloseWindow();
+#endif
 }
 
 void Game::update() {

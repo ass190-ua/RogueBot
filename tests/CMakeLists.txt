@@ -6,8 +6,12 @@ find_package(Boost REQUIRED COMPONENTS unit_test_framework)
 
 function(rb_link_boost_test target)
   target_link_libraries(${target} PRIVATE Boost::unit_test_framework)
-  # Ayuda en muchas distros cuando Boost.Test está como librería separada
-  target_compile_definitions(${target} PRIVATE BOOST_TEST_DYN_LINK)
+
+  # En Linux/Unix usamos enlace dinámico (necesita BOOST_TEST_DYN_LINK)
+  # En Windows (MSYS2) usamos enlace estático (NO debe tener BOOST_TEST_DYN_LINK)
+  if(UNIX)
+    target_compile_definitions(${target} PRIVATE BOOST_TEST_DYN_LINK)
+  endif()
 endfunction()
 
 function(rb_label_test test_name scope category)
