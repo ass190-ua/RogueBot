@@ -189,6 +189,9 @@ public:
   // Bucle principal: Init -> Update -> Render -> Cleanup
   void run();
 
+  // Función para ejecutar un solo frame (necesario para Web)
+  void loopStep();
+
   // Getters públicos (Para el HUD y Renderizado)
   // Son const porque el HUD solo lee, no modifica.
 
