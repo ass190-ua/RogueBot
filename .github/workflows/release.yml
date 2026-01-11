@@ -38,6 +38,7 @@ jobs:
                 -DPREFER_RAYLIB_STATIC=ON \
                 -DUSE_EXTERNAL_RAYLIB=OFF \
                 -DASSET_ROOT=/usr/local/share/roguebot/assets
+                -DBUILD_TESTING=OFF
 
       - name: Build RogueBot
         run: cmake --build build -j$(nproc)
@@ -86,6 +87,7 @@ jobs:
           -DPREFER_RAYLIB_STATIC=ON
           -DUSE_EXTERNAL_RAYLIB=OFF
           -DASSET_ROOT=assets
+          -DBUILD_TESTING=OFF
 
       - name: Build RogueBot (Release)
         run: cmake --build build --config Release
