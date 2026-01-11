@@ -37,7 +37,7 @@ jobs:
           cmake -B build -DCMAKE_BUILD_TYPE=Release \
                 -DPREFER_RAYLIB_STATIC=ON \
                 -DUSE_EXTERNAL_RAYLIB=OFF \
-                -DASSET_ROOT=/usr/local/share/roguebot/assets
+                -DASSET_ROOT=/usr/local/share/roguebot/assets \
                 -DBUILD_TESTING=OFF
 
       - name: Build RogueBot
