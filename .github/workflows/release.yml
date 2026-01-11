@@ -88,6 +88,7 @@ jobs:
           -DUSE_EXTERNAL_RAYLIB=OFF
           -DASSET_ROOT=assets
           -DBUILD_TESTING=OFF
+          -DENABLE_I18N=OFF
 
       - name: Build RogueBot (Release)
         run: cmake --build build --config Release
