@@ -126,6 +126,105 @@ void Map::generate(int W, int H, unsigned seed) {
     }
 }
 
+void Map::setTile(int x, int y, Tile t) {
+    if (x >= 0 && y >= 0 && x < m_w && y < m_h) {
+        m_tiles[y * m_w + x] = t;
+    }
+}
+
+void Map::generateTutorialMap(int W, int H) {
+    m_w = W; m_h = H;
+    int cy = H / 2; // Centro vertical
+
+    // 1. Resetear todo a Muro
+    m_tiles.assign(W * H, WALL);
+    m_visible.assign(W * H, 0); 
+    m_discovered.assign(W * H, 0);
+    m_rooms.clear();
+
+    // --------------------------------------------------
+    // 2. ZONAS DEL MAPA (Estructura)
+    // --------------------------------------------------
+    
+    // ZONA 1: RECEPCIÓN (Lobby) [x: 2 a 8]
+    // Sala inicial espaciosa para aclimatarse
+    Room lobby = {2, cy - 5, 7, 11}; 
+    carveRoom(lobby);
+
+    // ZONA 2: GALERÍA DE ARTEFACTOS (Pasillo) [x: 9 a 36]
+    // Un corredor largo con nichos para los objetos
+    Room hallway = {9, cy - 3, 28, 7}; 
+    carveRoom(hallway);
+
+    // ZONA 3: DOMO DE COMBATE (Arena) [x: 37 a 48]
+    // Espacio masivo para maniobrar contra el enemigo
+    Room arena = {37, cy - 8, 11, 17};
+    carveRoom(arena);
+
+    m_rooms.push_back(lobby);
+    m_rooms.push_back(hallway);
+    m_rooms.push_back(arena);
+
+    // --------------------------------------------------
+    // 3. DETALLES ARQUITECTÓNICOS
+    // --------------------------------------------------
+
+    // A) ESCLUSA DE SEGURIDAD 1 (Lobby -> Pasillo, x=9)
+    // Puerta estrecha de 2 tiles de alto
+    for (int y = 0; y < H; ++y) {
+        if (std::abs(y - cy) > 1) setTile(9, y, WALL);
+    }
+
+    // B) ALCOBAS DE EXHIBICIÓN (Pasillo)
+    // Creamos "nichos" o pilares rítmicos para que los objetos tengan su lugar.
+    // Pondremos muros pequeños sobresaliendo arriba y abajo cada 4 tiles.
+    // Esto crea secciones visuales para cada lección.
+    for (int x = 13; x < 36; x += 4) {
+        setTile(x, cy - 2, WALL); // Muro parcial arriba
+        setTile(x, cy + 2, WALL); // Muro parcial abajo
+    }
+
+    // C) GRAN PUERTA DEL DOMO (Pasillo -> Arena, x=37)
+    // Entrada magna, un poco más ancha
+    for (int y = 0; y < H; ++y) {
+        if (std::abs(y - cy) > 2) setTile(37, y, WALL);
+    }
+
+    // D) MAMPARO FINAL (Fondo Arena, x=49)
+    // Aseguramos cierre
+    for (int y = 0; y < H; ++y) {
+        setTile(49, y, WALL);
+    }
+
+    // 4. Iluminación total
+    m_revealAll = true; 
+}
+
+// Genera una arena cerrada para el Boss (Nivel 4)
+void Map::generateBossArena(int W, int H) {
+    m_w = W; m_h = H;
+
+    // 1. Resetear todo a WALL
+    m_tiles.assign(W * H, WALL);
+    m_visible.assign(W * H, 0);
+    m_discovered.assign(W * H, 0);
+    m_rooms.clear();
+
+    // 2. Crear una gran sala central (dejando un borde de muros)
+    // Dejamos 2 tiles de margen por cada lado
+    int padding = 2;
+    Room arena;
+    arena.x = padding;
+    arena.y = padding;
+    arena.w = W - (padding * 2);
+    arena.h = H - (padding * 2);
+
+    carveRoom(arena);
+    
+    // Guardamos esta "habitación" para saber dónde colocar al Boss/Jugador
+    m_rooms.push_back(arena);
+}
+
 // Cambia celdas de WALL a FLOOR en el rectángulo dado
 void Map::carveRoom(const Room& r) {
     for (int y = r.y; y < r.y + r.h && y < m_h; ++y)
@@ -183,16 +282,15 @@ void Map::draw(int tileSize, int px, int py, int radius,
         for (int x = 0; x < m_w; ++x) {
             
             // Si no está descubierto, Negro absoluto
-            if (m_discovered[y * m_w + x] == 0) continue;
+            if (!m_revealAll && m_discovered[y * m_w + x] == 0) continue;
 
             // --- CÁLCULO DE ILUMINACIÓN ---
             Color tint = WHITE;
             
-            if (m_fogEnabled) {
-                // 1. ZONA DE MEMORIA (Descubierto pero no visible ahora)
+            if (!m_revealAll && m_fogEnabled) {
+                // 1. ZONA DE MEMORIA
                 if (m_visible[y * m_w + x] == 0) {
-                    // CAMBIO: Mucho más oscuro para dar atmósfera
-                    tint = { 40, 40, 50, 255 }; 
+                     tint = { 40, 40, 50, 255 }; 
                 } 
                 // 2. ZONA VISIBLE (Antorcha)
                 else {
@@ -218,7 +316,7 @@ void Map::draw(int tileSize, int px, int py, int radius,
                 }
             }
 
-            // --- DIBUJADO (Igual que antes) ---
+            // Dibujado
             Rectangle dest = { 
                 (float)(x * tileSize), 
                 (float)(y * tileSize), 

@@ -1,0 +1,714 @@
+if(POLICY CMP0167)
+  cmake_policy(SET CMP0167 NEW)
+endif()
+set(Boost_NO_BOOST_CMAKE ON)
+find_package(Boost REQUIRED COMPONENTS unit_test_framework)
+
+function(rb_link_boost_test target)
+  target_link_libraries(${target} PRIVATE Boost::unit_test_framework)
+
+  # En Linux/Unix usamos enlace dinámico (necesita BOOST_TEST_DYN_LINK)
+  # En Windows (MSYS2) usamos enlace estático (NO debe tener BOOST_TEST_DYN_LINK)
+  if(UNIX)
+    target_compile_definitions(${target} PRIVATE BOOST_TEST_DYN_LINK)
+  endif()
+endfunction()
+
+function(rb_label_test test_name scope category)
+  set_tests_properties(${test_name} PROPERTIES
+    LABELS "${scope};${category}"
+  )
+endfunction()
+
+
+
+# Test: Comprobar que los archivos de localización existen
+add_executable(rb_test_locales_exist
+  test_locales_exist.cpp
+)
+rb_link_boost_test(rb_test_locales_exist)
+
+add_test(NAME locales_exist COMMAND rb_test_locales_exist)
+
+set_tests_properties(locales_exist PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+)
+rb_label_test(locales_exist integration assets)
+
+
+
+
+
+
+# Test: Comprobar que assetPath funciona correctamente
+add_executable(rb_test_assetpath
+  test_assetpath.cpp
+)
+
+rb_link_boost_test(rb_test_assetpath)
+
+target_include_directories(rb_test_assetpath PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+target_compile_definitions(rb_test_assetpath PRIVATE RB_ASSET_ROOT="${ASSET_ROOT}")
+
+add_test(NAME assetpath_exists COMMAND rb_test_assetpath)
+
+set_tests_properties(assetpath_exists PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+)
+rb_label_test(assetpath_exists integration assets)
+
+
+
+# Test: Comprobar función dominantAxis
+add_executable(rb_test_dominant_axis
+  test_dominant_axis.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/GameUtils.cpp
+)
+
+rb_link_boost_test(rb_test_dominant_axis)
+
+target_include_directories(rb_test_dominant_axis PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_dominant_axis PRIVATE raylib)
+endif()
+
+add_test(NAME dominant_axis COMMAND rb_test_dominant_axis)
+set_tests_properties(dominant_axis PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+)
+rb_label_test(dominant_axis unit utils)
+
+
+
+# Test: Comprobar función isAdjacent4
+add_executable(rb_test_is_adjacent4
+  test_is_adjacent4.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/GameUtils.cpp
+)
+rb_link_boost_test(rb_test_is_adjacent4)
+
+target_include_directories(rb_test_is_adjacent4 PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_is_adjacent4 PRIVATE raylib)
+endif()
+
+add_test(NAME is_adjacent4 COMMAND rb_test_is_adjacent4)
+set_tests_properties(is_adjacent4 PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+)
+rb_label_test(is_adjacent4 unit utils)
+
+
+
+## Text: Comprobar traducciones con gettext
+if(ENABLE_I18N)
+  find_library(RB_INTL_LIB intl)
+
+  add_executable(rb_test_gettext_translation
+    test_gettext_translation.cpp
+  )
+
+  rb_link_boost_test(rb_test_gettext_translation)
+
+
+  if(RB_INTL_LIB)
+    target_link_libraries(rb_test_gettext_translation PRIVATE ${RB_INTL_LIB})
+  endif()
+
+  add_test(NAME gettext_translation COMMAND rb_test_gettext_translation)
+
+  set_tests_properties(gettext_translation PROPERTIES
+    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+    ENVIRONMENT "LANG=es_ES.UTF-8;LC_ALL=es_ES.UTF-8;LANGUAGE=es"
+  )
+  rb_label_test(gettext_translation integration i18n)
+
+  target_include_directories(rb_test_gettext_translation PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+endif()
+
+
+# Test: Comprobar función computeMeleeTiles con frontOnly = true
+add_executable(rb_test_compute_melee_front
+  test_compute_melee_tiles_front.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/GameUtils.cpp
+)
+rb_link_boost_test(rb_test_compute_melee_front)
+
+target_include_directories(rb_test_compute_melee_front PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_compute_melee_front PRIVATE raylib)
+endif()
+
+add_test(NAME compute_melee_front COMMAND rb_test_compute_melee_front)
+
+set_tests_properties(compute_melee_front PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+)
+rb_label_test(compute_melee_front unit utils)
+
+
+
+# Test: Comprobar función computeMeleeTiles con frontOnly = false
+add_executable(rb_test_compute_melee_cross
+  test_compute_melee_tiles_cross.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/GameUtils.cpp
+)
+
+rb_link_boost_test(rb_test_compute_melee_cross)
+
+target_include_directories(rb_test_compute_melee_cross PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_compute_melee_cross PRIVATE raylib)
+endif()
+
+add_test(NAME compute_melee_cross COMMAND rb_test_compute_melee_cross)
+
+set_tests_properties(compute_melee_cross PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+)
+rb_label_test(compute_melee_cross unit utils)
+
+
+
+# Test: Comprobar función computeMeleeTilesOccluded con frontOnly = true
+add_executable(rb_test_compute_melee_occluded_front
+  ${CMAKE_CURRENT_SOURCE_DIR}/test_compute_melee_tiles_occluded_front.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/GameUtils.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/Map.cpp
+)
+
+rb_link_boost_test(rb_test_compute_melee_occluded_front)
+
+target_include_directories(rb_test_compute_melee_occluded_front PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_compute_melee_occluded_front PRIVATE raylib)
+endif()
+
+add_test(NAME compute_melee_occluded_front COMMAND rb_test_compute_melee_occluded_front)
+
+set_tests_properties(compute_melee_occluded_front PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+)
+rb_label_test(compute_melee_occluded_front unit utils)
+
+
+
+# Test
+add_executable(rb_test_facing_from_dir
+  ${CMAKE_CURRENT_SOURCE_DIR}/test_facing_from_dir.cpp
+)
+
+rb_link_boost_test(rb_test_facing_from_dir)
+
+target_include_directories(rb_test_facing_from_dir PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_facing_from_dir PRIVATE raylib)
+endif()
+
+add_test(NAME facing_from_dir COMMAND rb_test_facing_from_dir)
+
+set_tests_properties(facing_from_dir PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+)
+rb_label_test(facing_from_dir unit utils)
+
+
+
+# Test: Comprobar función PerformMeleeHit
+add_executable(rb_test_perform_melee_hit
+  ${CMAKE_CURRENT_SOURCE_DIR}/test_perform_melee_hit.cpp
+)
+
+rb_link_boost_test(rb_test_perform_melee_hit)
+
+target_include_directories(rb_test_perform_melee_hit PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_perform_melee_hit PRIVATE raylib)
+endif()
+
+add_test(NAME perform_melee_hit COMMAND rb_test_perform_melee_hit)
+
+set_tests_properties(perform_melee_hit PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+)
+rb_label_test(perform_melee_hit unit utils)
+
+
+
+# Test: Map determinista con misma seed
+add_executable(rb_test_map_deterministic_seed
+  test_map_deterministic_seed.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/Map.cpp
+)
+
+rb_link_boost_test(rb_test_map_deterministic_seed)
+
+target_include_directories(rb_test_map_deterministic_seed PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_map_deterministic_seed PRIVATE raylib)
+endif()
+
+add_test(NAME map_deterministic_seed COMMAND rb_test_map_deterministic_seed)
+
+set_tests_properties(map_deterministic_seed PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+)
+rb_label_test(map_deterministic_seed unit map)
+
+
+
+
+# Test: findExitTile devuelve una celda válida
+add_executable(rb_test_find_exit_tile
+  test_find_exit_tile.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/Map.cpp
+)
+
+rb_link_boost_test(rb_test_find_exit_tile)
+
+target_include_directories(rb_test_find_exit_tile PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_find_exit_tile PRIVATE raylib)
+endif()
+
+add_test(NAME find_exit_tile COMMAND rb_test_find_exit_tile)
+
+set_tests_properties(find_exit_tile PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+)
+
+rb_label_test(find_exit_tile unit map)
+
+
+
+# Test: Map::isWalkable (límites + WALL/FLOOR)
+add_executable(rb_test_map_is_walkable
+  test_map_is_walkable.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/Map.cpp
+)
+rb_link_boost_test(rb_test_map_is_walkable)
+
+target_include_directories(rb_test_map_is_walkable PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_map_is_walkable PRIVATE raylib)
+endif()
+
+add_test(NAME map_is_walkable COMMAND rb_test_map_is_walkable)
+
+set_tests_properties(map_is_walkable PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+)
+
+rb_label_test(map_is_walkable unit map)
+
+
+
+
+# Test: generateBossArena (borde WALL e interior FLOOR)
+add_executable(rb_test_map_boss_arena_structure
+  test_map_boss_arena_structure.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/Map.cpp
+)
+
+rb_link_boost_test(rb_test_map_boss_arena_structure)
+
+target_include_directories(rb_test_map_boss_arena_structure PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_map_boss_arena_structure PRIVATE raylib)
+endif()
+
+add_test(NAME map_boss_arena_structure COMMAND rb_test_map_boss_arena_structure)
+
+set_tests_properties(map_boss_arena_structure PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+)
+rb_label_test(map_boss_arena_structure unit map)
+
+
+
+
+# Test: Map::generate coloca EXIT
+add_executable(rb_test_map_generate_places_exit
+  test_map_generate_places_exit.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/Map.cpp
+)
+
+rb_link_boost_test(rb_test_map_generate_places_exit)
+
+target_include_directories(rb_test_map_generate_places_exit PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_map_generate_places_exit PRIVATE raylib)
+endif()
+
+add_test(NAME map_generate_places_exit COMMAND rb_test_map_generate_places_exit)
+
+set_tests_properties(map_generate_places_exit PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+)
+
+rb_label_test(map_generate_places_exit unit map)
+
+
+
+
+# Test: Map::setTile respeta límites
+add_executable(rb_test_map_set_tile_bounds
+  test_map_set_tile_bounds.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/Map.cpp
+)
+
+rb_link_boost_test(rb_test_map_set_tile_bounds)
+
+target_include_directories(rb_test_map_set_tile_bounds PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_map_set_tile_bounds PRIVATE raylib)
+endif()
+
+add_test(NAME map_set_tile_bounds COMMAND rb_test_map_set_tile_bounds)
+
+set_tests_properties(map_set_tile_bounds PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+
+)
+
+rb_label_test(map_set_tile_bounds unit map)
+
+
+
+
+
+# Test: Comprobar que Map::generate fija correctamente width/height
+add_executable(rb_test_map_generate_sets_dimensions
+  test_map_generate_sets_dimensions.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/Map.cpp
+)
+
+rb_link_boost_test(rb_test_map_generate_sets_dimensions)
+
+target_include_directories(rb_test_map_generate_sets_dimensions PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_map_generate_sets_dimensions PRIVATE raylib)
+endif()
+
+add_test(NAME map_generate_sets_dimensions COMMAND rb_test_map_generate_sets_dimensions)
+
+set_tests_properties(map_generate_sets_dimensions PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+)
+
+rb_label_test(map_generate_sets_dimensions unit map)
+
+
+
+
+
+# Test: Comprobar que findExitTile siempre devuelve coordenadas válidas (in-bounds)
+add_executable(rb_test_map_generate_exit_in_bounds
+  test_map_generate_exit_in_bounds.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/Map.cpp
+)
+
+rb_link_boost_test(rb_test_map_generate_exit_in_bounds)
+
+target_include_directories(rb_test_map_generate_exit_in_bounds PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_map_generate_exit_in_bounds PRIVATE raylib)
+endif()
+
+add_test(NAME map_generate_exit_in_bounds COMMAND rb_test_map_generate_exit_in_bounds)
+
+set_tests_properties(map_generate_exit_in_bounds PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+)
+
+rb_label_test(map_generate_exit_in_bounds unit map)
+
+
+
+
+
+# Test: Comprobar que findExitTile apunta a un tile EXIT
+add_executable(rb_test_map_exit_tile_is_exit
+  test_map_exit_tile_is_exit.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/Map.cpp
+)
+
+rb_link_boost_test(rb_test_map_exit_tile_is_exit)
+
+target_include_directories(rb_test_map_exit_tile_is_exit PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_map_exit_tile_is_exit PRIVATE raylib)
+endif()
+
+add_test(NAME map_exit_tile_is_exit COMMAND rb_test_map_exit_tile_is_exit)
+
+set_tests_properties(map_exit_tile_is_exit PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+)
+
+rb_label_test(map_exit_tile_is_exit unit map)
+
+
+
+
+
+# Test: Comprobar que Map::generate crea tiles FLOOR suficientes
+add_executable(rb_test_map_generate_creates_some_floor
+  test_map_generate_creates_some_floor.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/Map.cpp
+)
+
+rb_link_boost_test(rb_test_map_generate_creates_some_floor)
+
+target_include_directories(rb_test_map_generate_creates_some_floor PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_map_generate_creates_some_floor PRIVATE raylib)
+endif()
+
+add_test(NAME map_generate_creates_some_floor COMMAND rb_test_map_generate_creates_some_floor)
+
+set_tests_properties(map_generate_creates_some_floor PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+)
+
+rb_label_test(map_generate_creates_some_floor unit map)
+
+
+
+
+
+# Test: Fijar comportamiento de dominantAxis en empate abs(dx)==abs(dy)
+add_executable(rb_test_dominant_axis_tie_behavior
+  test_dominant_axis_tie_behavior.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/GameUtils.cpp
+)
+
+rb_link_boost_test(rb_test_dominant_axis_tie_behavior)
+
+target_include_directories(rb_test_dominant_axis_tie_behavior PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_dominant_axis_tie_behavior PRIVATE raylib)
+endif()
+
+add_test(NAME dominant_axis_tie_behavior COMMAND rb_test_dominant_axis_tie_behavior)
+
+set_tests_properties(dominant_axis_tie_behavior PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+)
+rb_label_test(dominant_axis_tie_behavior unit utils)
+
+
+
+# Test: computeMeleeTiles con rango 0 devuelve vacío
+add_executable(rb_test_compute_melee_tiles_range_zero
+  test_compute_melee_tiles_range_zero.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/GameUtils.cpp
+)
+
+rb_link_boost_test(rb_test_compute_melee_tiles_range_zero)
+
+target_include_directories(rb_test_compute_melee_tiles_range_zero PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_compute_melee_tiles_range_zero PRIVATE raylib)
+endif()
+
+add_test(NAME compute_melee_tiles_range_zero COMMAND rb_test_compute_melee_tiles_range_zero)
+
+set_tests_properties(compute_melee_tiles_range_zero PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+)
+rb_label_test(compute_melee_tiles_range_zero unit utils)
+
+
+
+# Test: computeMeleeTiles maneja rango negativo sin romper
+add_executable(rb_test_compute_melee_tiles_negative_range
+  test_compute_melee_tiles_negative_range.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/GameUtils.cpp
+)
+
+rb_link_boost_test(rb_test_compute_melee_tiles_negative_range)
+
+target_include_directories(rb_test_compute_melee_tiles_negative_range PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_compute_melee_tiles_negative_range PRIVATE raylib)
+endif()
+
+add_test(NAME compute_melee_tiles_negative_range COMMAND rb_test_compute_melee_tiles_negative_range)
+
+set_tests_properties(compute_melee_tiles_negative_range PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+)
+
+rb_label_test(compute_melee_tiles_negative_range unit utils)
+
+
+
+
+# Test: facingFromDir acepta vectores no unitarios
+add_executable(rb_test_facing_from_dir_non_unit_vectors
+  ${CMAKE_CURRENT_SOURCE_DIR}/test_facing_from_dir_non_unit_vectors.cpp
+)
+
+rb_link_boost_test(rb_test_facing_from_dir_non_unit_vectors)
+
+target_include_directories(rb_test_facing_from_dir_non_unit_vectors PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_facing_from_dir_non_unit_vectors PRIVATE raylib)
+endif()
+
+add_test(NAME facing_from_dir_non_unit_vectors COMMAND rb_test_facing_from_dir_non_unit_vectors)
+
+set_tests_properties(facing_from_dir_non_unit_vectors PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+)
+
+rb_label_test(facing_from_dir_non_unit_vectors unit utils)
+
+
+
+
+# Test: Comprobar que existen catálogos .mo en es_ES y en_GB
+add_executable(rb_test_i18n_mo_files_exist_en_es
+  test_i18n_mo_files_exist_en_es.cpp
+)
+rb_link_boost_test(rb_test_i18n_mo_files_exist_en_es)
+
+add_test(NAME i18n_mo_files_exist_en_es COMMAND rb_test_i18n_mo_files_exist_en_es)
+
+set_tests_properties(i18n_mo_files_exist_en_es PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+)
+rb_label_test(i18n_mo_files_exist_en_es integration i18n)
+
+
+
+
+# Test: Comprobar traducción con gettext en es_ES usando una clave real del .mo
+if(ENABLE_I18N)
+  add_executable(rb_test_gettext_translation_es_es
+    test_gettext_translation_es_es.cpp
+  )
+
+  rb_link_boost_test(rb_test_gettext_translation_es_es)
+
+
+  if(RB_INTL_LIB)
+    target_link_libraries(rb_test_gettext_translation_es_es PRIVATE ${RB_INTL_LIB})
+  endif()
+
+  target_include_directories(rb_test_gettext_translation_es_es PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+  add_test(NAME gettext_translation_es_es COMMAND rb_test_gettext_translation_es_es)
+
+  set_tests_properties(gettext_translation_es_es PROPERTIES
+    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+    ENVIRONMENT "LANG=es_ES.UTF-8;LC_ALL=es_ES.UTF-8;LC_MESSAGES=es_ES.UTF-8;LANGUAGE=es_ES"
+  )
+
+  rb_label_test(gettext_translation_es_es integration i18n)
+endif()
+
+
+# Test: assetPath resuelve correctamente un recurso existente conocido
+add_executable(rb_test_assetpath_known_file_exists
+  test_assetpath_known_file_exists.cpp
+)
+rb_link_boost_test(rb_test_assetpath_known_file_exists)
+
+
+target_include_directories(rb_test_assetpath_known_file_exists PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+target_compile_definitions(rb_test_assetpath_known_file_exists PRIVATE RB_ASSET_ROOT="${ASSET_ROOT}")
+
+add_test(NAME assetpath_known_file_exists COMMAND rb_test_assetpath_known_file_exists)
+
+set_tests_properties(assetpath_known_file_exists PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+  LABELS "assets"
+)
+rb_label_test(assetpath_known_file_exists integration assets)
+
+
+# Test: Player (core)
+add_executable(rb_test_player
+  test_player.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/Player.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/ResourceManager.cpp
+)
+
+rb_link_boost_test(rb_test_player)
+target_include_directories(rb_test_player PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_player PRIVATE raylib)
+endif()
+
+add_test(NAME player COMMAND rb_test_player)
+set_tests_properties(player PROPERTIES WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+rb_label_test(player unit core)
+
+
+# Test: Enemy (core)
+add_executable(rb_test_enemy
+  test_enemy.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/Enemy.cpp
+  ${PROJECT_SOURCE_DIR}/src/core/Map.cpp
+)
+
+rb_link_boost_test(rb_test_enemy)
+target_include_directories(rb_test_enemy PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+if(TARGET raylib)
+  target_link_libraries(rb_test_enemy PRIVATE raylib)
+endif()
+
+add_test(NAME enemy COMMAND rb_test_enemy)
+set_tests_properties(enemy PROPERTIES WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+rb_label_test(enemy unit core)
+
+
+# Test: comprobar que existen los sprites de enemy1/enemy2
+add_executable(rb_test_enemy_sprites_exist
+  test_enemy_sprites_exist.cpp
+)
+
+add_test(NAME enemy_sprites_exist COMMAND rb_test_enemy_sprites_exist)
+
+set_tests_properties(enemy_sprites_exist PROPERTIES
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+  LABELS "assets"
+)
+
+
+# Test: floats (HUD easing)
+add_executable(rb_test_floats_hud_easing
+  test_floats_hud_easing.cpp
+)
+
+rb_link_boost_test(rb_test_floats_hud_easing)
+target_include_directories(rb_test_floats_hud_easing PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+add_test(NAME floats_hud_easing COMMAND rb_test_floats_hud_easing)
+set_tests_properties(floats_hud_easing PROPERTIES LABELS "unit;floats")

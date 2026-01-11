@@ -179,6 +179,10 @@ void Game::updateEnemiesAfterPlayerMove(bool moved) {
 }
 
 void Game::takeDamage(int amount) {
+    if (godMode) return; 
+
+    if (damageCooldown > 0.0f) return;
+
     if (isDashing) return;
     // Si tiene escudo
     if (hasShield) {

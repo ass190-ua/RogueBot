@@ -1,283 +1,196 @@
 cmake_minimum_required(VERSION 3.20)
 
 # -----------------------------------------------------------------------------
-# RogueBot — Sistema de build con CMake (Hito 3)
-#
-# Este CMakeLists.txt define una configuración de compilación
-# multiplataforma para RogueBot (Linux y Windows).
-#
-# Sustituye al Makefile clásico y añade:
-#  - Detección / descarga automática de la dependencia raylib.
-#  - Opciones para elegir entre raylib externa o compilada desde código.
-#  - Generación de paquetes de distribución (ZIP/NSIS en Windows,
-#    DEB/TGZ en Linux) mediante CPack.
-#
-# Variables de configuración importantes (opcionales al invocar CMake):
-#
-#  - PREFER_RAYLIB_STATIC:
-#       ON  → enlazar raylib de forma estática (por defecto).
-#       OFF → enlazar raylib de forma dinámica (si está disponible).
-#
-#  - USE_EXTERNAL_RAYLIB:
-#       ON  → buscar una raylib ya instalada en el sistema
-#             (pkg-config, find_package(raylib)).
-#       OFF → descargar y compilar raylib desde el repositorio oficial.
-#
-#  - ASSET_ROOT:
-#       Ruta (relativa o absoluta) que se incrusta en el binario
-#       como la constante RB_ASSET_ROOT, usada para localizar
-#       la carpeta de assets en tiempo de ejecución.
-#       Por defecto es "assets".
-#
-# Ejemplo de configuración (Release, raylib compilada desde código, assets/):
-#
-#   cmake -B build -DCMAKE_BUILD_TYPE=Release \
-#         -DPREFER_RAYLIB_STATIC=ON \
-#         -DUSE_EXTERNAL_RAYLIB=OFF \
-#         -DASSET_ROOT=assets
-#
-# Tras configurar, se puede compilar y empaquetar así:
-#
-#   cmake --build build --config Release
-#   cmake --build build --target package
+# RogueBot — Sistema de build con CMake (Multiplataforma: Desktop + Web)
 # -----------------------------------------------------------------------------
 project(roguebot
-        VERSION 1.1
-        DESCRIPTION "RogueBot — Roguelike con raylib"
-        LANGUAGES CXX)
+  VERSION 1.1
+  DESCRIPTION "RogueBot — Roguelike con raylib"
+  LANGUAGES CXX)
 
-# Usar C++17 de forma obligatoria en todo el proyecto
+# Usar C++17 de forma obligatoria
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Opciones de usuario para controlar cómo se obtiene/enlaza raylib
+# --- 1. Opciones Generales ---
+option(ENABLE_I18N "Activar i18n/gettext (libintl)" ON)
 option(PREFER_RAYLIB_STATIC "Preferir enlazar raylib de forma estática" ON)
-option(USE_EXTERNAL_RAYLIB "Usar raylib instalada en el sistema (pkg-config/find_package)" OFF)
+option(USE_EXTERNAL_RAYLIB "Usar raylib instalada en el sistema" OFF)
 
-# Configuración de la raíz de assets.
-# Este valor se inyecta en el código como RB_ASSET_ROOT y el juego lo usa
-# para localizar la carpeta de recursos (sprites, docs, etc.).
-set(ASSET_ROOT "assets" CACHE STRING "Directorio raíz de los assets del juego")
+# Buscar la librería de internacionalización (si se activa)
+if(ENABLE_I18N)
+  find_package(Intl)
+endif()
 
-# Recoger todos los .cpp de src/ recursivamente.
-# CONFIGURE_DEPENDS hace que si añadimos/eliminamos fuentes, CMake regenere
-# los archivos de build automáticamente (similar a un "find" en el Makefile).
-file(GLOB_RECURSE ROGUEBOT_SOURCES CONFIGURE_DEPENDS
-     "${PROJECT_SOURCE_DIR}/src/*.cpp")
+# Configuración de la raíz de assets
+# EN WEB: Los assets se montan en la raíz virtual (/assets), así que RB_ASSET_ROOT debe ser "/"
+if(EMSCRIPTEN)
+  set(ASSET_ROOT "/" CACHE STRING "Root assets web" FORCE)
+else()
+  set(ASSET_ROOT "assets" CACHE STRING "Directorio raíz de los assets del juego")
+endif()
 
-# Directorios de inclusión donde están los .hpp del proyecto.
-# Aquí añadimos src/ y subcarpetas relevantes (systems, core, etc.).
+# --- 2. Fuentes e Includes ---
+file(GLOB_RECURSE ROGUEBOT_SOURCES CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/src/*.cpp")
+
 set(ROGUEBOT_INCLUDE_DIRS
-    "${PROJECT_SOURCE_DIR}/src"
-    "${PROJECT_SOURCE_DIR}/src/systems"
-    "${PROJECT_SOURCE_DIR}/src/core"
+  "${PROJECT_SOURCE_DIR}/src"
+  "${PROJECT_SOURCE_DIR}/src/systems"
+  "${PROJECT_SOURCE_DIR}/src/core"
 )
 
-# -----------------------------------------------------------------------------
-# Dependencia raylib
-#
-# Tres modos posibles:
-#   1) USE_EXTERNAL_RAYLIB=ON  → buscar raylib instalada en el sistema
-#      (pkg-config / find_package).
-#   2) Carpeta local raylib/   → usar la copia incluida en el repositorio
-#      (submódulo / vendor).
-#   3) Si no hay nada de lo anterior → descargar raylib desde GitHub
-#      con FetchContent.
-# -----------------------------------------------------------------------------
-
+# --- 3. Dependencia Raylib ---
 if(USE_EXTERNAL_RAYLIB)
-  # Modo 1: raylib instalada en el sistema (pkg-config / find_package)
   find_package(PkgConfig QUIET)
   if(PkgConfig_FOUND)
     pkg_check_modules(RAYLIB QUIET raylib)
   endif()
-
   if(NOT RAYLIB_FOUND)
     find_package(raylib QUIET)
   endif()
-
   if(NOT RAYLIB_FOUND AND NOT raylib_FOUND)
-    message(FATAL_ERROR
-      "USE_EXTERNAL_RAYLIB está a ON pero no se ha encontrado raylib.\n"
-      "Instala raylib en el sistema o desactiva USE_EXTERNAL_RAYLIB para "
-      "usar la copia local / descargarla desde código fuente.")
+    message(FATAL_ERROR "USE_EXTERNAL_RAYLIB activado pero no se encontró raylib.")
   endif()
 
 elseif(EXISTS "${PROJECT_SOURCE_DIR}/raylib/CMakeLists.txt")
-  # Modo 2: usar la raylib incluida en el propio repositorio (subcarpeta raylib/)
-  message(STATUS "Usando raylib incluida en el repositorio (subcarpeta raylib/).")
-
-  # Desactivar ejemplos/juegos y actualizaciones online en el subproyecto
+  message(STATUS "Usando raylib local.")
   set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-  set(BUILD_GAMES    OFF CACHE BOOL "" FORCE)
+  set(BUILD_GAMES OFF CACHE BOOL "" FORCE)
   set(OPTION_CHECK_UPDATE OFF CACHE BOOL "" FORCE)
-
-  # Decidir si la librería será estática o compartida
+  
   if(PREFER_RAYLIB_STATIC)
     set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
   else()
     set(BUILD_SHARED_LIBS ON CACHE BOOL "" FORCE)
   endif()
-
-  # Añadir raylib como subdirectorio CMake
+  
   add_subdirectory("${PROJECT_SOURCE_DIR}/raylib" raylib_build)
 
 else()
-  # Modo 3: no hay raylib externa ni local → usar FetchContent (GitHub)
-  message(STATUS "Descargando raylib con FetchContent (no se ha encontrado raylib local).")
+  message(STATUS "Descargando raylib (FetchContent)...")
   include(FetchContent)
   set(FETCHCONTENT_QUIET ON)
-
   FetchContent_Declare(
     raylib
     GIT_REPOSITORY https://github.com/raysan5/raylib.git
-    GIT_TAG        5.0
+    GIT_TAG 5.0
   )
-
   set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-  set(BUILD_GAMES    OFF CACHE BOOL "" FORCE)
+  set(BUILD_GAMES OFF CACHE BOOL "" FORCE)
   set(OPTION_CHECK_UPDATE OFF CACHE BOOL "" FORCE)
-
+  
   if(PREFER_RAYLIB_STATIC)
     set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
   else()
     set(BUILD_SHARED_LIBS ON CACHE BOOL "" FORCE)
   endif()
-
+  
   FetchContent_MakeAvailable(raylib)
 endif()
 
-# -----------------------------------------------------------------------------
-# Definición del ejecutable principal
-#
-# Creamos el binario "roguebot" a partir de las fuentes y lo enlazamos
-# con raylib. Además configuramos includes, constantes de compilación,
-# y librerías extra según plataforma.
-# -----------------------------------------------------------------------------
-
-# Crear el ejecutable a partir de todos los .cpp recogidos
+# --- 4. Ejecutable Principal ---
 add_executable(${PROJECT_NAME} ${ROGUEBOT_SOURCES})
 
-# Forzar enlazado estático en Windows (MinGW)
-if(WIN32 AND MINGW)
-    target_link_options(${PROJECT_NAME} PRIVATE 
-        -static 
-        -static-libgcc 
-        -static-libstdc++
-    )
+# --- 5. Configuración Específica WEB (EMSCRIPTEN) ---
+if(EMSCRIPTEN)
+  # Cambiar extensión a .html
+  set_target_properties(${PROJECT_NAME} PROPERTIES SUFFIX ".html")
+
+  # Forzar que el archivo se llame "index" (index.html, index.js, etc.)
+  set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "index")
+
+  # Flags de enlazado para Web
+  target_link_options(${PROJECT_NAME} PRIVATE
+    "-sUSE_GLFW=3"
+    "-sASYNCIFY"
+    "-sALLOW_MEMORY_GROWTH=1"
+    "-sFORCE_FILESYSTEM=1"
+    # Empaquetar la carpeta local 'assets' dentro del sistema de archivos virtual
+    "--preload-file" "${PROJECT_SOURCE_DIR}/assets@/assets" 
+    # Usar shell por defecto de raylib (mejora ajuste de pantalla)
+    "--shell-file" "${raylib_SOURCE_DIR}/src/shell.html"
+  )
+  
+  # Definición para detectar plataforma en C++
+  target_compile_definitions(${PROJECT_NAME} PRIVATE PLATFORM_WEB)
+  # Forzar OpenGL ES 2.0 en Web (Raylib lo necesita a veces explícitamente)
+  target_compile_definitions(${PROJECT_NAME} PRIVATE GRAPHICS_API_OPENGL_ES2)
 endif()
 
-# Añadir los directorios de cabeceras (.hpp) al target
-target_include_directories(${PROJECT_NAME}
-    PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+# --- 6. Configuración General y Desktop ---
 
-# Inyectar la ruta de assets en el código como RB_ASSET_ROOT.
-# En C++ se verá como una cadena, por ejemplo "assets".
-target_compile_definitions(${PROJECT_NAME}
-    PRIVATE RB_ASSET_ROOT="${ASSET_ROOT}"
+# Vincular Intl (Gettext) si corresponde
+if(ENABLE_I18N AND Intl_FOUND)
+  target_link_libraries(${PROJECT_NAME} PRIVATE Intl::Intl)
+endif()
+
+# Windows MinGW Static
+if(WIN32 AND MINGW)
+  target_link_options(${PROJECT_NAME} PRIVATE -static -static-libgcc -static-libstdc++)
+endif()
+
+# Includes
+target_include_directories(${PROJECT_NAME} PRIVATE ${ROGUEBOT_INCLUDE_DIRS})
+
+# Defines globales (ASSET_ROOT dinámico y flag I18N)
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+  RB_ASSET_ROOT="${ASSET_ROOT}"
+  RB_ENABLE_I18N=$<BOOL:${ENABLE_I18N}>
 )
 
-# Recurso de icono para el ejecutable en Windows (.exe).
-# El archivo .rc se compila con windres y embebe el icono .ico en el binario.
+# Icono Windows
 if(WIN32)
   set(ROGUEBOT_RC "${PROJECT_SOURCE_DIR}/packaging/windows/roguebot.rc")
   target_sources(${PROJECT_NAME} PRIVATE ${ROGUEBOT_RC})
 endif()
 
-# Enlazar con raylib según el modo seleccionado
+# Enlazar Raylib
 if(USE_EXTERNAL_RAYLIB)
-  # Si find_package(raylib) ha proporcionado un target "raylib", usamos ese.
   if(TARGET raylib)
     target_link_libraries(${PROJECT_NAME} PRIVATE raylib)
   else()
-    # Si venimos de pkg-config, usamos las rutas y librerías que nos da.
     target_include_directories(${PROJECT_NAME} PRIVATE ${RAYLIB_INCLUDE_DIRS})
     target_link_libraries(${PROJECT_NAME} PRIVATE ${RAYLIB_LIBRARIES})
   endif()
 else()
-  # En el modo FetchContent tenemos el target "raylib" del propio proyecto.
   target_link_libraries(${PROJECT_NAME} PRIVATE raylib)
 endif()
 
-# En Linux, si raylib se construye estática y no es externa,
-# hay que enlazar manualmente varias librerías del sistema
-# (X11, GL, pthread, etc.).
-if(UNIX AND NOT APPLE AND PREFER_RAYLIB_STATIC AND NOT USE_EXTERNAL_RAYLIB)
+# Librerías del sistema Linux (EXCLUYENDO EMSCRIPTEN)
+# Importante: AND NOT EMSCRIPTEN para que no intente enlazar X11 en la web
+if(UNIX AND NOT APPLE AND PREFER_RAYLIB_STATIC AND NOT USE_EXTERNAL_RAYLIB AND NOT EMSCRIPTEN)
   target_link_libraries(${PROJECT_NAME} PRIVATE
     m pthread dl rt
-    X11 Xrandr Xi Xxf86vm Xinerama Xcursor GL X11)
+    X11 Xrandr Xi Xxf86vm Xinerama Xcursor GL)
 endif()
 
-# En Windows, si raylib es estática y no externa,
-# hay que añadir las libs del sistema que raylib necesita.
+# Librerías del sistema Windows
 if(WIN32 AND PREFER_RAYLIB_STATIC AND NOT USE_EXTERNAL_RAYLIB)
   target_link_libraries(${PROJECT_NAME} PRIVATE winmm gdi32 opengl32)
 endif()
 
-# -----------------------------------------------------------------------------
-# Reglas de instalación
-#
-# Aquí definimos qué archivos se instalan y dónde.
-# CPack (al generar paquetes .zip, .deb, etc.) utiliza estas reglas
-# como referencia para estructurar el contenido del paquete.
-#
-#   - En Windows:
-#       roguebot.exe
-#       assets/...
-#
-#   - En Linux:
-#       bin/roguebot
-#       share/roguebot/assets/...
-#       share/applications/roguebot.desktop
-#       share/icons/hicolor/256x256/apps/roguebot.png
-# -----------------------------------------------------------------------------
-
+# --- 7. Instalación y Empaquetado ---
 include(GNUInstallDirs)
 
 if(WIN32)
-  # En Windows queremos un ZIP “portable”: el exe en la raíz del paquete
-  install(TARGETS ${PROJECT_NAME}
-      RUNTIME DESTINATION .)
-
-  # Copiar toda la carpeta assets/ a la raíz del paquete (assets/...)
-  install(DIRECTORY ${PROJECT_SOURCE_DIR}/assets/
-          DESTINATION assets
-          PATTERN ".*" EXCLUDE)
-
+  install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION .)
+  install(DIRECTORY ${PROJECT_SOURCE_DIR}/assets/ DESTINATION assets PATTERN ".*" EXCLUDE)
 else()
-  # En Linux (y otros UNIX), seguimos el esquema estándar de FHS:
-  #   /usr/bin, /usr/share, etc.
-
-  # Ejecutable en bin/ (normalmente /usr/local/bin)
-  install(TARGETS ${PROJECT_NAME}
-      RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-
-  # Assets en share/roguebot/assets (p.ej. /usr/local/share/roguebot/assets)
-  install(DIRECTORY ${PROJECT_SOURCE_DIR}/assets/
-          DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/${PROJECT_NAME}/assets
-          PATTERN ".*" EXCLUDE)
-
-  # Fichero .desktop para integrarlo en el menú de escritorio (solo no-Windows)
-  install(FILES ${PROJECT_SOURCE_DIR}/packaging/roguebot.desktop
-          DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/applications)
-
-  # Icono de 256x256 para menús/lanzadores en escritorio (solo no-Windows)
-  install(FILES ${PROJECT_SOURCE_DIR}/packaging/icons/roguebot.png
-          DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/256x256/apps)
+  # En Linux/Web
+  install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+  # Solo instalar assets en share si NO es emscripten (en web van empotrados)
+  if(NOT EMSCRIPTEN)
+    install(DIRECTORY ${PROJECT_SOURCE_DIR}/assets/
+      DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/${PROJECT_NAME}/assets
+      PATTERN ".*" EXCLUDE)
+    install(FILES ${PROJECT_SOURCE_DIR}/packaging/roguebot.desktop
+      DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/applications)
+    install(FILES ${PROJECT_SOURCE_DIR}/packaging/icons/roguebot.png
+      DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/256x256/apps)
+  endif()
 endif()
 
-# -----------------------------------------------------------------------------
-# Configuración de empaquetado (CPack)
-#
-# CPack genera paquetes a partir de las reglas de instalación anteriores.
-#
-#   - En Windows: ZIP portable + instalador NSIS (.exe)
-#   - En Linux:   paquete DEB + tarball TGZ
-#
-# Aquí definimos metadatos del paquete (nombre, versión, contacto, etc.)
-# y opciones específicas de cada generador.
-# -----------------------------------------------------------------------------
-
+# Configuración CPack
 set(CPACK_PACKAGE_NAME ${PROJECT_NAME})
 set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
 set(CPACK_PACKAGE_VENDOR "Roguebot")
@@ -286,50 +199,44 @@ set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "${PROJECT_DESCRIPTION}")
 set(CPACK_RESOURCE_FILE_LICENSE "${PROJECT_SOURCE_DIR}/LICENSE")
 
 if(WIN32)
-  # En Windows queremos:
-  #   - ZIP (portable)
-  #   - NSIS (instalador gráfico .exe)
   set(CPACK_GENERATOR "ZIP;NSIS")
-
-  # Carpeta por defecto dentro de Archivos de programa (ej. C:\Program Files\RogueBot)
   set(CPACK_PACKAGE_INSTALL_DIRECTORY "RogueBot")
-
-  # Nombre que aparece en el instalador y en "Agregar o quitar programas"
   set(CPACK_NSIS_DISPLAY_NAME "RogueBot")
   set(CPACK_NSIS_PACKAGE_NAME "RogueBot")
   set(CPACK_NSIS_CONTACT "${CPACK_PACKAGE_CONTACT}")
-
-  # (Opcional) Icono del asistente de instalación, si se desea usar un .ico
-  # set(CPACK_PACKAGE_ICON "${PROJECT_SOURCE_DIR}/packaging/icons/roguebot.ico")
-
-  # Indicar qué ejecutable se usará como icono instalado en el Menú Inicio
   set(CPACK_NSIS_INSTALLED_ICON_NAME "roguebot.exe")
-
-  # Crear entrada en el Menú Inicio que apunta a roguebot.exe
   set(CPACK_NSIS_MENU_LINKS "roguebot.exe" "RogueBot")
-
-  # Crear un acceso directo en el Escritorio al instalar
-  set(CPACK_NSIS_CREATE_ICONS_EXTRA
-      "CreateShortCut '$DESKTOP\\\\RogueBot.lnk' '$INSTDIR\\\\roguebot.exe'")
-
-  # Borrar el acceso del Escritorio al desinstalar
-  set(CPACK_NSIS_DELETE_ICONS_EXTRA
-      "Delete '$DESKTOP\\\\RogueBot.lnk'")
-
+  set(CPACK_NSIS_CREATE_ICONS_EXTRA "CreateShortCut '$DESKTOP\\\\RogueBot.lnk' '$INSTDIR\\\\roguebot.exe'")
+  set(CPACK_NSIS_DELETE_ICONS_EXTRA "Delete '$DESKTOP\\\\RogueBot.lnk'")
 else()
-  # En Linux generamos:
-  #   - Paquete .deb (para sistemas tipo Debian/Ubuntu)
-  #   - Tarball .tar.gz (portátil para otros sistemas)
   set(CPACK_GENERATOR "DEB;TGZ")
   set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Roguebot")
   set(CPACK_DEBIAN_PACKAGE_SECTION "games")
-
-  # Si enlazamos dinámicamente contra una raylib externa, podemos declarar
-  # la dependencia del paquete DEB (ajustar versión según el sistema).
   if(USE_EXTERNAL_RAYLIB AND NOT PREFER_RAYLIB_STATIC)
     set(CPACK_DEBIAN_PACKAGE_DEPENDS "libraylib5 (>= 5.0)")
   endif()
 endif()
 
-# Incluir CPack y activar los targets "package" / "package_source"
+# --- 8. Tests ---
+# Desactivar tests si estamos en Emscripten (no suelen correr bien en CI sin node)
+if(NOT EMSCRIPTEN)
+  enable_testing()
+  include(CTest)
+  if(BUILD_TESTING)
+    add_subdirectory(tests)
+  endif()
+endif()
+
+# Comando personalizado para crear el ZIP web automáticamente tras compilar
+if(EMSCRIPTEN)
+  add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E tar cfv "roguebot_web.zip" --format=zip
+            "${CMAKE_BINARY_DIR}/index.html"
+            "${CMAKE_BINARY_DIR}/index.js"
+            "${CMAKE_BINARY_DIR}/index.wasm"
+            "${CMAKE_BINARY_DIR}/index.data"
+    COMMENT "Empaquetando version Web (index.html) en roguebot_web.zip..."
+  )
+endif()
+
 include(CPack)
